@@ -1,25 +1,12 @@
-"""
-Comprehensive Zero-Day Attack Detection Benchmark
---------------------------------------------------------------------
-Evaluates the full detection pipeline across held-out ambient drives and
-unseen ROAD attack captures (including masquerade attacks).
-
-Computes:
-  - Binary Detection Metrics (Precision, Recall, F1, Accuracy)
-  - Discrimination Metrics (ROC-AUC, PR-AUC)
-  - Operational IDS Metrics (False Positive Rate, Detection Latency)
-  - Per-Attack Family & Per-Capture Breakdown
-"""
-
 import os
 import sys
 import pickle
 import random
+import argparse
 import numpy as np
 import torch
 from torch_geometric.loader import DataLoader
 
-# Ensure modules in graph-transformer and attack-detection are importable
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.dirname(BASE_DIR)
 GT_DIR = os.path.join(PARENT_DIR, "graph-transformer")
@@ -29,10 +16,9 @@ if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
 from model import GraphTransformerAutoencoder, ModelConfig
-from train import split_data, normalize_graph_features, align_graph_feature_dim
+from train import split_data, normalize_graph_features, align_graph_feature_dim, apply_saved_normalization
 from detector import ZeroDayDetector, RiskState, DetectionResult
 from scorer import AnomalyScorerConfig
-
 
 OUTPUTS_DIR = os.path.join(GT_DIR, "outputs")
 GRAPH_DATA_PATH = os.path.join(OUTPUTS_DIR, "graphs.pt")
@@ -43,72 +29,106 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 SEED = 42
 
 
+def _rank_data_numpy(a: np.ndarray) -> np.ndarray:
+    """Assigns average ranks to tied values in pure numpy (matches scipy.stats.rankdata)."""
+    a = np.asarray(a)
+    n = len(a)
+    if n == 0:
+        return np.array([], dtype=np.float64)
+    sorter = np.argsort(a)
+    inv = np.empty(n, dtype=np.intp)
+    inv[sorter] = np.arange(n)
+
+    a_sorted = a[sorter]
+    obs = np.r_[True, a_sorted[1:] != a_sorted[:-1]]
+    dense = obs.cumsum()[inv]
+
+    count = np.r_[np.nonzero(obs)[0], n]
+    return 0.5 * (count[dense] + count[dense - 1] + 1)
+
+
 def compute_roc_auc(scores: np.ndarray, labels: np.ndarray) -> float:
-    """Compute ROC-AUC in pure NumPy for binary labels."""
+    """Computes exact ROC-AUC using the Mann-Whitney U test formula with exact tie handling."""
     scores = np.asarray(scores, dtype=np.float64)
     labels = np.asarray(labels, dtype=np.int64)
 
-    if scores.size == 0 or labels.size == 0:
-        return 0.0
-    if np.unique(labels).size < 2:
-        return 0.0
+    pos_scores = scores[labels == 1]
+    neg_scores = scores[labels == 0]
+    n_pos = len(pos_scores)
+    n_neg = len(neg_scores)
 
-    order = np.argsort(scores)
-    sorted_scores = scores[order]
-    sorted_labels = labels[order]
+    if n_pos == 0 or n_neg == 0:
+        return 0.5
 
-    pos_count = np.sum(sorted_labels == 1)
-    neg_count = np.sum(sorted_labels == 0)
+    all_scores = np.concatenate([pos_scores, neg_scores])
+    all_labels = np.concatenate([np.ones(n_pos, dtype=np.int64), np.zeros(n_neg, dtype=np.int64)])
+    ranks = _rank_data_numpy(all_scores)
+    sum_pos_ranks = np.sum(ranks[all_labels == 1])
+    u = sum_pos_ranks - (n_pos * (n_pos + 1.0)) / 2.0
+    return float(u / (n_pos * n_neg))
+
+
+def compute_pr_auc(scores: np.ndarray, labels: np.ndarray) -> float:
+    """Computes exact Precision-Recall Area Under Curve in pure numpy."""
+    scores = np.asarray(scores, dtype=np.float64)
+    labels = np.asarray(labels, dtype=np.int64)
+
+    pos_count = int(np.sum(labels == 1))
+    neg_count = int(np.sum(labels == 0))
     if pos_count == 0 or neg_count == 0:
         return 0.0
 
-    tp = 0.0
-    fp = 0.0
-    prev_score = None
-    auc = 0.0
+    # Sort descending by score
+    desc_order = np.argsort(scores)[::-1]
+    sorted_scores = scores[desc_order]
+    sorted_labels = labels[desc_order]
 
-    for score, label in zip(sorted_scores[::-1], sorted_labels[::-1]):
-        if prev_score is not None and score != prev_score:
-            auc += (fp / neg_count) * (tp / pos_count)
-        if label == 1:
-            tp += 1.0
-        else:
-            fp += 1.0
-        prev_score = score
+    # Find unique score thresholds
+    distinct_indices = np.where(np.diff(sorted_scores))[0]
+    threshold_indices = np.r_[distinct_indices, sorted_labels.size - 1]
 
-    auc += (fp / neg_count) * (tp / pos_count)
-    return float(auc / (pos_count * neg_count))
+    tps = np.cumsum(sorted_labels == 1)[threshold_indices]
+    fps = np.cumsum(sorted_labels == 0)[threshold_indices]
 
+    precisions = tps / (tps + fps)
+    recalls = tps / pos_count
 
-def compute_pr_auc(scores: np.ndarray, labels: np.ndarray, num_thresholds: int = 200) -> float:
-    """Computes exact Precision-Recall Area Under Curve in pure numpy."""
-    pos_count = np.sum(labels == 1)
-    if pos_count == 0:
-        return 0.0
+    # Anchor at recall 0 with initial precision
+    recalls = np.r_[0.0, recalls]
+    precisions = np.r_[precisions[0] if len(precisions) > 0 else 1.0, precisions]
 
-    thresholds = np.linspace(scores.min(), scores.max(), num_thresholds)
-    precisions = []
-    recalls = []
-
-    for t in sorted(thresholds):
-        preds = (scores >= t).astype(int)
-        tp = np.sum((preds == 1) & (labels == 1))
-        fp = np.sum((preds == 1) & (labels == 0))
-        fn = np.sum((preds == 0) & (labels == 1))
-
-        p = tp / max(tp + fp, 1)
-        r = tp / max(tp + fn, 1)
-        precisions.append(p)
-        recalls.append(r)
-
-    # Sort by recall and integrate via trapezoidal rule
-    recalls = np.array(recalls)
-    precisions = np.array(precisions)
-    sorted_idx = np.argsort(recalls)
-    return float(np.trapezoid(precisions[sorted_idx], recalls[sorted_idx]))
+    trap_fn = getattr(np, "trapezoid", getattr(np, "trapz", None))
+    return float(trap_fn(precisions, recalls))
 
 
-def run_evaluation():
+def restore_or_split_graphs(graphs: list, checkpoint: dict):
+    """
+    Restores the exact train/val/test splits and normalization parameters from checkpoint.
+    """
+    train_captures = checkpoint.get("train_captures")
+    val_captures = checkpoint.get("val_captures")
+    test_captures = checkpoint.get("test_captures")
+    train_mean = checkpoint.get("train_mean")
+    train_std = checkpoint.get("train_std")
+
+    if train_captures and val_captures and test_captures and train_mean is not None and train_std is not None:
+        print("Restoring exact capture splits and feature normalizer from checkpoint metadata...")
+        train_graphs = [g for g in graphs if g.capture_name in train_captures]
+        val_graphs = [g for g in graphs if g.capture_name in val_captures]
+        # Test graphs = held out test ambient captures + all attack captures
+        test_graphs = [g for g in graphs if g.capture_name in test_captures or g.y.item() == 1 or not str(g.capture_name).startswith("ambient_")]
+        apply_saved_normalization(train_graphs, train_mean, train_std)
+        apply_saved_normalization(val_graphs, train_mean, train_std)
+        apply_saved_normalization(test_graphs, train_mean, train_std)
+        return train_graphs, val_graphs, test_graphs, train_mean, train_std
+    else:
+        print("Checkpoint lacks split metadata; falling back to deterministic split...")
+        train_graphs, val_graphs, test_graphs, _, _, _ = split_data(graphs)
+        mean, std = normalize_graph_features(train_graphs, val_graphs, test_graphs)
+        return train_graphs, val_graphs, test_graphs, mean, std
+
+
+def run_evaluation(scorer_config: AnomalyScorerConfig = None):
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
@@ -128,15 +148,18 @@ def run_evaluation():
     with open(VOCAB_PATH, "rb") as f:
         vocab = pickle.load(f)
 
+    checkpoint = torch.load(CHECKPOINT_PATH, weights_only=False)
     config = ModelConfig()
+    if "config" in checkpoint:
+        for k, v in checkpoint["config"].items():
+            if hasattr(config, k):
+                setattr(config, k, v)
     config.num_ids = len(vocab)
     align_graph_feature_dim(graphs, config.node_stat_feature_dim)
 
-    train_graphs, val_graphs, test_graphs = split_data(graphs)
-    train_mean, train_std = normalize_graph_features(train_graphs, val_graphs, test_graphs)
+    train_graphs, val_graphs, test_graphs, train_mean, train_std = restore_or_split_graphs(graphs, checkpoint)
 
     model = GraphTransformerAutoencoder(config).to(DEVICE)
-    checkpoint = torch.load(CHECKPOINT_PATH, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
@@ -144,11 +167,12 @@ def run_evaluation():
     print(f"Split: {len(train_graphs)} train, {len(val_graphs)} val, {len(test_graphs)} test.")
 
     print("\n[2/4] Initializing and Calibrating Zero-Day Detector...")
-    scorer_config = AnomalyScorerConfig(
-        alpha_recon=0.50,
-        beta_temporal=0.25,
-        gamma_struct=0.25,
-    )
+    if scorer_config is None:
+        scorer_config = AnomalyScorerConfig(
+            alpha_recon=0.50,
+            beta_temporal=0.25,
+            gamma_struct=0.25,
+        )
     detector = ZeroDayDetector(scorer_config)
     detector.fit_baseline(train_graphs, vocab_size=len(vocab))
 
@@ -179,7 +203,7 @@ def run_evaluation():
     scores = np.array([r.anomaly_score for r in results], dtype=np.float64)
     labels = np.array([r.ground_truth_label for r in results], dtype=np.int64)
 
-    # Predictions using calibrated alert threshold
+    # Use calibrated decision threshold (tau_suspicious) for binary detection
     preds_binary = (scores >= detector.tau_suspicious).astype(int)
 
     tp = int(np.sum((preds_binary == 1) & (labels == 1)))
@@ -192,7 +216,6 @@ def run_evaluation():
     f1 = 2 * (precision * recall) / max(precision + recall, 1e-6)
     accuracy = (tp + tn) / max(tp + tn + fp + fn, 1)
     fpr = fp / max(fp + tn, 1)
-    tpr = recall
 
     roc_auc = compute_roc_auc(scores, labels)
     pr_auc = compute_pr_auc(scores, labels)
@@ -203,6 +226,9 @@ def run_evaluation():
     print(f"  Total Test Windows      : {len(results)} (Benign: {np.sum(labels==0)}, Attack: {np.sum(labels==1)})")
     print(f"  True Positives (TP)     : {tp:5d}  |  False Positives (FP) : {fp:5d}")
     print(f"  False Negatives (FN)    : {fn:5d}  |  True Negatives (TN)  : {tn:5d}")
+    print("-" * 70)
+    print(f"  Decision Threshold (tau): {detector.tau_suspicious:.4f}")
+    print(f"  High-Risk Alert (tau)   : {detector.tau_alert:.4f}")
     print("-" * 70)
     print(f"  Precision               : {precision:.4f}")
     print(f"  Recall (Detection Rate) : {recall:.4f}")
@@ -233,7 +259,6 @@ def run_evaluation():
         triggered_count = sum(1 for s in cap_scores if s >= detector.tau_suspicious)
         total_windows = len(cap_results)
 
-        # Calculate time-to-detection latency (first trigger window relative to first attack window)
         latency_str = "N/A"
         if is_attack_cap:
             attack_start_times = [r.window_start for r in cap_results if r.ground_truth_label == 1]
@@ -245,7 +270,15 @@ def run_evaluation():
         print(f"{cap_name:<45} | {cap_type:<10} | {np.mean(cap_scores):<10.4f} | {f'{triggered_count}/{total_windows}':<15} | {latency_str:<8}")
 
     print("=" * 95)
-    print("\nEvaluation complete. Pipeline ready for Explainability Layer integration.")
+    return {
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
+        "accuracy": accuracy,
+        "fpr": fpr,
+        "roc_auc": roc_auc,
+        "pr_auc": pr_auc,
+    }
 
 
 if __name__ == "__main__":
