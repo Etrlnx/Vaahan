@@ -1,12 +1,12 @@
 # An Explainable Graph-Based Transformer for Zero-Day Attack Detection in Autonomous Vehicles
 
-![Status](https://img.shields.io/badge/status-active%20development%20%28pipeline%20functional%29-brightgreen)
+![Status](https://img.shields.io/badge/status-MVP%20complete%20%28XAI%20layer%20functional%29-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT%20License-lightgrey)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Domain](https://img.shields.io/badge/domain-CAN%20bus%20security-orange)
-![Model](https://img.shields.io/badge/model-Graph%20Transformer%20%2B%20Autoencoder-informational)
+![Model](https://img.shields.io/badge/model-Graph%20Transformer%20%2B%20Autoencoder%20%2B%20XAI-informational)
 
-> **Note on project status:** The core representation-learning and reconstruction-based anomaly detection pipeline is **implemented, trained, and functional** within [`graph-transformer/`](graph-transformer/). This includes ROAD dataset ingestion, temporal windowing, dynamic graph construction (9D node features + global arbitration ID embeddings + directed temporal adjacency edges), coupled `TransformerConv` encoder with attention extraction hooks, multi-component decoder, and capture-aware benign-only training. Multi-deviation anomaly score fusion, higher-level XAI evidence synthesis, and gateway containment policy remain in active development.
+> **Note on project status:** The full MVP pipeline is **implemented and functional** end-to-end. This includes ROAD dataset ingestion, temporal windowing, dynamic graph construction, the coupled `GraphTransformerAutoencoder`, multi-component anomaly scoring, and a complete Explainable AI (XAI) evidence layer (`explainability/`) that generates structured JSON incident reports, natural language triage summaries, and a unified 4-panel visual dashboard. Measured zero-day detection performance: **ROC-AUC 0.9473 · PR-AUC 0.8311 · F1 0.7937 · FPR 2.85%**. Gateway containment policy simulation and post-MVP refinements remain as future work.
 
 ---
 
@@ -157,25 +157,40 @@ CAN traffic that reaches the learned pipeline is first grouped into temporal win
 
 | Layer | Technology | Status |
 |---|---|---|
-| Programming Language | Python 3.10+ | Implemented |
-| Deep Learning Framework | PyTorch (>= 2.1) | Implemented |
-| Graph Neural Network / Attention Layers | PyTorch Geometric (`TransformerConv` multi-head edge-conditioned attention) | Implemented |
-| Autoencoder Architecture | Coupled `GraphTransformerAutoencoder` (MLP node feature decoder + inner-product edge decoder) | Implemented |
-| CAN Data Source | ROAD (Real Autonomous Driving) Dataset (ORNL) — signal-translated ambient + attack captures | Implemented |
-| Preprocessing & Windowing | Custom sliding-window parser (`preprocess.py`) with configurable strides | Implemented |
-| Dynamic Graph Generation | Custom PyG graph builder (`graph_builder.py`) with 9D node stats & ID vocabulary embedding | Implemented |
-| Explainability Layer | Attention weight hooks (`get_attention_weights`), feature attribution, graph explanation | In Progress / Planned |
-| Gateway / Policy Simulation | Custom rule-based policy engine for allow/restrict/isolate/alert decisions | Planned |
-| Experiment Tracking | PyTorch checkpoints + per-capture metric logs (TensorBoard/W&B integration planned) | In Progress |
+| Programming Language | Python 3.10+ | ✅ Implemented |
+| Deep Learning Framework | PyTorch (>= 2.1) | ✅ Implemented |
+| Graph Neural Network / Attention Layers | PyTorch Geometric (`TransformerConv` multi-head edge-conditioned attention) | ✅ Implemented |
+| Autoencoder Architecture | Coupled `GraphTransformerAutoencoder` (MLP node feature decoder + inner-product edge decoder) | ✅ Implemented |
+| CAN Data Source | ROAD (Real Autonomous Driving) Dataset (ORNL) — signal-translated ambient + attack captures | ✅ Implemented |
+| Preprocessing & Windowing | Custom sliding-window parser (`preprocess.py`) with configurable strides | ✅ Implemented |
+| Dynamic Graph Generation | Custom PyG graph builder (`graph_builder.py`) with 9D node stats & ID vocabulary embedding | ✅ Implemented |
+| Multi-Component Anomaly Scoring | `ZeroDayDetector` fusing reconstruction (R), temporal (T) and structural (G) signals | ✅ Implemented |
+| Explainability Layer | Attention Rollout + Feature Attribution + Subgraph Localizer + Incident Report Generator + Visual Dashboard | ✅ Implemented (MVP) |
+| XAI Evaluation Suite | `evalxai.py` — HR@1, HR@3, Feature Grounding Fidelity against ROAD ground truth | ✅ Implemented |
+| Unit Test Suite | `tests/test_pipeline.py` + `tests/test_xai.py` — 10 pipeline + XAI contract tests | ✅ Implemented |
+| Gateway / Policy Simulation | Custom rule-based policy engine for allow/restrict/isolate/alert decisions | 🔲 Planned |
+| Experiment Tracking | PyTorch checkpoints + per-capture metric logs (TensorBoard/W&B integration planned) | 🔲 Planned |
 
 ## 10. Directory Structure
 
 ```
 capstone/
-├── attack-detection/          # Module: Zero-day detection mechanisms, anomaly fusion, risk assessment
-│   └── README.md              # Conceptual architecture and scoring design
-├── explainability/            # Module: XAI evidence layer (attention analysis, attribution, reasoning)
-│   └── README.md              # XAI pipeline, fusion design, and security reporting
+├── attack-detection/          # Module: Zero-day detection — ZeroDayDetector, AnomalyScorer, TransitionBaseline
+│   ├── detector.py            # ZeroDayDetector: calibrate, evaluate_graph, risk state
+│   ├── scorer.py              # AnomalyScorerConfig + TransitionBaseline NLL scoring
+│   ├── evaluate.py            # Zero-day benchmark — ROC-AUC, PR-AUC, F1, FPR, detection latency
+│   └── README.md              # Scoring architecture and evaluation protocol
+├── explainability/            # Module: Full XAI evidence layer (MVP complete)
+│   ├── attention_analyzer.py  # Multi-head attention extraction + Attention Rollout
+│   ├── attribution.py         # Per-node & per-feature reconstruction error decomposition
+│   ├── graph_localizer.py     # k-hop subgraph extraction + sequence NLL annotation
+│   ├── report_generator.py    # JSON + text security incident report generator
+│   ├── evalxai.py             # XAI fidelity benchmark (HR@1, HR@3, Feature Grounding)
+│   ├── plot_component_radar.py       # Polar spider chart — normalised component deviation
+│   ├── plot_id_attribution.py        # Dual-panel CAN ID + feature attribution bar chart
+│   ├── plot_interactive_subgraph.py  # Interactive HTML5 + static PNG subgraph network
+│   ├── plot_xai_dashboard.py         # Unified 4-panel Matplotlib dashboard
+│   └── README.md              # XAI pipeline design, schemas, and evaluation protocol
 ├── graph-transformer/         # Module: Core representation learning & GAE detection pipeline
 │   ├── CHANGELOG.md           # Milestone & engineering change history
 │   ├── README.md              # Detailed architecture, schema, & usage documentation
@@ -184,15 +199,20 @@ capstone/
 │   ├── model.py               # Coupled GraphTransformerAutoencoder (TransformerConv + MLP/edge decoders)
 │   ├── train.py               # Benign-only training, capture-aware CV, train-only normalization, evaluation
 │   ├── road/                  # Local ROAD dataset directory (signal-translated CSVs)
-│   └── outputs/               # Serialized window records, graph dataset, vocab, and best_model.pt
+│   └── outputs/               # graphs.pt, vocab.pkl, best_model.pt, xai_visuals/
+├── tests/
+│   ├── test_pipeline.py       # 10 unit tests: detector contracts, metric correctness, edge cases
+│   └── test_xai.py            # XAI component unit tests
 ├── requirements.txt           # Core Python dependencies
+├── CHANGELOG.md               # Project-level milestone history
+├── task_list.md               # Architecture review checklist & implementation plan
 ├── LICENSE                    # MIT License
 └── README.md                  # Project overview and research documentation
 ```
 
 ## 11. Installation
 
-**Status: Functional.** The data preprocessing, graph construction, model definition, and training pipeline in `graph-transformer/` are fully implemented and runnable. See the [Graph Transformer Changelog](graph-transformer/CHANGELOG.md) for recent engineering updates.
+**Status: Fully Functional.** All pipeline stages through XAI visual dashboards are implemented and runnable. See the [CHANGELOG](CHANGELOG.md) for the complete engineering history.
 
 ```bash
 # 1. Clone the repository
@@ -218,21 +238,28 @@ pip install -r requirements.txt
 
 ## 12. Usage
 
-The core pipeline can be executed in sequence from the repository root:
+The full pipeline runs in sequence from the repository root:
 
 ```bash
 # Step 1: Preprocess raw ROAD dataset into temporal window records
 python graph-transformer/preprocess.py
-# -> Emits outputs/road_windowed.pkl (WindowRecord objects with raw message DataFrames)
+# -> Emits outputs/road_windowed.pkl
 
 # Step 2: Build dynamic PyTorch Geometric graphs and global ID vocabulary
 python graph-transformer/graph_builder.py
-# -> Emits outputs/graphs.pt (PyG Data objects) and outputs/vocab.pkl
+# -> Emits outputs/graphs.pt and outputs/vocab.pkl
 
-# Step 3: Train Graph Transformer + Autoencoder on benign captures & evaluate on held-out attacks
+# Step 3: Train Graph Transformer + Autoencoder on benign captures
 python graph-transformer/train.py
-# -> Trains on benign-only graphs, standardizes features via train-set statistics,
-#    saves outputs/best_model.pt, and prints a per-capture reconstruction error breakdown.
+# -> Saves outputs/best_model.pt with weights, vocab, splits, and normalizer
+
+# Step 4: Run the zero-day detection benchmark on held-out attack captures
+python attack-detection/evaluate.py
+# -> Prints ROC-AUC, PR-AUC, F1, FPR, detection latency per attack family
+
+# Step 5: Run the XAI fidelity benchmark and generate visual dashboards
+python explainability/evalxai.py          # saves PNGs + HTML to outputs/xai_visuals/
+python explainability/evalxai.py --show   # same + opens interactive Matplotlib windows
 ```
 
 ## 13. Graph Construction
@@ -286,27 +313,30 @@ Anomaly detection is formulated as an **unsupervised one-class reconstruction ta
   where $\mathcal{L}_{\text{node}}$ is a weighted MSE across node feature residuals giving higher penalty to anomaly-sensitive dimensions (`signal_std`, `signal_max`, `activity_share`, `signal_range`), and $\mathcal{L}_{\text{edge}}$ is binary cross-entropy on inner-product reconstructed edge logits.
 - **Evaluation Strategy**: All attack captures (including masquerade attacks) are held out for testing. Evaluation runs with single-graph batches (`batch_size=1`) to retain capture metadata and calculate per-capture reconstruction error distributions alongside aggregate benign-vs-attack separation.
 
-**Status: Core Reconstruction Implemented; Multi-term Fusion In Progress.** See [`graph-transformer/train.py`](graph-transformer/train.py) and [`attack-detection/README.md`](attack-detection/README.md).
+**Status: Implemented.** Multi-deviation anomaly fusion is calibrated via `ZeroDayDetector` in [`attack-detection/detector.py`](attack-detection/detector.py), yielding **0.9473 ROC-AUC** and **0.8311 PR-AUC** on zero-day attack testing.
 
 ## 15. Explainability Layer
 
 ```mermaid
 flowchart TD
 
-A[Attention Analysis] --> E[Evidence Fusion]
-B[Feature Attribution] --> E
-C[Graph Explanation] --> E
-D[Error Analysis] --> E
+A[Attention Analysis (Attention Rollout)] --> E[Evidence Fusion Engine]
+B[Feature Attribution (Per-Node Residuals)] --> E
+C[Subgraph Localizer (k-Hop Subgraphs)] --> E
+D[Error Analysis (Component Decomposition)] --> E
 
-E --> F[Security Explanation]
-E --> G[Risk State]
+E --> F[Human-Readable Triage Reports & Visual Dashboards]
+E --> G[Machine-Readable JSON Incident Schemas]
 ```
 
-When the anomaly score indicates high risk, the XAI evidence layer is triggered. Four complementary sources of evidence — Graph Transformer attention weights (hooked via `model.get_attention_weights()`), feature attribution, structural graph explanation, and reconstruction error analysis — are fused into a single output: a human-readable **security explanation** (what looked anomalous and why) and a machine-usable **risk state** that is handed to the gateway policy.
+When the anomaly score crosses $\tau_{\text{suspicious}}$ (or $\tau_{\text{alert}}$), the XAI evidence layer is triggered:
+1. **Attention Analysis (`attention_analyzer.py`)**: Multi-head attention extraction across all 4 `TransformerConv` layers and Attention Rollout ($\mathbf{A}_{\text{rollout}}$) isolating the critical edge communication path.
+2. **Node & Feature Attribution (`attribution.py`)**: Decomposes per-node reconstruction residuals $\mathbf{e}_v = (x_v - \hat{x}_v)^2 \odot \mathbf{w}$ across 9 physical feature dimensions to rank culprit CAN Arbitration IDs.
+3. **Subgraph Localizer (`graph_localizer.py`)**: Extracts $k$-hop interaction subgraphs tagged with sequence violation penalties ($G_{\text{error}}$).
+4. **Report Generator (`report_generator.py`)**: Fuses evidence into standardized JSON schemas and natural language incident triage summaries with recommended gateway enforcement actions.
+5. **Visual Dashboards**: Automatically renders a 4-panel visual dashboard (`plot_xai_dashboard.py`), polar radar chart (`plot_component_radar.py`), CAN ID attribution bar chart (`plot_id_attribution.py`), and interactive HTML5 network graph (`plot_interactive_subgraph.py`).
 
-**Why fuse multiple evidence sources instead of one?** Attention weights alone can highlight *which* relationships the model focused on without saying *what* was wrong with them; reconstruction error alone can flag *that* something was anomalous without saying *which* ECU or relationship drove it. Combining attention, attribution, graph structure, and error analysis produces an explanation that is both accurate and actionable for a security engineer.
-
-**Status: Planned / In Progress.** See [`explainability/README.md`](explainability/README.md) for full design specifications.
+**Status: Implemented (MVP Complete).** See [`explainability/README.md`](explainability/README.md) for architecture specifications, report schemas, and evaluation protocol.
 
 ## 16. Gateway Policy & Containment
 
