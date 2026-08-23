@@ -1,34 +1,12 @@
-"""
-Training script — Graph Transformer + Graph Autoencoder (coupled)
---------------------------------------------------------------------
-Training strategy, matching the project's core premise:
-
-  - Train ONLY on benign windows. The autoencoder should learn what
-    normal CAN bus behavior looks like; it never sees attack traffic
-    during training.
-  - Attack windows (including the masquerade captures — your zero-day
-    stand-ins) are held out entirely and only used at evaluation time,
-    to check whether reconstruction error on unseen attack traffic is
-    meaningfully higher than on unseen benign traffic.
-
-This script is intentionally a first pass / sanity-check level of
-completeness: get a real signal that reconstruction error separates
-benign from attack before investing in anomaly-score fusion (temporal +
-structural deviation terms) or the explainability layer. That was the
-agreed sequencing — don't build on top of this until the separation
-here is actually meaningful.
-"""
-
+import os
+import sys
+import copy
 import pickle
 import random
-
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
-import os
-from model import GraphTransformerAutoencoder, ModelConfig, reconstruction_loss
-
-# Initial Configuration
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
@@ -46,54 +24,57 @@ SEED = 42
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+from model import GraphTransformerAutoencoder, ModelConfig, reconstruction_loss
 
-def set_seed(seed):
+
+def set_seed(seed: int = SEED):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
-# Data splitting
 
-def split_data(graphs):
-    """
-    Splits graphs by capture to avoid leakage between similar benign windows.
-    This produces a more realistic train/val/test split than random window-level
-    mixing, and it better reflects the expected deployment setting.
-    """
-    benign = [g for g in graphs if g.y.item() == 0]
-    attack = [g for g in graphs if g.y.item() == 1]
+def split_data(graphs: list, val_fraction: float = VAL_FRACTION, seed: int = SEED):
+ 
+    rng = random.Random(seed)
+
+    # Separate ambient and attack graphs by capture name and label
+    ambient_graphs = [g for g in graphs if g.y.item() == 0 and str(g.capture_name).startswith("ambient_")]
+    attack_graphs = [g for g in graphs if g.y.item() == 1 or not str(g.capture_name).startswith("ambient_")]
 
     by_capture = {}
-    for g in benign:
+    for g in ambient_graphs:
         by_capture.setdefault(g.capture_name, []).append(g)
 
-    capture_names = list(by_capture.keys())
-    random.shuffle(capture_names)
+    ambient_captures = sorted(list(by_capture.keys()))
+    rng.shuffle(ambient_captures)
 
-    n_val = max(1, int(len(capture_names) * VAL_FRACTION))
-    val_captures = capture_names[:n_val]
-    remaining_captures = capture_names[n_val:]
+    n_val = max(1, int(len(ambient_captures) * val_fraction))
+    val_captures = ambient_captures[:n_val]
+    remaining = ambient_captures[n_val:]
 
-    n_test = max(1, int(len(remaining_captures) * 0.1))
-    test_captures = remaining_captures[:n_test]
-    train_captures = remaining_captures[n_test:]
+    n_test = max(1, int(len(remaining) * 0.15))
+    test_ambient_captures = remaining[:n_test]
+    train_captures = remaining[n_test:]
 
     train_benign = [g for c in train_captures for g in by_capture[c]]
     val_benign = [g for c in val_captures for g in by_capture[c]]
-    test_benign = [g for c in test_captures for g in by_capture[c]]
-    test_set = test_benign + attack
+    test_benign = [g for c in test_ambient_captures for g in by_capture[c]]
+    test_set = test_benign + attack_graphs
 
-    print(f"Split: {len(train_benign)} train (benign), "
-          f"{len(val_benign)} val (benign), "
-          f"{len(test_set)} test ({len(test_benign)} benign + {len(attack)} attack)")
+    attack_captures = sorted(list({g.capture_name for g in attack_graphs}))
 
-    return train_benign, val_benign, test_set
+    print(f"Split captures: {len(train_captures)} train ambient, {len(val_captures)} val ambient, "
+          f"{len(test_ambient_captures)} test ambient, {len(attack_captures)} attack captures.")
+    print(f"Split graphs: {len(train_benign)} train (ambient), {len(val_benign)} val (ambient), "
+          f"{len(test_set)} test total.")
+
+    return train_benign, val_benign, test_set, train_captures, val_captures, test_ambient_captures
 
 
-def align_graph_feature_dim(graphs, expected_dim):
-    """Backfills legacy graph files if their node-feature vector differs from
-    the current model definition. This keeps old saved graph dumps usable while
-    avoiding a runtime shape mismatch at the first forward pass."""
+def align_graph_feature_dim(graphs, expected_dim: int):
+    """Backfills legacy graph files if their node-feature vector differs."""
     aligned = 0
     for g in graphs:
         if g.x.size(-1) != expected_dim:
@@ -107,15 +88,7 @@ def align_graph_feature_dim(graphs, expected_dim):
         print(f"Aligned {aligned} graphs to feature dimension {expected_dim}.")
 
 
-def normalize_graph_features(train_graphs, val_graphs, test_graphs):
-    """
-    Standardize node statistics using train-set statistics only.
-
-    This is intentionally done before training begins and uses only the benign
-    training captures, so the scale is anchored to the normal distribution seen
-    during training instead of leaking validation/test/attack statistics into the
-    feature transform.
-    """
+def normalize_graph_features(train_graphs, val_graphs, test_graphs):  
     if not train_graphs:
         raise ValueError("Training split is empty; cannot compute feature normalization stats.")
 
@@ -130,7 +103,14 @@ def normalize_graph_features(train_graphs, val_graphs, test_graphs):
 
     return mean, std
 
-# Training and evaluation
+
+def apply_saved_normalization(graphs: list, mean: torch.Tensor, std: torch.Tensor):
+    """Applies pre-computed normalization parameters to graphs."""
+    mean = mean.to(torch.float32)
+    std = std.to(torch.float32)
+    for g in graphs:
+        g.x = ((g.x - mean) / std).to(torch.float32)
+
 
 def run_epoch(model, loader, optimizer, config, train=True):
     model.train() if train else model.eval()
@@ -141,14 +121,13 @@ def run_epoch(model, loader, optimizer, config, train=True):
     with context:
         for batch in loader:
             batch = batch.to(DEVICE)
-
             outputs = model(
                 x_stats=batch.x,
                 id_idx=batch.id_idx,
                 edge_index=batch.edge_index,
                 edge_weight=batch.edge_attr,
             )
-            loss = reconstruction_loss(outputs, batch.x, batch.edge_index, config)
+            loss = reconstruction_loss(outputs, batch.x, batch.edge_index, config, model=model)
 
             if train:
                 optimizer.zero_grad()
@@ -161,15 +140,53 @@ def run_epoch(model, loader, optimizer, config, train=True):
     return total_loss / max(n_graphs, 1)
 
 
-def compute_per_graph_reconstruction_error(model, loader):
-    """
-    Computes per-graph reconstruction error and preserves the capture metadata
-    for a per-capture evaluation breakdown. Use batch_size=1 during evaluation so
-    plain string attributes like capture_name are retained as a single entry per
-    graph rather than being silently collated away by PyG's default batching.
-    """
+def _rank_data_numpy(a: np.ndarray) -> np.ndarray:
+    """Assigns average ranks to tied values in pure numpy (matches scipy.stats.rankdata)."""
+    a = np.asarray(a)
+    n = len(a)
+    if n == 0:
+        return np.array([], dtype=np.float64)
+    sorter = np.argsort(a)
+    inv = np.empty(n, dtype=np.intp)
+    inv[sorter] = np.arange(n)
+
+    a_sorted = a[sorter]
+    obs = np.r_[True, a_sorted[1:] != a_sorted[:-1]]
+    dense = obs.cumsum()[inv]
+
+    count = np.r_[np.nonzero(obs)[0], n]
+    return 0.5 * (count[dense] + count[dense - 1] + 1)
+
+
+def compute_roc_auc(scores: np.ndarray, labels: np.ndarray) -> float:
+    """Computes exact ROC-AUC using the Mann-Whitney U statistic with exact tie handling."""
+    scores = np.asarray(scores, dtype=np.float64)
+    labels = np.asarray(labels, dtype=np.int64)
+
+    pos_scores = scores[labels == 1]
+    neg_scores = scores[labels == 0]
+    n_pos = len(pos_scores)
+    n_neg = len(neg_scores)
+
+    if n_pos == 0 or n_neg == 0:
+        return 0.5
+
+    all_scores = np.concatenate([pos_scores, neg_scores])
+    all_labels = np.concatenate([np.ones(n_pos, dtype=np.int64), np.zeros(n_neg, dtype=np.int64)])
+    ranks = _rank_data_numpy(all_scores)
+    sum_pos_ranks = np.sum(ranks[all_labels == 1])
+    u = sum_pos_ranks - (n_pos * (n_pos + 1.0)) / 2.0
+    return float(u / (n_pos * n_neg))
+
+
+def compute_per_graph_reconstruction_error(model, loader, config):
     model.eval()
     results = []
+    feature_weights = torch.tensor(
+        [1.0, 1.0, 1.0, 1.2, 2.0, 1.0, 1.5, 2.5, 2.5],
+        device=DEVICE,
+        dtype=torch.float32,
+    )
     with torch.no_grad():
         for batch in loader:
             batch = batch.to(DEVICE)
@@ -182,8 +199,15 @@ def compute_per_graph_reconstruction_error(model, loader):
                 edge_index=batch.edge_index,
                 edge_weight=batch.edge_attr,
             )
-            node_se = ((outputs["x_recon"] - batch.x) ** 2).mean(dim=-1)
-            graph_error = node_se.max().item()
+            node_se = (((outputs["x_recon"] - batch.x) ** 2) * feature_weights).mean(dim=-1)
+            node_error = node_se.mean().item()
+
+            if config.reconstruct_edges and outputs["edge_logits"] is not None and batch.edge_index.shape[1] > 0:
+                pos_labels = torch.ones_like(outputs["edge_logits"])
+                edge_loss = F.binary_cross_entropy_with_logits(outputs["edge_logits"], pos_labels).item()
+                graph_error = node_error + 0.5 * edge_loss
+            else:
+                graph_error = node_error
 
             raw_label = batch.y[0].item()
             raw_capture = batch.capture_name
@@ -196,8 +220,6 @@ def compute_per_graph_reconstruction_error(model, loader):
 
     return results
 
-
-# Driver function
 
 def main():
     set_seed(SEED)
@@ -212,7 +234,7 @@ def main():
     config.num_ids = len(vocab)
 
     align_graph_feature_dim(graphs, config.node_stat_feature_dim)
-    train_graphs, val_graphs, test_graphs = split_data(graphs)
+    train_graphs, val_graphs, test_graphs, train_caps, val_caps, test_caps = split_data(graphs)
     train_mean, train_std = normalize_graph_features(train_graphs, val_graphs, test_graphs)
 
     train_loader = DataLoader(train_graphs, batch_size=BATCH_SIZE, shuffle=True)
@@ -235,26 +257,28 @@ def main():
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
+            # Persist the full training artifact bundle
             torch.save({
                 "model_state_dict": model.state_dict(),
                 "config": config.__dict__,
                 "epoch": epoch,
                 "val_loss": val_loss,
+                "train_mean": train_mean.cpu(),
+                "train_std": train_std.cpu(),
+                "train_captures": train_caps,
+                "val_captures": val_caps,
+                "test_captures": test_caps,
+                "seed": SEED,
+                "vocab": vocab,
             }, CHECKPOINT_PATH)
 
-    # ------------------------------------------------------------------
-    # Sanity check: does reconstruction error separate benign from attack
-    # on held-out data? This is the checkpoint before moving on to anomaly
-    # score fusion or the explainability layer.
-    # ------------------------------------------------------------------
     print("\nEvaluating on test set (held-out benign + all attack windows)...")
     checkpoint = torch.load(CHECKPOINT_PATH, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
 
-    graph_results = compute_per_graph_reconstruction_error(model, test_loader)
+    graph_results = compute_per_graph_reconstruction_error(model, test_loader, config)
     errors = np.array([result[0] for result in graph_results], dtype=np.float32)
     labels = np.array([result[1] for result in graph_results], dtype=np.int64)
-    capture_names = [result[2] for result in graph_results]
 
     per_capture_errors = {}
     for err, label, capture_name in graph_results:
@@ -263,29 +287,24 @@ def main():
     print("\nPer-capture reconstruction breakdown:")
     for capture_name in sorted(per_capture_errors):
         values = np.array([entry[0] for entry in per_capture_errors[capture_name]], dtype=np.float32)
-        label = per_capture_errors[capture_name][0][1]
-        print(f"  {capture_name}: label={label}, mean={values.mean():.4f}, "
-              f"std={values.std():.4f}, n={len(values)}")
+        n_benign = sum(1 for entry in per_capture_errors[capture_name] if entry[1] == 0)
+        n_attack = sum(1 for entry in per_capture_errors[capture_name] if entry[1] == 1)
+        print(f"  {capture_name:45s}: mean={values.mean():.4f}, std={values.std():.4f}, "
+              f"n_benign={n_benign}, n_attack={n_attack}")
 
     benign_errors = errors[labels == 0]
     attack_errors = errors[labels == 1]
+    roc_auc = compute_roc_auc(errors, labels)
 
-    print(f"\nBenign reconstruction error: mean={benign_errors.mean():.4f}, "
-          f"std={benign_errors.std():.4f}, n={len(benign_errors)}")
-    print(f"Attack reconstruction error: mean={attack_errors.mean():.4f}, "
-          f"std={attack_errors.std():.4f}, n={len(attack_errors)}")
+    print(f"\nAggregate Evaluation Summary:")
+    print(f"  Benign reconstruction error : mean={benign_errors.mean():.4f}, std={benign_errors.std():.4f}, n={len(benign_errors)}")
+    print(f"  Attack reconstruction error : mean={attack_errors.mean():.4f}, std={attack_errors.std():.4f}, n={len(attack_errors)}")
+    print(f"  Reconstruction ROC-AUC      : {roc_auc:.4f}")
 
     if attack_errors.mean() > benign_errors.mean():
-        print("\n-> Attack windows show HIGHER reconstruction error on average. "
-              "This is the expected direction — worth checking the full "
-              "distributions (not just means) and computing ROC-AUC next, "
-              "rather than treating this print statement as a finished result.")
+        print("\n-> Attack windows show HIGHER reconstruction error on average.")
     else:
-        print("\n-> Attack windows do NOT show higher reconstruction error. "
-              "This means the model isn't yet capturing what makes attack "
-              "traffic anomalous — worth revisiting node/edge feature design "
-              "or training length before moving forward, not something to "
-              "push past.")
+        print("\n-> Attack windows do NOT show higher reconstruction error on average.")
 
 
 if __name__ == "__main__":

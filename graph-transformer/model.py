@@ -1,37 +1,9 @@
-"""
-Graph Transformer + Graph Autoencoder — coupled model
---------------------------------------------------------------------
-As discussed: the Graph Transformer (encoder) and Graph Autoencoder
-(decoder) are trained jointly, not built/tuned in isolation, because
-the encoder's weights are shaped by what the decoder needs to
-reconstruct from.
-
-Architecture:
-    1. Node identity embedding (learned, indexed by global ID vocab)
-       concatenated with the statistical node features from graph_builder.py.
-    2. A stack of Graph Transformer layers (TransformerConv from
-       PyTorch Geometric — multi-head attention restricted to graph edges).
-    3. A decoder that reconstructs:
-         a) the original node feature vector (main reconstruction signal)
-         b) graph structure / edges (optional, off by default — see
-            RECONSTRUCT_EDGES flag) via a dot-product edge decoder
-            (standard Graph Autoencoder approach, Kipf & Welling 2016)
-
-Only (a) is required to get a working anomaly score from reconstruction
-error. (b) is included but flagged off by default — it's a reasonable
-next experiment, not something to enable blindly, since it changes the
-loss landscape and may need its own tuning pass.
-
-Attention weights from the TransformerConv layers are retained on the
-model instance after a forward pass — this is what the Explainability
-Layer will consume later, so it's threaded through now rather than
-retrofitted.
-"""
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import TransformerConv
+from torch_geometric.utils import negative_sampling
+
 
 # Configuration
 
@@ -52,6 +24,8 @@ class ModelConfig:
     dropout = 0.08
 
     reconstruct_edges = True
+    # Negative sampling ratio for edge reconstruction loss (negatives per positive edge)
+    neg_sample_ratio: float = 1.0
 
 
 # GRAPH TRANSFORMER
@@ -97,12 +71,7 @@ class GraphTransformerEncoder(nn.Module):
         self.last_attention_weights = []
 
     def forward(self, x_stats, id_idx, edge_index, edge_weight):
-        """
-        x_stats:    [num_nodes, node_stat_feature_dim]
-        id_idx:     [num_nodes]  (long tensor, indices into the ID vocab)
-        edge_index: [2, num_edges]
-        edge_weight:[num_edges]
-        """
+
         id_emb = self.id_embedding(id_idx)                    # [num_nodes, id_embedding_dim]
         h = torch.cat([x_stats, id_emb], dim=-1)               # [num_nodes, node_stat_feature_dim + id_embedding_dim]
         h = F.relu(self.input_proj(h))
@@ -149,15 +118,11 @@ class GraphAutoencoderDecoder(nn.Module):
 
 
 class EdgeDecoder(nn.Module):
-    """
-    Optional structural decoder (Kipf & Welling-style inner product decoder):
-    reconstructs edge existence from node embeddings.
-    Off by default — see ModelConfig.reconstruct_edges.
-    """
     def forward(self, z, edge_index):
         src, dst = edge_index
         logits = (z[src] * z[dst]).sum(dim=-1)
         return logits  # raw logits, apply sigmoid outside if needed
+
 
 # Model integration
 
@@ -187,19 +152,44 @@ class GraphTransformerAutoencoder(nn.Module):
         """Convenience accessor for the Explainability Layer (built later)."""
         return self.encoder.last_attention_weights
 
+    def compute_edge_logits_with_neg_sampling(self, z, pos_edge_index, num_nodes):
+        """
+        Computes edge logits for both positive edges and sampled negative edges.
+        Returns concatenated logits and corresponding labels.
+        """
+        if pos_edge_index.shape[1] == 0:
+            return None, None
+
+        # Sample negative edges
+        neg_edge_index = negative_sampling(
+            edge_index=pos_edge_index,
+            num_nodes=num_nodes,
+            num_neg_samples=int(pos_edge_index.shape[1] * self.config.neg_sample_ratio),
+            force_undirected=False,
+        )
+
+        # Compute logits for positive and negative edges
+        pos_logits = self.edge_decoder(z, pos_edge_index)
+        neg_logits = self.edge_decoder(z, neg_edge_index)
+
+        logits = torch.cat([pos_logits, neg_logits], dim=0)
+        labels = torch.cat([
+            torch.ones_like(pos_logits),
+            torch.zeros_like(neg_logits)
+        ], dim=0)
+
+        return logits, labels
+
+    def get_edge_reconstruction_logits(self, z, edge_index):
+        """Returns logits for given edge_index (for evaluation)."""
+        if self.edge_decoder is None or edge_index.shape[1] == 0:
+            return None
+        return self.edge_decoder(z, edge_index)
+
+
 # Loss metric
-
 def reconstruction_loss(outputs: dict, x_stats: torch.Tensor, edge_index: torch.Tensor,
-                         config: ModelConfig) -> torch.Tensor:
-    """
-    Node feature reconstruction loss (always active) + optional edge
-    reconstruction loss (only if config.reconstruct_edges is True).
-
-    We weight the anomaly-sensitive dimensions more heavily so the model does
-    not overfit to generic volume statistics while underfitting the richer
-    activity/attack cues that actually differ between benign and attack
-    windows.
-    """
+                         config: ModelConfig, model: GraphTransformerAutoencoder = None) -> torch.Tensor:
     feature_weights = torch.tensor(
         [1.0, 1.0, 1.0, 1.2, 2.0, 1.0, 1.5, 2.5, 2.5],
         device=x_stats.device,
@@ -208,9 +198,13 @@ def reconstruction_loss(outputs: dict, x_stats: torch.Tensor, edge_index: torch.
     node_residual = outputs["x_recon"] - x_stats
     node_loss = (node_residual.pow(2) * feature_weights).mean()
 
-    if config.reconstruct_edges and outputs["edge_logits"] is not None:
-        pos_labels = torch.ones_like(outputs["edge_logits"])
-        edge_loss = F.binary_cross_entropy_with_logits(outputs["edge_logits"], pos_labels)
-        return node_loss + edge_loss
+    if config.reconstruct_edges and outputs["edge_logits"] is not None and model is not None:
+        # Use model's method to compute logits with negative sampling
+        logits, labels = model.compute_edge_logits_with_neg_sampling(
+            outputs["z"], edge_index, x_stats.shape[0]
+        )
+        if logits is not None:
+            edge_loss = F.binary_cross_entropy_with_logits(logits, labels)
+            return node_loss + edge_loss
 
     return node_loss

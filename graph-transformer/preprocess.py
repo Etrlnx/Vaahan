@@ -1,25 +1,4 @@
-"""
-ROAD Dataset Preprocessing
---------------------------------------------------------------------
-This is done for parsing and temporal windowing
-Things done:
-    1. Locate and load the signal-translated ROAD CSV captures (ambient + attack).
-    2. Parse each capture into a clean, typed DataFrame.
-    3. Apply temporal windowing to each capture.
-    4. Emit a list of "window records" — one per time window — each containing
-       the raw per-message rows that fall in that window, plus a window-level
-       label (benign / attack).
-
-Expected input format (per ROAD's own documentation):
-    Each signal-translated CSV has columns:
-        Label                -> 0 (benign) or 1 (attack), per-message
-        ID                   -> arbitration ID (already anonymized by ROAD)
-        Time                 -> timestamp in seconds (capture-relative)
-        Signal_<i>_of_ID     -> one column per decoded signal for that ID
-                                 (number of signal columns varies by ID, and
-                                 ROAD pads/represents missing signals as NaN
-                                 for messages that don't carry that signal)
-"""
+# ROAD Dataset Preprocessing
 
 import os
 import glob
@@ -33,15 +12,12 @@ import pandas as pd
 
 
 # 1. CONFIGURATION
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROAD_ROOT = os.path.join(BASE_DIR, "road", "road")
 
 # Signal-translated captures live under these subfolders in the ROAD release.
-
 AMBIENT_DIR = os.path.join(ROAD_ROOT, "signal_extractions", "ambient")
 ATTACK_DIR = os.path.join(ROAD_ROOT, "signal_extractions", "attacks")
-
 OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
 
 # Windowing parameters
@@ -71,14 +47,7 @@ class CaptureFile:
 
 @dataclass
 class WindowRecord:
-    """
-    One temporal window of CAN traffic, ready to be handed to the
-    graph-construction stage.
 
-    By default we do not retain every raw message DataFrame in memory, because the
-    full ROAD capture set can be very large. If a downstream stage truly needs the
-    raw messages, set KEEP_RAW_WINDOW_MESSAGES = True and build_dataset(..., keep_messages=True).
-    """
     capture_name: str
     window_start: float
     window_end: float
@@ -90,17 +59,14 @@ class WindowRecord:
 # 3. FILE DISCOVERY
 
 def discover_captures(ambient_dir: str, attack_dir: str) -> list[CaptureFile]:
-    """
-    Finds all signal-translated CSV captures and pairs each with its
-    metadata JSON file, if present.
 
-    Signal-translated files in ROAD are typically named like:
-    <capture_name>_signal_extraction.csv
-    """
     captures = []
 
     for csv_path in sorted(glob.glob(os.path.join(ambient_dir, "*.csv"))):
-        name = os.path.splitext(os.path.basename(csv_path))[0]
+        filename = os.path.basename(csv_path)
+        if not filename.startswith("ambient_"):
+            continue
+        name = os.path.splitext(filename)[0]
         captures.append(CaptureFile(
             path=csv_path,
             capture_name=name,
@@ -127,12 +93,7 @@ def discover_captures(ambient_dir: str, attack_dir: str) -> list[CaptureFile]:
 
 
 def _load_metadata_if_exists(csv_path: str) -> dict:
-    """
-    ROAD ships a metadata JSON alongside many captures (driving activity
-    description, physical attack effects, injection intervals, etc.).
-    Not strictly required for windowing, but useful to carry through
-    for later analysis / explainability work.
-    """
+  
     candidates = [
         os.path.join(os.path.dirname(csv_path), "metadata.json"),
         csv_path.replace(".csv", "_metadata.json"),
@@ -148,20 +109,7 @@ def _load_metadata_if_exists(csv_path: str) -> dict:
 # 4. CSV PARSING
 
 def load_capture(capture: CaptureFile) -> pd.DataFrame:
-    """
-    Loads and lightly cleans a single ROAD signal-translated CSV.
 
-    Notes:
-      - 'Label' is per-message (0/1), already provided by ROAD for
-        signal-translated captures — no manual interval-based labeling needed
-        for these files (that's only required for the raw, non-translated
-        captures, which this script does not handle).
-      - Signal_<i>_of_ID columns vary in count per ID; many will be NaN for
-        a given row since not every message on an ID carries every signal
-        index. We leave NaNs as-is here; the graph-construction stage should
-        decide how to handle missing signals (e.g., forward-fill within an
-        ID's own message stream, or treat NaN as "no update this message").
-    """
     df = pd.read_csv(capture.path)
 
     expected_cols = {"Label", "ID", "Time"}
@@ -189,15 +137,6 @@ def load_capture(capture: CaptureFile) -> pd.DataFrame:
 
 
 def window_capture(df: pd.DataFrame, capture_name: str, is_attack: bool, keep_messages: bool = KEEP_RAW_WINDOW_MESSAGES) -> list[WindowRecord]:
-    """
-    Slices one capture's message stream into fixed-size temporal windows.
-
-    Benign captures use overlapping windows (more training density, since
-    the autoencoder mainly needs volume of normal behavior).
-
-    Attack captures use non-overlapping windows to avoid leaking near-identical
-    windows across a later train/test split.
-    """
     stride = STRIDE_SEC_BENIGN if not is_attack else STRIDE_SEC_ATTACK
     total_duration = df["Time"].max()
 
@@ -263,6 +202,21 @@ def save_dataset(windows: list[WindowRecord], output_dir: str):
     with open(out_path, "wb") as f:
         pickle.dump(windows, f)
     print(f"Saved {len(windows)} windows to {out_path}")
+
+    # Persist windowing parameters alongside dataset
+    meta_path = os.path.join(output_dir, "road_windowed_metadata.json")
+    metadata = {
+        "window_duration_sec": WINDOW_SIZE_SEC,
+        "benign_stride_sec": STRIDE_SEC_BENIGN,
+        "attack_stride_sec": STRIDE_SEC_ATTACK,
+        "min_messages_per_window": MIN_MESSAGES_PER_WINDOW,
+        "total_windows": len(windows),
+        "benign_windows": sum(w.label == 0 for w in windows),
+        "attack_windows": sum(w.label == 1 for w in windows),
+    }
+    with open(meta_path, "w") as f:
+        json.dump(metadata, f, indent=2)
+    print(f"Saved windowing metadata to {meta_path}")
 
 
 if __name__ == "__main__":

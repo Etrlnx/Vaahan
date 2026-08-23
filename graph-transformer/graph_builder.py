@@ -1,37 +1,3 @@
-"""
-Graph Construction
---------------------------------------------------------------------
-Converts the WindowRecord objects from preprocess.py into
-PyTorch Geometric `Data` graph objects, ready for the Graph Transformer.
-
-Graph Architecture:
-
-  Node = one CAN arbitration ID that appears at least once in the window.
-  Node feature vector (fixed length, independent of how many decoded
-  signal channels that ID has):
-      [ msg_count,
-        mean_inter_arrival_time, std_inter_arrival_time,
-        signal_mean, signal_std, signal_min, signal_max,
-        n_signal_channels ]
-    Rationale: raw Signal_i_of_ID values can't be used directly as a
-    fixed-size node feature because different IDs decode to different
-    numbers of signals. Aggregating into generic statistics keeps the
-    feature vector the same shape for every node regardless of ID.
-
-  Node identity: each ID also gets an integer index into a global
-  vocabulary (built once, across the whole dataset). This index is used
-  by the model's embedding layer so the Graph Transformer can learn an
-  ID-specific representation on top of the generic stats above.
-
-  Edge = directed, built from temporal message adjacency: for every
-  pair of consecutive messages (by timestamp) from two DIFFERENT IDs,
-  add/increment a directed edge between them. Edge weight = count of
-  such adjacent occurrences within the window, capturing how often one
-  ID's messages are immediately followed by another's — a proxy for
-  real CAN bus scheduling/arbitration patterns.
-
-"""
-
 import pickle
 from dataclasses import dataclass
 import os
@@ -52,12 +18,6 @@ NODE_FEATURE_DIM = 9 # message count, inter-arrival stats, signal stats, activit
 
 # 1. ID Lookup table
 def build_id_vocab(windows: list[WindowRecord]) -> dict:
-    """
-    Builds a global mapping from CAN arbitration ID (string)-to-integer index.
-    Built once across ALL windows (ambient + attack) so the model's ID
-    embedding table has a consistent, fixed vocabulary regardless of which
-    window it's looking at.
-    """
     all_ids = set()
     for idx, w in enumerate(windows):
         if w.messages is None:
@@ -72,11 +32,7 @@ def build_id_vocab(windows: list[WindowRecord]) -> dict:
 
     return vocab
 
-""" NOTE: If a genuinely novel/unseen ID appeared at deployment time (e.g.,
-    an attacker spoofing an ID that never appears in this dataset), this
-    fixed vocabulary would not have an embedding for it. That's a real
-    limitation worth acknowledging — a reserved "unknown ID" index (index 0
-    below) is included as a partial mitigation."""
+
 
 # Feature Extraction
 
@@ -109,12 +65,14 @@ def extract_node_features(id_messages: pd.DataFrame, window_duration: float, tot
         std_iat = 0.0
 
     if signal_cols:
-        signal_values = id_messages[signal_cols].values.flatten()
-        signal_values = signal_values[~np.isnan(signal_values)]
+        raw_signals = id_messages[signal_cols].values.flatten()
+        raw_signals = raw_signals[~np.isnan(raw_signals)]
     else:
-        signal_values = np.array([])
+        raw_signals = np.array([])
 
-    if len(signal_values) > 0:
+    if len(raw_signals) > 0:
+        # Symmetric log1p transformation to compress large 64-bit registers/timestamps
+        signal_values = np.sign(raw_signals) * np.log1p(np.abs(raw_signals))
         signal_mean = float(np.mean(signal_values))
         signal_std = float(np.std(signal_values))
         signal_min = float(np.min(signal_values))
@@ -141,17 +99,6 @@ def extract_node_features(id_messages: pd.DataFrame, window_duration: float, tot
 # 3. EDGE CONSTRUCTION
 
 def build_edges(messages: pd.DataFrame, node_index: dict) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Builds directed edges from temporal message adjacency.
-
-    node_index: maps ID string -> local node index WITHIN THIS GRAPH
-                (not the global vocabulary index — this is just 0..n_nodes-1
-                for this specific window's graph).
-
-    Returns:
-        edge_index: [2, num_edges] array
-        edge_weight: [num_edges] array (count of adjacent occurrences)
-    """
     sorted_msgs = messages.sort_values("Time")
     ids_in_order = sorted_msgs["ID"].values
 
@@ -177,9 +124,7 @@ def build_edges(messages: pd.DataFrame, node_index: dict) -> tuple[np.ndarray, n
     return edges, weights
 
 
-# ============================================================================
 # 4. BUILD A SINGLE GRAPH FROM ONE WINDOW
-# ============================================================================
 
 def build_graph_for_window(window: WindowRecord, global_vocab: dict) -> Data:
     df = window.messages
@@ -268,8 +213,23 @@ def main():
     with open(VOCAB_OUTPUT_PATH, "wb") as f:
         pickle.dump(vocab, f)
 
+    # Persist graph construction metadata
+    import json
+    meta_path = os.path.join(OUTPUT_DIR, "graphs_metadata.json")
+    meta = {
+        "node_feature_dim": NODE_FEATURE_DIM,
+        "vocab_size": len(vocab),
+        "total_graphs": len(graphs),
+        "skipped_graphs": skipped,
+        "benign_graphs": sum(g.y.item() == 0 for g in graphs),
+        "attack_graphs": sum(g.y.item() == 1 for g in graphs),
+    }
+    with open(meta_path, "w") as f:
+        json.dump(meta, f, indent=2)
+
     print(f"Saved graphs to {GRAPH_OUTPUT_PATH}")
     print(f"Saved vocab to {VOCAB_OUTPUT_PATH}")
+    print(f"Saved metadata to {meta_path}")
 
 
 if __name__ == "__main__":
