@@ -7,3 +7,4 @@ task_list.md
 __pycache__/
 *.pyc
 *.pyo
+.vscode/
