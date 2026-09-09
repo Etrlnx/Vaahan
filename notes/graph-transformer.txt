@@ -1,0 +1,254 @@
+preprocess.py:
+
+This is done for parsing and temporal windowing
+Things done:
+    1. Locate and load the signal-translated ROAD CSV captures (ambient + attack).
+    2. Parse each capture into a clean, typed DataFrame.
+    3. Apply temporal windowing to each capture.
+    4. Emit a list of "window records" — one per time window — each containing
+       the raw per-message rows that fall in that window, plus a window-level
+       label (benign / attack).
+
+Expected input format (per ROAD's own documentation):
+    Each signal-translated CSV has columns:
+        Label                -> 0 (benign) or 1 (attack), per-message
+        ID                   -> arbitration ID (already anonymized by ROAD)
+        Time                 -> timestamp in seconds (capture-relative)
+        Signal_<i>_of_ID     -> one column per decoded signal for that ID
+                                 (number of signal columns varies by ID, and
+                                 ROAD pads/represents missing signals as NaN
+                                 for messages that don't carry that signal)
+
+
+class WindowRecord:
+    """
+    One temporal window of CAN traffic, ready to be handed to the
+    graph-construction stage.
+
+    By default we do not retain every raw message DataFrame in memory, because the
+    full ROAD capture set can be very large. If a downstream stage truly needs the
+    raw messages, set KEEP_RAW_WINDOW_MESSAGES = True and build_dataset(..., keep_messages=True).
+    """
+
+
+def _load_metadata_if_exists(csv_path: str) -> dict:
+    """
+    ROAD ships a metadata JSON alongside many captures (driving activity
+    description, physical attack effects, injection intervals, etc.).
+    Not strictly required for windowing, but useful to carry through
+    for later analysis / explainability work.
+    """
+
+
+def load_capture(capture: CaptureFile) -> pd.DataFrame:
+    """
+    Loads and lightly cleans a single ROAD signal-translated CSV.
+
+    Notes:
+      - 'Label' is per-message (0/1), already provided by ROAD for
+        signal-translated captures — no manual interval-based labeling needed
+        for these files (that's only required for the raw, non-translated
+        captures, which this script does not handle).
+      - Signal_<i>_of_ID columns vary in count per ID; many will be NaN for
+        a given row since not every message on an ID carries every signal
+        index. We leave NaNs as-is here; the graph-construction stage should
+        decide how to handle missing signals (e.g., forward-fill within an
+        ID's own message stream, or treat NaN as "no update this message").
+    """
+
+
+# 3. FILE DISCOVERY
+
+def discover_captures(ambient_dir: str, attack_dir: str) -> list[CaptureFile]:
+    """
+    Finds all signal-translated CSV captures and pairs each with its
+    metadata JSON file, if present.
+
+    Signal-translated files in ROAD are typically named like:
+    <capture_name>_signal_extraction.csv
+    """
+
+
+# 5. TEMPORAL WINDOWING
+
+
+def window_capture(df: pd.DataFrame, capture_name: str, is_attack: bool, keep_messages: bool = KEEP_RAW_WINDOW_MESSAGES) -> list[WindowRecord]:
+    """
+    Slices one capture's message stream into fixed-size temporal windows.
+
+    Benign captures use overlapping windows (more training density, since
+    the autoencoder mainly needs volume of normal behavior).
+
+    Attack captures use non-overlapping windows to avoid leaking near-identical
+    windows across a later train/test split.
+    """
+
+
+
+
+graph_builder.py:
+
+"""
+Graph Construction
+--------------------------------------------------------------------
+Converts the WindowRecord objects from preprocess.py into
+PyTorch Geometric `Data` graph objects, ready for the Graph Transformer.
+
+Graph Architecture:
+
+  Node = one CAN arbitration ID that appears at least once in the window.
+  Node feature vector (fixed length, independent of how many decoded
+  signal channels that ID has):
+      [ msg_count,
+        mean_inter_arrival_time, std_inter_arrival_time,
+        signal_mean, signal_std, signal_min, signal_max,
+        n_signal_channels ]
+    Rationale: raw Signal_i_of_ID values can't be used directly as a
+    fixed-size node feature because different IDs decode to different
+    numbers of signals. Aggregating into generic statistics keeps the
+    feature vector the same shape for every node regardless of ID.
+
+  Node identity: each ID also gets an integer index into a global
+  vocabulary (built once, across the whole dataset). This index is used
+  by the model's embedding layer so the Graph Transformer can learn an
+  ID-specific representation on top of the generic stats above.
+
+  Edge = directed, built from temporal message adjacency: for every
+  pair of consecutive messages (by timestamp) from two DIFFERENT IDs,
+  add/increment a directed edge between them. Edge weight = count of
+  such adjacent occurrences within the window, capturing how often one
+  ID's messages are immediately followed by another's — a proxy for
+  real CAN bus scheduling/arbitration patterns.
+
+"""
+
+# 1. ID Lookup table
+def build_id_vocab(windows: list[WindowRecord]) -> dict:
+    """
+    Builds a global mapping from CAN arbitration ID (string)-to-integer index.
+    Built once across ALL windows (ambient + attack) so the model's ID
+    embedding table has a consistent, fixed vocabulary regardless of which
+    window it's looking at.
+    """
+
+
+""" NOTE: If a genuinely novel/unseen ID appeared at deployment time (e.g.,
+    an attacker spoofing an ID that never appears in this dataset), this
+    fixed vocabulary would not have an embedding for it. That's a real
+    limitation worth acknowledging — a reserved "unknown ID" index (index 0
+    below) is included as a partial mitigation."""
+
+
+
+# 3. EDGE CONSTRUCTION
+
+def build_edges(messages: pd.DataFrame, node_index: dict) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Builds directed edges from temporal message adjacency.
+
+    node_index: maps ID string -> local node index WITHIN THIS GRAPH
+                (not the global vocabulary index — this is just 0..n_nodes-1
+                for this specific window's graph).
+
+    Returns:
+        edge_index: [2, num_edges] array
+        edge_weight: [num_edges] array (count of adjacent occurrences)
+    """
+
+============================================================================================
+
+model.py:
+
+"""
+Graph Transformer + Graph Autoencoder — coupled model
+--------------------------------------------------------------------
+As discussed: the Graph Transformer (encoder) and Graph Autoencoder
+(decoder) are trained jointly, not built/tuned in isolation, because
+the encoder's weights are shaped by what the decoder needs to
+reconstruct from.
+
+Architecture:
+    1. Node identity embedding (learned, indexed by global ID vocab)
+       concatenated with the statistical node features from graph_builder.py.
+    2. A stack of Graph Transformer layers (TransformerConv from
+       PyTorch Geometric — multi-head attention restricted to graph edges).
+    3. A decoder that reconstructs:
+         a) the original node feature vector (main reconstruction signal)
+         b) graph structure / edges (optional, off by default — see
+            RECONSTRUCT_EDGES flag) via a dot-product edge decoder
+            (standard Graph Autoencoder approach, Kipf & Welling 2016)
+            with proper negative sampling for training.
+
+Only (a) is required to get a working anomaly score from reconstruction
+error. (b) is included but flagged off by default — it's a reasonable
+next experiment, not something to enable blindly, since it changes the
+loss landscape and may need its own tuning pass.
+
+Attention weights from the TransformerConv layers are retained on the
+model instance after a forward pass — this is what the Explainability
+Layer will consume later, so it's threaded through now rather than
+retrofitted.
+"""
+
+
+    def forward(self, x_stats, id_idx, edge_index, edge_weight):
+        """
+        x_stats:    [num_nodes, node_stat_feature_dim]
+        id_idx:     [num_nodes]  (long tensor, indices into the ID vocab)
+        edge_index: [2, num_edges]
+        edge_weight:[num_edges]
+        """
+
+class EdgeDecoder(nn.Module):
+    """
+    Optional structural decoder (Kipf & Welling-style inner product decoder):
+    reconstructs edge existence from node embeddings.
+    Off by default — see ModelConfig.reconstruct_edges.
+    """
+
+
+def reconstruction_loss(outputs: dict, x_stats: torch.Tensor, edge_index: torch.Tensor,
+                         config: ModelConfig, model: GraphTransformerAutoencoder = None) -> torch.Tensor:
+    """
+    Node feature reconstruction loss (always active) + optional edge
+    reconstruction loss with proper negative sampling (only if config.reconstruct_edges is True).
+
+    We weight the anomaly-sensitive dimensions more heavily so the model does
+    not overfit to generic volume statistics while underfitting the richer
+    activity/attack cues that actually differ between benign and attack
+    windows.
+    """
+
+=============================================================================================
+
+train.py:
+
+"""
+Training script — Graph Transformer + Graph Autoencoder (coupled)
+--------------------------------------------------------------------
+Training strategy:
+  - Train ONLY on benign ambient windows. The autoencoder learns what
+    normal CAN bus behavior looks like; it never sees attack traffic
+    during training.
+  - Attack windows (including the masquerade captures — zero-day
+    stand-ins) are held out entirely and only used at evaluation time.
+  - Feature normalization parameters (mean and std), capture splits,
+    vocabulary, and configuration are persisted alongside the checkpoint
+    bundle so evaluation strictly restores them without re-splitting.
+"""
+
+def split_data(graphs: list, val_fraction: float = VAL_FRACTION, seed: int = SEED):
+    """
+    Strict capture-level partition preventing any attack baseline leakage into training.
+    Only true ambient drives are partitioned into train/val/test_ambient.
+    All 17 attack captures are held out exclusively in the test set.
+    """
+
+
+def normalize_graph_features(train_graphs, val_graphs, test_graphs):
+    """
+    Standardize node statistics using train-set statistics only.
+    Computes mean and std strictly on train_graphs, avoiding leakage.
+    """
+
+

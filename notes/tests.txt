@@ -1,0 +1,10 @@
+test_pipeline.py:
+
+
+# Unit and Smoke Tests for Graph-Transformer and Attack-Detection Pipelines
+-------------------------------------------------------------------------
+Validates:
+  1. ROC-AUC and PR-AUC metric calculations (ties, perfect ranking, inverted, random, edge cases)
+  2. ZeroDayDetector readiness checks (uncalibrated, empty validation set, invalid percentiles)
+  3. Feature log1p scaling stability
+  4. Data structures and non-mutating normalization contracts

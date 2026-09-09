@@ -1,0 +1,6 @@
+{
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/attack-detection",
+        "${workspaceFolder}/graph-transformer"
+    ]
+}

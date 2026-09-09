@@ -1,0 +1,85 @@
+detector.py:
+
+"""
+Zero-Day Attack Detector & Adaptive Risk State Classifier
+--------------------------------------------------------------------
+Calibrates empirical risk thresholds on benign validation traffic and
+classifies streaming/windowed CAN communication into discrete security states:
+  - NORMAL: Traffic conforms to learned normal communication manifolds.
+  - SUSPICIOUS: Moderate deviation detected; heightened monitoring triggered.
+  - HIGH_RISK / ZERO_DAY_ALERT: Severe deviation; escalated to XAI & Gateway.
+"""
+
+
+========================================================================================
+
+evaluate.py:
+
+"""
+Comprehensive Zero-Day Attack Detection Benchmark
+--------------------------------------------------------------------
+Evaluates the full detection pipeline across held-out ambient drives and
+unseen ROAD attack captures (including masquerade attacks).
+
+Restores exact split provenance, vocabulary, normalization stats, and
+calibrations from the saved checkpoint bundle to guarantee reproducible evaluation.
+
+Computes:
+  - Binary Detection Metrics (Precision, Recall, F1, Accuracy)
+  - Discrimination Metrics (ROC-AUC, PR-AUC)
+  - Operational IDS Metrics (False Positive Rate, Detection Latency)
+  - Per-Attack Family & Per-Capture Breakdown
+  - Component Ablations (Reconstruction-only, Temporal-only, Structural-only, Fused)
+"""
+
+
+==========================================================================================
+
+scorer.py:
+
+
+class TransitionBaseline:
+    """
+    Builds and maintains empirical transition matrices P(ID_j | ID_i)
+    from benign ambient CAN graphs to detect abnormal message sequencing.
+    """
+
+    def compute_structural_penalty(self, g) -> float:
+        """
+        Computes the negative log-likelihood penalty for observed edges in graph g.
+        High penalty indicates unexpected / unseen CAN ID sequences (masquerade signature).
+        """
+
+
+
+under class AnomalyScore:
+
+   def compute_reconstruction_deviation(self, batch, outputs) -> tuple[float, torch.Tensor]:
+        """
+        Computes weighted node feature MSE and structural edge BCE error.
+        Returns (scalar_reconstruction_error, per_node_residuals).
+        """
+
+
+
+    def compute_temporal_deviation(self, batch, outputs) -> float:
+        """
+        Computes temporal deviation as the mean squared reconstruction error
+        on temporal features (mean_iat, std_iat, activity_share).
+        This uses the model's own reconstruction residuals on timing channels,
+        not the normalized feature magnitudes directly.
+        """
+
+
+   def fit_component_scales(self, model, val_loader, device, transition_baseline: Optional[TransitionBaseline] = None):
+        """
+        Fits per-component scaling factors on the benign validation set so that
+        reconstruction, temporal, and structural components are on comparable scales.
+        Uses Median Absolute Deviation (MAD) for robustness.
+        """
+
+  def score_window(self, batch, outputs, transition_baseline: TransitionBaseline = None) -> dict:
+        """
+        Computes all component deviations and produces the fused anomaly score.
+        Applies component-wise scaling if fitted.
+        """

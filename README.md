@@ -134,19 +134,19 @@ D --> E[Risk State & XAI]
 ```mermaid
 flowchart TD
 
-A[Temporal Windowing (preprocess.py)] --> B[Dynamic Graph Construction (graph_builder.py)]
-B --> C[Graph Transformer Encoding (model.py)]
-C --> D[Graph Autoencoder Reconstruction (model.py)]
+A["Temporal Windowing (preprocess.py)"] --> B["Dynamic Graph Construction (graph_builder.py)"]
+B --> C["Graph Transformer Encoding (model.py)"]
+C --> D["Graph Autoencoder Reconstruction (model.py)"]
 
-D --> E[Reconstruction Deviation (Active)]
-C --> F[Temporal + Structural Deviation (In Progress)]
+D --> E["Reconstruction Deviation (Active)"]
+C --> F["Temporal + Structural Deviation (In Progress)"]
 
-E --> G[Adaptive Anomaly Score]
+E --> G["Adaptive Anomaly Score"]
 F --> G
 
 G --> H{Risk Level}
-H -->|Low| I[Forward Traffic]
-H -->|High| J[Trigger XAI Evidence Layer]
+H -->|Low| I["Forward Traffic"]
+H -->|High| J["Trigger XAI Evidence Layer"]
 ```
 
 CAN traffic that reaches the learned pipeline is first grouped into temporal windows, then assembled into a dynamic graph of CAN arbitration IDs and message transition relationships. The Graph Transformer encodes that graph, and the Graph Autoencoder attempts to reconstruct the node statistical features and structural edges. The reconstruction error (currently evaluated per capture on held-out attacks) is combined with temporal and graph-structural deviation signals to distinguish normal driving behavior from zero-day masquerade and injection attacks.
@@ -320,13 +320,13 @@ Anomaly detection is formulated as an **unsupervised one-class reconstruction ta
 ```mermaid
 flowchart TD
 
-A[Attention Analysis (Attention Rollout)] --> E[Evidence Fusion Engine]
-B[Feature Attribution (Per-Node Residuals)] --> E
-C[Subgraph Localizer (k-Hop Subgraphs)] --> E
-D[Error Analysis (Component Decomposition)] --> E
+A["Attention Analysis (Attention Rollout)"] --> E["Evidence Fusion Engine"]
+B["Feature Attribution (Per-Node Residuals)"] --> E
+C["Subgraph Localizer (k-Hop Subgraphs)"] --> E
+D["Error Analysis (Component Decomposition)"] --> E
 
-E --> F[Human-Readable Triage Reports & Visual Dashboards]
-E --> G[Machine-Readable JSON Incident Schemas]
+E --> F["Human-Readable Triage Reports & Visual Dashboards"]
+E --> G["Machine-Readable JSON Incident Schemas"]
 ```
 
 When the anomaly score crosses $\tau_{\text{suspicious}}$ (or $\tau_{\text{alert}}$), the XAI evidence layer is triggered:
