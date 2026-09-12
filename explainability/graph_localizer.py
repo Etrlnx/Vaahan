@@ -1,10 +1,3 @@
-"""
-Graph Subgraph Localizer for CAN Anomaly Explanation
---------------------------------------------------------------------
-Extracts localized k-hop interaction subgraphs surrounding the top anomalous
-CAN Arbitration IDs, combining edge attention weights with structural transition
-probabilities (NLL penalties) to highlight anomalous communication pathways.
-"""
 
 import os
 import sys
@@ -49,9 +42,6 @@ class LocalSubgraph:
 
 
 class GraphLocalizer:
-    """
-    Localizes anomalous subgraphs around flagged CAN Arbitration IDs.
-    """
     def __init__(
         self,
         vocab: Optional[dict] = None,
@@ -77,9 +67,6 @@ class GraphLocalizer:
         center_local_idx: int,
         attention_analyzer: Optional[AttentionAnalyzer] = None,
     ) -> LocalSubgraph:
-        """
-        Extracts 1-hop connected neighborhood around center_local_idx.
-        """
         num_nodes = batch.x.shape[0]
         global_ids = batch.id_idx.cpu().numpy()
         center_vocab_idx = int(global_ids[center_local_idx])
@@ -99,12 +86,10 @@ class GraphLocalizer:
         dst_nodes = batch.edge_index[1].cpu().numpy()
         weights = batch.edge_attr.cpu().numpy() if hasattr(batch, "edge_attr") and batch.edge_attr is not None else np.ones(len(src_nodes))
 
-        # Compute edge attention if analyzer provided
         edge_attentions = {}
         if attention_analyzer is not None:
             raw_weights = attention_analyzer.extract_layer_attention(model)
             if raw_weights:
-                # Average heads and layers
                 layer_attns = [w.mean(dim=-1).cpu().numpy() for _, w in raw_weights]
                 mean_attn = np.mean(layer_attns, axis=0)
                 for e_idx in range(len(mean_attn)):
@@ -116,7 +101,6 @@ class GraphLocalizer:
         max_penalty = 0.0
 
         for e_idx, (u, v, count) in enumerate(zip(src_nodes, dst_nodes, weights)):
-            # Check if edge touches center node (incoming or outgoing)
             if u == center_local_idx or v == center_local_idx:
                 other_idx = v if u == center_local_idx else u
                 neighbor_local_indices.add(int(other_idx))
@@ -129,7 +113,6 @@ class GraphLocalizer:
                 attn_val = edge_attentions.get(e_idx, 0.0)
                 subgraph_attention += attn_val
 
-                # Transition baseline penalty
                 nll_val = 0.0
                 is_rare = False
                 if self.transition_baseline is not None and self.transition_baseline.fitted:

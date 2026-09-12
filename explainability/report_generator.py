@@ -1,11 +1,3 @@
-"""
-Security Incident Report Generator (XAI Evidence Fusion)
---------------------------------------------------------------------
-Synthesizes multi-source model evidence (attention weights, feature attribution,
-reconstruction error, transition structure, and calibrated risk state) into:
-  1. Standardized machine-readable JSON schemas (for Gateway Policy).
-  2. Natural language security triage reports (for human security analysts).
-"""
 
 import os
 import sys
@@ -30,7 +22,6 @@ from graph_localizer import GraphLocalizer, LocalSubgraph
 from scorer import TransitionBaseline
 
 
-# Known functional descriptions for common CAN arbitration IDs in automotive benchmarks
 FUNCTIONAL_ID_HINTS = {
     "0x0D0": "Speedometer / Vehicle Wheel Speed",
     "208": "Speedometer / Vehicle Wheel Speed",
@@ -60,7 +51,6 @@ FUNCTIONAL_ID_HINTS = {
 
 
 def lookup_functional_hint(id_val: str) -> str:
-    """Matches functional description regardless of whether ID is formatted as hex (0x0D0) or decimal (208)."""
     id_str = str(id_val).strip()
     if id_str in FUNCTIONAL_ID_HINTS:
         return FUNCTIONAL_ID_HINTS[id_str]
@@ -93,9 +83,6 @@ class SecurityIncidentReport:
 
 
 class ReportGenerator:
-    """
-    Fuses all XAI evidence into structured JSON and natural language reports.
-    """
     def __init__(
         self,
         vocab: Optional[dict] = None,
@@ -124,7 +111,6 @@ class ReportGenerator:
     ) -> SecurityIncidentReport:
         incident_id = f"INC-{uuid.uuid4().hex[:8].upper()}"
 
-        # 1. Feature Attribution
         node_attributions = self.attributor.attribute_window(
             batch, outputs, top_k_nodes=3, top_k_features=3
         )
@@ -150,7 +136,6 @@ class ReportGenerator:
                 ],
             })
 
-        # 2. Attention Analysis
         attended_edges = self.attention_analyzer.compute_edge_importance(
             batch, model, top_k=4
         )
@@ -163,7 +148,6 @@ class ReportGenerator:
             for ae in attended_edges
         ]
 
-        # 3. Subgraph Localization & Structural Sequencing
         structural_payload = []
         if node_attributions:
             top_node_local = node_attributions[0].local_index
@@ -181,7 +165,6 @@ class ReportGenerator:
                         "is_rare_sequence": edge.is_rare_transition,
                     })
 
-        # 4. Gateway Policy Recommendation Rule
         risk = detection_result.risk_state
         if risk == RiskState.HIGH_RISK:
             primary_id = node_attributions[0].arbitration_id if node_attributions else "ALL"

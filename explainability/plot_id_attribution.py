@@ -1,11 +1,3 @@
-"""
-Visualization: CAN ID Anomaly Contribution & Feature Breakdown Bar Chart
--------------------------------------------------------------------------
-Plots:
-  1. Main Chart: Relative anomaly contribution percentages per CAN Arbitration ID.
-  2. Sub-Panel / Inset: Specific feature dimension residual decomposition for
-     the top-ranked anomalous CAN ID (e.g. signal_max vs mean_iat).
-"""
 
 import os
 import numpy as np
@@ -18,9 +10,6 @@ except ImportError:
 
 
 def plot_id_attribution(report, save_path: str = None, title: str = None):
-    """
-    Renders a dual-panel bar chart with ID rankings and feature-level attribution.
-    """
     if plt is None:
         print("matplotlib not available; skipping ID attribution plot.")
         return None
@@ -33,21 +22,17 @@ def plot_id_attribution(report, save_path: str = None, title: str = None):
     fig = plt.figure(figsize=(12, 6))
     gs = gridspec.GridSpec(1, 2, width_ratios=[1.1, 1.3], wspace=0.35)
 
-    # -------------------------------------------------------------
-    # Panel 1: CAN Arbitration ID Anomaly Contribution (%)
-    # -------------------------------------------------------------
     ax1 = fig.add_subplot(gs[0])
 
     id_labels = [f"{d['arbitration_id']}\n({d.get('functional_description', '')[:16]}...)" if len(d.get('functional_description', '')) > 16 else f"{d['arbitration_id']}\n({d.get('functional_description', '')})" for d in top_ids_data]
     contrib_pcts = [float(d["anomaly_contribution_pct"]) for d in top_ids_data]
 
-    # Invert so highest is at the top
     id_labels = id_labels[::-1]
     contrib_pcts = contrib_pcts[::-1]
 
     colors = ["#457B9D"] * len(contrib_pcts)
     if colors:
-        colors[-1] = "#E63946"  # Highlight the #1 culprit in red
+        colors[-1] = "#E63946"
 
     bars1 = ax1.barh(range(len(id_labels)), contrib_pcts, color=colors, height=0.55, edgecolor="#1D3557", linewidth=1.2)
     ax1.set_yticks(range(len(id_labels)))
@@ -57,16 +42,12 @@ def plot_id_attribution(report, save_path: str = None, title: str = None):
     ax1.set_title("Ranked CAN Arbitration IDs", fontsize=12, fontweight="bold", color="#0B090A", pad=12)
     ax1.grid(axis="x", linestyle="--", alpha=0.6)
 
-    # Annotate bar values
     for bar, val in zip(bars1, contrib_pcts):
         ax1.text(
             bar.get_width() + 1.5, bar.get_y() + bar.get_height() / 2,
             f"{val:.1f}%", va="center", ha="left", fontsize=10, fontweight="bold", color="#1D3557"
         )
 
-    # -------------------------------------------------------------
-    # Panel 2: Feature Attribution Decomposition for Top-1 CAN ID
-    # -------------------------------------------------------------
     ax2 = fig.add_subplot(gs[1])
     top_culprit = top_ids_data[0]
     top_features = top_culprit.get("top_deviating_features", [])

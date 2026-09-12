@@ -1,15 +1,3 @@
-"""
-XAI Ground-Truth Fidelity & Explanation Benchmark
---------------------------------------------------------------------
-Evaluates the explainability layer quantitatively against documented
-ROAD attack ground-truth targets (CAN Arbitration IDs and physical signals).
-
-Computes:
-  - Hit Rate @ Top-1 (HR@1): Top attributed CAN ID matches ground truth target
-  - Hit Rate @ Top-3 (HR@3): Ground truth target in Top-3 attributed CAN IDs
-  - Feature Grounding Fidelity: Attributed feature matches attack mechanism
-  - Sample Security Incident Report generation (JSON + Text)
-"""
 
 import os
 import sys
@@ -44,7 +32,6 @@ CHECKPOINT_PATH = os.path.join(OUTPUTS_DIR, "best_model.pt")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 SEED = 42
 
-# Documented ground-truth target IDs and signals in ROAD dataset
 GROUND_TRUTH_TARGETS = {
     "speedometer": {
         "target_ids": ["0x0D0", "208", "0x0D1", "209", "0x430", "1072", "0x434", "1076", "0x350", "848"],
@@ -70,7 +57,6 @@ GROUND_TRUTH_TARGETS = {
 
 
 def normalize_can_id(id_val) -> set:
-    """Returns a set of canonical string representations (hex and decimal) for an ID."""
     id_str = str(id_val).strip()
     res = {id_str.lower(), id_str.upper()}
     try:
@@ -172,7 +158,6 @@ def run_xai_evaluation(show_plots: bool = False):
             )
             res = detector.evaluate_graph(batch, outputs)
 
-            # Evaluate explanations on attack windows flagged as suspicious/alert
             if res.ground_truth_label == 1 and res.anomaly_score >= detector.tau_suspicious:
                 total_attack_alerts += 1
                 gt = get_ground_truth_for_capture(res.capture_name)
@@ -185,7 +170,6 @@ def run_xai_evaluation(show_plots: bool = False):
                     alert_threshold=detector.tau_alert
                 )
 
-                # Collect distinct attack incident reports for visualization
                 if len(sample_reports) < 4:
                     if not any(r.capture_name == report.capture_name for r in sample_reports):
                         sample_reports.append(report)
@@ -199,7 +183,6 @@ def run_xai_evaluation(show_plots: bool = False):
                     if any(is_target_hit(tid, target_ids) for tid in top3_ids):
                         hit_top3_count += 1
 
-                    # Check feature grounding
                     top1_feats = [f["feature"] for f in report.top_anomalous_ids[0]["top_deviating_features"]]
                     if any(f in expected_feats for f in top1_feats):
                         feature_match_count += 1
@@ -220,33 +203,27 @@ def run_xai_evaluation(show_plots: bool = False):
     print("\n[3/3] Generating Visual Explanations & Security Incident Reports...")
     visuals_dir = os.path.join(OUTPUTS_DIR, "xai_visuals")
 
-    # Clear old visuals so every run produces a clean, up-to-date set
     if os.path.isdir(visuals_dir):
         import shutil
         shutil.rmtree(visuals_dir)
     os.makedirs(visuals_dir, exist_ok=True)
 
     for i, rep in enumerate(sample_reports):
-        # Use a fixed, human-readable filename prefix so re-runs overwrite cleanly
         prefix = os.path.join(visuals_dir, f"incident_{i + 1:02d}_{rep.capture_name.replace(' ', '_')}")
 
         print(f"\n--- Incident {i + 1} [{rep.risk_state}] ({rep.capture_name} @ {rep.timestamp}s) ---")
         print(report_gen.to_text(rep))
 
-        # 1. Component Deviation Radar / Spider Chart
         plot_component_radar(rep, save_path=f"{prefix}_radar_chart.png")
 
-        # 2. CAN ID Anomaly Contribution & Root-Cause Bar Chart
         plot_id_attribution(rep, save_path=f"{prefix}_id_attribution.png")
 
-        # 3. Interactive Anomaly-Annotated Subgraph Network (PNG + HTML)
         plot_interactive_subgraph(
             rep,
             png_save_path=f"{prefix}_subgraph.png",
             html_save_path=f"{prefix}_subgraph_interactive.html",
         )
 
-        # 4. Master Unified Matplotlib Dashboard — save PNG, defer show() until the end
         render_unified_dashboard(rep, save_path=f"{prefix}_dashboard.png", show=False)
 
     if sample_reports:
@@ -256,8 +233,6 @@ def run_xai_evaluation(show_plots: bool = False):
         print(f"\nSaved structured JSON report to: {sample_json_path}")
         print(f"Saved visual XAI dashboards to: {visuals_dir}")
 
-    # Show all dashboards in one blocking call — script pauses here until
-    # the user closes ALL open Matplotlib windows, then exits cleanly.
     if show_plots and sample_reports:
         import matplotlib.pyplot as plt
         print("\nDisplaying dashboards — close all windows to exit.")

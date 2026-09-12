@@ -1,10 +1,3 @@
-"""
-Attention Analysis & Rollout for Graph Transformer CAN Security
---------------------------------------------------------------------
-Extracts multi-head attention weights across all TransformerConv layers,
-computes Attention Rollout across layers, and maps attended interaction
-pathways back to CAN Arbitration ID pairs.
-"""
 
 import os
 import sys
@@ -34,9 +27,6 @@ class AttendedEdge:
 
 
 class AttentionAnalyzer:
-    """
-    Analyzes layer-wise multi-head attention tensors from GraphTransformerEncoder.
-    """
     def __init__(self, vocab: Optional[dict] = None):
         self.vocab = vocab or {}
         self.idx_to_id = {v: k for k, v in self.vocab.items()} if self.vocab else {}
@@ -49,10 +39,6 @@ class AttentionAnalyzer:
         return self.idx_to_id.get(vocab_idx, f"ID_{vocab_idx}")
 
     def extract_layer_attention(self, model) -> list[tuple[torch.Tensor, torch.Tensor]]:
-        """
-        Extracts saved attention weights from the model.
-        Returns a list of (attn_edge_index, attn_weights) for each layer.
-        """
         raw_weights = model.get_attention_weights()
         if not raw_weights:
             return []
@@ -64,10 +50,6 @@ class AttentionAnalyzer:
         model,
         top_k: int = 5
     ) -> list[AttendedEdge]:
-        """
-        Computes aggregated edge attention across all layers and heads,
-        mapping edges back to CAN Arbitration IDs.
-        """
         raw_weights = self.extract_layer_attention(model)
         if not raw_weights or batch.edge_index.shape[1] == 0:
             return []
@@ -75,16 +57,13 @@ class AttentionAnalyzer:
         num_edges = batch.edge_index.shape[1]
         num_layers = len(raw_weights)
 
-        # Collect layer-averaged attention per edge
         layer_edge_attns = []
         for l_idx, (edge_idx, weights) in enumerate(raw_weights):
-            # weights shape: [num_edges, num_heads]
             head_avg = weights.mean(dim=-1).cpu().numpy()
             layer_edge_attns.append(head_avg)
 
-        # Average across layers
-        layer_edge_attns = np.array(layer_edge_attns)  # [num_layers, num_edges]
-        mean_attention = layer_edge_attns.mean(axis=0)  # [num_edges]
+        layer_edge_attns = np.array(layer_edge_attns)
+        mean_attention = layer_edge_attns.mean(axis=0)
 
         src_nodes = batch.edge_index[0].cpu().numpy()
         dst_nodes = batch.edge_index[1].cpu().numpy()
@@ -107,7 +86,6 @@ class AttentionAnalyzer:
                 layer_scores=[float(layer_edge_attns[l, i]) for l in range(num_layers)],
             ))
 
-        # Sort descending by attention score
         attended_edges.sort(key=lambda e: e.attention_score, reverse=True)
         return attended_edges[:top_k]
 
@@ -116,21 +94,15 @@ class AttentionAnalyzer:
         batch,
         model
     ) -> np.ndarray:
-        """
-        Computes Attention Rollout across the 4 transformer layers.
-        Returns a [num_nodes, num_nodes] dense attention matrix.
-        """
         raw_weights = self.extract_layer_attention(model)
         num_nodes = batch.x.shape[0]
 
         if not raw_weights or num_nodes == 0 or batch.edge_index.shape[1] == 0:
             return np.eye(num_nodes, dtype=np.float32)
 
-        # Identity matrix for residual connections
         rollout = np.eye(num_nodes, dtype=np.float64)
 
         for edge_idx, weights in raw_weights:
-            # Build layer adjacency attention matrix A_l
             A_l = np.zeros((num_nodes, num_nodes), dtype=np.float64)
             src = edge_idx[0].cpu().numpy()
             dst = edge_idx[1].cpu().numpy()
@@ -140,7 +112,6 @@ class AttentionAnalyzer:
                 if s < num_nodes and d < num_nodes:
                     A_l[s, d] += float(w)
 
-            # Add identity and re-normalize rows
             A_l = 0.5 * A_l + 0.5 * np.eye(num_nodes)
             row_sums = A_l.sum(axis=1, keepdims=True)
             A_l = A_l / np.maximum(row_sums, 1e-6)

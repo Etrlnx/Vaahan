@@ -175,11 +175,12 @@ Explainability is evaluated quantitatively against the ROAD dataset's ground-tru
 ---
 
 ## 5. Module Roadmap
-
+ 
 | Script | Purpose | Status |
 |---|---|---|
-| `attention_analyzer.py` | Multi-head attention extraction, rollout, and edge weighting | **Next (Phase 7 - Step 1)** |
-| `attribution.py` | Per-node & per-feature residual decomposition and attribution | **Next (Phase 7 - Step 2)** |
-| `graph_localizer.py` | Subgraph extraction & structural anomaly localization | **Next (Phase 7 - Step 3)** |
-| `report_generator.py` | Structured JSON schema and natural language report synthesis | **Next (Phase 7 - Step 4)** |
-| `evaluate_xai.py` | Ground-truth fidelity and Hit-Rate@K evaluation | **Next (Phase 7 - Step 5)** |
+| `attention_analyzer.py` | Multi-head attention extraction, rollout, and edge weighting | ✅ Implemented |
+| `attribution.py` | Per-node & per-feature residual decomposition and attribution | ✅ Implemented |
+| `graph_localizer.py` | Subgraph extraction & structural anomaly localization | ✅ Implemented |
+| `report_generator.py` | Structured JSON schema and natural language report synthesis | ✅ Implemented |
+| `evalxai.py` | Ground-truth fidelity and Hit-Rate@K evaluation | ✅ Implemented |
+| `plot_*.py` | Unified 4-panel dashboard, radar charts, and interactive subgraph network | ✅ Implemented |

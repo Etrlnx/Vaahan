@@ -1,14 +1,3 @@
-"""
-Visualization: Component Deviation Radar / Spider Chart
---------------------------------------------------------------------
-Plots a multi-axis radial chart displaying:
-  - Reconstruction Residual (R_error)
-  - Temporal Dynamics Jitter (T_error)
-  - Structural Sequence Penalty (G_error)
-  - Fused Anomaly Score (S_anomaly)
-  - Calibrated Decision Boundary (tau_suspicious)
-  - High-Risk Alert Boundary (tau_alert)
-"""
 
 import os
 import numpy as np
@@ -20,14 +9,10 @@ except ImportError:
 
 
 def plot_component_radar(report, save_path: str = None, title: str = None):
-    """
-    Renders a polar radar chart representing multi-signal anomaly deviations.
-    """
     if plt is None:
         print("matplotlib not available; skipping radar plot.")
         return None
 
-    # Categories for the radar chart
     categories = [
         "Reconstruction (R)",
         "Temporal Jitter (T)",
@@ -36,7 +21,6 @@ def plot_component_radar(report, save_path: str = None, title: str = None):
     ]
     num_vars = len(categories)
 
-    # Values from report
     r_val = float(report.component_breakdown.get("reconstruction_error", 0.0))
     t_val = float(report.component_breakdown.get("temporal_error", 0.0))
     g_val = float(report.component_breakdown.get("structural_error", 0.0))
@@ -45,34 +29,28 @@ def plot_component_radar(report, save_path: str = None, title: str = None):
     tau_suspicious = float(report.decision_threshold)
     tau_alert = float(report.alert_threshold)
 
-    # Normalize values for visual scale
     max_val = max(1.5, r_val, t_val, g_val, score_val, tau_alert) * 1.15
     values = [r_val, t_val, g_val, score_val]
 
-    # Angles for each axis
     angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
-    # Complete the loop
     values += values[:1]
     angles += angles[:1]
 
     fig, ax = plt.subplots(figsize=(7, 7), subplot_kw=dict(polar=True))
 
-    # Determine color scheme based on risk state
     if report.risk_state == "HIGH_RISK":
-        line_color = "#D90429"  # Crimson red
+        line_color = "#D90429"
         fill_color = "#EF233C"
     elif report.risk_state == "SUSPICIOUS":
-        line_color = "#FF9F1C"  # Orange
+        line_color = "#FF9F1C"
         fill_color = "#FFE49E"
     else:
-        line_color = "#2EC4B6"  # Teal / green
+        line_color = "#2EC4B6"
         fill_color = "#CBF3F0"
 
-    # Draw anomaly polygon
     ax.plot(angles, values, color=line_color, linewidth=2.5, linestyle="solid", label="Observed Anomaly Profile")
     ax.fill(angles, values, color=fill_color, alpha=0.35)
 
-    # Draw threshold reference circles
     threshold_angles = np.linspace(0, 2 * np.pi, 100)
     ax.plot(
         threshold_angles, [tau_suspicious] * 100,
@@ -85,7 +63,6 @@ def plot_component_radar(report, save_path: str = None, title: str = None):
         label=f"Alert Threshold (τ={tau_alert:.2f})"
     )
 
-    # Set category labels
     ax.set_theta_offset(np.pi / 2)
     ax.set_theta_direction(-1)
     ax.set_xticks(angles[:-1])
@@ -99,7 +76,7 @@ def plot_component_radar(report, save_path: str = None, title: str = None):
         color="#6C757D", size=9
     )
 
-    chart_title = title or f"Component Deviation Profile [{report.risk_state}]\nCapture: {report.capture_name} @ t={report.timestamp}s"
+    chart_title = title or f"Component Deviation Profile [{report.risk_state}]\nCapture: {report.capture_name} \n @ t={report.timestamp}s"
     plt.title(chart_title, size=13, weight="bold", color="#0B090A", pad=25)
     plt.legend(loc="upper right", bbox_to_anchor=(1.35, 1.15), fontsize=9)
 

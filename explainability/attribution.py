@@ -1,10 +1,3 @@
-"""
-Node and Feature Attribution for CAN Graph Transformer Anomaly Detection
--------------------------------------------------------------------------
-Decomposes reconstruction residuals (x - x_hat)^2 * w across the 9 node feature
-dimensions to determine which specific CAN Arbitration IDs and physical signal
-dimensions drove the anomaly alert.
-"""
 
 import os
 import sys
@@ -69,9 +62,6 @@ class NodeAttribution:
 
 
 class FeatureAttributor:
-    """
-    Computes exact per-node and per-feature reconstruction error decomposition.
-    """
     def __init__(self, vocab: Optional[dict] = None, feature_weights: tuple = (1.0, 1.0, 1.0, 1.2, 2.0, 1.0, 1.5, 2.5, 2.5)):
         self.vocab = vocab or {}
         self.idx_to_id = {v: k for k, v in self.vocab.items()} if self.vocab else {}
@@ -91,24 +81,18 @@ class FeatureAttributor:
         top_k_nodes: int = 3,
         top_k_features: int = 3,
     ) -> list[NodeAttribution]:
-        """
-        Decomposes reconstruction error across all nodes and features.
-        Returns a ranked list of NodeAttribution objects.
-        """
-        x_observed = batch.x.cpu().numpy()            # [num_nodes, 9]
-        x_reconstructed = outputs["x_recon"].cpu().numpy()  # [num_nodes, 9]
-        global_ids = batch.id_idx.cpu().numpy()       # [num_nodes]
+        x_observed = batch.x.cpu().numpy()
+        x_reconstructed = outputs["x_recon"].cpu().numpy()
+        global_ids = batch.id_idx.cpu().numpy()
         num_nodes = x_observed.shape[0]
 
         if num_nodes == 0:
             return []
 
-        # Weighted squared residuals per node and per feature
         squared_diff = (x_reconstructed - x_observed) ** 2
-        weighted_residuals = squared_diff * self.feature_weights[np.newaxis, :]  # [num_nodes, 9]
+        weighted_residuals = squared_diff * self.feature_weights[np.newaxis, :]
 
-        # Total error per node and total graph error
-        node_errors = weighted_residuals.sum(axis=-1)  # [num_nodes]
+        node_errors = weighted_residuals.sum(axis=-1)
         total_graph_error = max(float(node_errors.sum()), 1e-6)
 
         ranked_node_indices = np.argsort(node_errors)[::-1]

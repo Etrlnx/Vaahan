@@ -1,11 +1,3 @@
-"""
-Visualization: Interactive Anomaly-Annotated Subgraph Network
---------------------------------------------------------------------
-Exports:
-  1. Interactive Standalone HTML Visualization (openable in any browser with
-     pan, zoom, node drag, and rich tooltip telemetry).
-  2. Publication-Quality Static PNG Network Snapshot (via Matplotlib).
-"""
 
 import os
 import json
@@ -19,9 +11,6 @@ except ImportError:
 
 
 def plot_subgraph_static(report, save_path: str = None):
-    """
-    Renders a static network graph layout with Matplotlib.
-    """
     if plt is None:
         return None
 
@@ -32,7 +21,6 @@ def plot_subgraph_static(report, save_path: str = None):
     primary_culprit_id = top_ids[0]["arbitration_id"]
     nodes_info = {d["arbitration_id"]: d for d in top_ids}
 
-    # Collect unique nodes and edges from report
     edges_info = report.top_attended_interactions
     structural_edges = {f"{e['source_id']}->{e['target_id']}": e for e in report.structural_anomalies}
 
@@ -44,10 +32,9 @@ def plot_subgraph_static(report, save_path: str = None):
             all_node_ids.append(e["target_id"])
 
     fig, ax = plt.subplots(figsize=(9, 8))
-    ax.set_facecolor("#0F172A")  # Dark sleek dashboard background
-    fig.patch.set_facecolor("#0F172A")
+    ax.set_facecolor("#ffffff")
+    fig.patch.set_facecolor("#ffffff")
 
-    # Arrange nodes in a circle layout with center node in the middle
     n = len(all_node_ids)
     pos = {}
     center_idx = all_node_ids.index(primary_culprit_id) if primary_culprit_id in all_node_ids else 0
@@ -61,7 +48,6 @@ def plot_subgraph_static(report, save_path: str = None):
         for ang, nid in zip(angles, other_nodes):
             pos[nid] = np.array([radius * np.cos(ang), radius * np.sin(ang)])
 
-    # Draw edges
     drawn_edges = set()
     for e in edges_info:
         u, v = e["source_id"], e["target_id"]
@@ -70,7 +56,7 @@ def plot_subgraph_static(report, save_path: str = None):
             edge_key = f"{u}->{v}"
             is_rare = edge_key in structural_edges
 
-            edge_color = "#EF4444" if is_rare else "#38BDF8"
+            edge_color = "#000000" if is_rare else "#000000"
             edge_style = "--" if is_rare else "-"
             edge_width = 1.0 + float(e.get("attention_weight", 0.5)) * 4.0
 
@@ -84,40 +70,35 @@ def plot_subgraph_static(report, save_path: str = None):
             )
             drawn_edges.add((u, v))
 
-    # Draw nodes
     for nid, (x, y) in pos.items():
         is_culprit = (nid == primary_culprit_id)
-        node_color = "#EF4444" if is_culprit else ("#F59E0B" if nid in nodes_info else "#38BDF8")
+        node_color = "#000000" if is_culprit else ("#000000" if nid in nodes_info else "#000000")
         node_size = 1800 if is_culprit else 1200
 
-        # Glow effect
         ax.scatter([x], [y], s=node_size * 1.35, color=node_color, alpha=0.25, edgecolors="none")
         ax.scatter([x], [y], s=node_size, color=node_color, alpha=0.95, edgecolors="#FFFFFF", linewidth=2.0)
 
-        # Label inside node
-        ax.text(x, y, nid, color="#FFFFFF", fontsize=11, fontweight="bold", ha="center", va="center")
+        ax.text(x, y, nid, color="#000000", fontsize=11, fontweight="bold", ha="center", va="center")
 
-        # Telemetry badge below node
         info = nodes_info.get(nid, {})
         desc = info.get("functional_description", "")
         if desc:
             short_desc = desc.split("/")[0].strip()
-            ax.text(x, y - 0.12, short_desc, color="#CBD5E1", fontsize=8.5, ha="center", va="top", fontweight="semibold")
+            ax.text(x, y - 0.12, short_desc, color="#000000", fontsize=8.5, ha="center", va="top", fontweight="semibold")
 
     ax.set_xlim(-1.1, 1.1)
     ax.set_ylim(-1.1, 1.1)
     ax.axis("off")
 
     title_text = f"Anomaly-Annotated Subgraph Network [{report.risk_state}]\nCapture: {report.capture_name} (t={report.timestamp}s)"
-    ax.set_title(title_text, color="#F8FAFC", fontsize=13, fontweight="bold", pad=15)
+    ax.set_title(title_text, color="#000000", fontsize=13, fontweight="bold", pad=15)
 
-    # Legend
-    legend_elements = [
-        mpatches.Patch(color="#EF4444", label="Primary Anomalous CAN ID"),
-        mpatches.Patch(color="#F59E0B", label="Contributing Anomalous ID"),
-        mpatches.Patch(color="#38BDF8", label="Attended Neighbor ID"),
-    ]
-    ax.legend(handles=legend_elements, loc="lower right", facecolor="#1E293B", edgecolor="#475569", labelcolor="#F8FAFC", fontsize=9)
+    # legend_elements = [
+    #     mpatches.Patch(color="#EF4444", label="Primary Anomalous CAN ID"),
+    #     mpatches.Patch(color="#F59E0B", label="Contributing Anomalous ID"),
+    #     mpatches.Patch(color="#38BDF8", label="Attended Neighbor ID"),
+    # ]
+    # ax.legend(handles=legend_elements, loc="lower right", facecolor="#1E293B", edgecolor="#475569", labelcolor="#F8FAFC", fontsize=9)
 
     plt.tight_layout()
 
@@ -131,10 +112,6 @@ def plot_subgraph_static(report, save_path: str = None):
 
 
 def export_interactive_html(report, save_path: str):
-    """
-    Generates a standalone, dependency-free interactive HTML5/Canvas visualization
-    with drag-and-drop physics, zoom, pan, and interactive hover tooltips.
-    """
     top_ids = {d["arbitration_id"]: d for d in report.top_anomalous_ids}
     primary_id = report.top_anomalous_ids[0]["arbitration_id"] if report.top_anomalous_ids else "N/A"
 
@@ -152,7 +129,7 @@ def export_interactive_html(report, save_path: str):
         nodes_json.append({
             "id": nid,
             "label": nid,
-            "color": "#EF4444" if is_primary else "#F59E0B",
+            "color": "#000000" if is_primary else "#000000",
             "size": 35 if is_primary else 24,
             "desc": d.get("functional_description", "CAN ECU Telemetry"),
             "contrib": f"{d.get('anomaly_contribution_pct', 0.0)}%",
@@ -181,17 +158,11 @@ def export_interactive_html(report, save_path: str):
   <title>XAI Subgraph - {report.incident_id}</title>
   <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
   <style>
-    body {{ margin: 0; background: #0F172A; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #F8FAFC; overflow: hidden; }}
-    #header {{ padding: 15px 25px; background: #1E293B; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }}
-    #header h2 {{ margin: 0; font-size: 18px; color: #F8FAFC; }}
-    #header .badge {{ background: #EF4444; color: #FFF; padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 12px; }}
-    #container {{ display: flex; height: calc(100vh - 65px); }}
-    #mynetwork {{ flex: 1; height: 100%; }}
-    #sidebar {{ width: 340px; background: #1E293B; border-left: 1px solid #334155; padding: 20px; overflow-y: auto; }}
-    .card {{ background: #0F172A; border: 1px solid #334155; border-radius: 8px; padding: 15px; margin-bottom: 15px; }}
-    .card h3 {{ margin-top: 0; font-size: 14px; color: #38BDF8; border-bottom: 1px solid #1E293B; padding-bottom: 6px; }}
+    body {{ margin: 0; background:
+    .card {{ background:
+    .card h3 {{ margin-top: 0; font-size: 14px; color:
     .metric-row {{ display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }}
-    .metric-val {{ font-weight: bold; color: #F8FAFC; }}
+    .metric-val {{ font-weight: bold; color:
   </style>
 </head>
 <body>
@@ -271,7 +242,6 @@ def export_interactive_html(report, save_path: str):
 
 
 def plot_interactive_subgraph(report, png_save_path: str = None, html_save_path: str = None):
-    """Convenience wrapper generating both static PNG and interactive HTML."""
     static_res = plot_subgraph_static(report, save_path=png_save_path) if png_save_path else None
     html_res = export_interactive_html(report, save_path=html_save_path) if html_save_path else None
     return static_res, html_res
