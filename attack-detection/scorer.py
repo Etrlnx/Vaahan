@@ -15,27 +15,18 @@ if GT_DIR not in sys.path:
 
 @dataclass
 class AnomalyScorerConfig:
-    # Fusion weights (sum to 1.0)
     alpha_recon: float = 0.50
     beta_temporal: float = 0.25
     gamma_struct: float = 0.25
-    # Node feature importance weights matching the GAE loss
     feature_weights: tuple = (1.0, 1.0, 1.0, 1.2, 2.0, 1.0, 1.5, 2.5, 2.5)
-    # Structural edge weight multiplier
     edge_loss_weight: float = 0.50
-    # Minimum probability threshold for a transition to be considered "normal"
     rare_transition_prob_threshold: float = 1e-4
-    # Component scaling (fitted on validation set)
     recon_scale: Optional[float] = None
     temporal_scale: Optional[float] = None
     struct_scale: Optional[float] = None
 
 
 class TransitionBaseline:
-    """
-    Builds and maintains empirical transition matrices P(ID_j | ID_i)
-    from benign ambient CAN graphs to detect abnormal message sequencing.
-    """
     def __init__(self, vocab_size: int = 106):
         self.vocab_size = vocab_size
         self.transition_counts = np.zeros((vocab_size, vocab_size), dtype=np.float64)
@@ -43,7 +34,6 @@ class TransitionBaseline:
         self.fitted = False
 
     def fit(self, benign_graphs: list):
-        """Learns normal message transition probabilities from benign graphs."""
         if not benign_graphs:
             raise ValueError("benign_graphs is empty; cannot fit transition baseline.")
         for g in benign_graphs:
@@ -57,7 +47,6 @@ class TransitionBaseline:
             for s, d, w in zip(src_ids, dst_ids, weights):
                 if s < self.vocab_size and d < self.vocab_size:
                     self.transition_counts[s, d] += float(w)
-        # Normalize rows with Laplace smoothing
         row_sums = self.transition_counts.sum(axis=1, keepdims=True)
         smoothed_counts = self.transition_counts + 1e-3
         smoothed_sums = row_sums + (1e-3 * self.vocab_size)
@@ -65,10 +54,6 @@ class TransitionBaseline:
         self.fitted = True
 
     def compute_structural_penalty(self, g) -> float:
-        """
-        Computes the negative log-likelihood penalty for observed edges in graph g.
-        High penalty indicates unexpected / unseen CAN ID sequences (masquerade signature).
-        """
         if not self.fitted or g.edge_index.shape[1] == 0:
             return 0.0
         src_nodes = g.edge_index[0].cpu().numpy()
@@ -90,12 +75,6 @@ class TransitionBaseline:
 
 
 class AnomalyScorer:
-    """
-    Evaluates individual graph windows and computes multi-component anomaly scores.
-    """
-    # Feature indices (from graph_builder.py extract_node_features):
-    # 0: msg_count, 1: mean_iat, 2: std_iat, 3: signal_mean, 4: signal_std,
-    # 5: signal_min, 6: signal_max, 7: activity_share, 8: signal_range
     TEMPORAL_FEATURE_IDX = [1, 2, 7]
 
     def __init__(self, config: AnomalyScorerConfig = None):

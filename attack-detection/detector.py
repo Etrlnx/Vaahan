@@ -9,7 +9,7 @@ from scorer import AnomalyScorer, TransitionBaseline, AnomalyScorerConfig
 class RiskState(str, Enum):
     NORMAL = "NORMAL"
     SUSPICIOUS = "SUSPICIOUS"
-    HIGH_RISK = "HIGH_RISK"  # Zero-day attack alert
+    HIGH_RISK = "HIGH_RISK"
 
 
 @dataclass
@@ -27,10 +27,6 @@ class DetectionResult:
 
 
 class ZeroDayDetector:
-    """
-    Evaluates CAN graph windows using the AnomalyScorer and maps scores to RiskState
-    based on calibrated threshold boundaries.
-    """
     def __init__(self, scorer_config: Optional[AnomalyScorerConfig] = None):
         self.scorer_config = scorer_config or AnomalyScorerConfig()
         self.scorer = AnomalyScorer(self.scorer_config)
@@ -40,7 +36,6 @@ class ZeroDayDetector:
         self.is_calibrated: bool = False
 
     def fit_baseline(self, benign_train_graphs: list, vocab_size: int = 106):
-        """Builds transition prior baseline from benign training graphs."""
         if not benign_train_graphs:
             raise ValueError("benign_train_graphs is empty; cannot fit transition baseline.")
         self.transition_baseline = TransitionBaseline(vocab_size=vocab_size)
@@ -54,11 +49,6 @@ class ZeroDayDetector:
         suspicious_percentile: float = 95.0,
         alert_percentile: float = 99.0
     ):
-        """
-        Calibrates detection thresholds on benign validation captures.
-        tau_suspicious: typically set to the 95th percentile of normal traffic.
-        tau_alert: typically set to the 99th percentile (or EVT upper tail) of normal traffic.
-        """
         if not (0.0 < suspicious_percentile < alert_percentile <= 100.0):
             raise ValueError(
                 f"Invalid calibration percentiles: require 0 < suspicious_percentile ({suspicious_percentile}) "
@@ -106,9 +96,6 @@ class ZeroDayDetector:
         print(f"  tau_alert      ({alert_percentile}th percentile) : {self.tau_alert:.4f}")
 
     def evaluate_graph(self, batch, outputs) -> DetectionResult:
-        """
-        Evaluates a single window graph and generates a DetectionResult with risk attribution.
-        """
         if not self.is_calibrated:
             raise RuntimeError(
                 "Detector must be calibrated before evaluating graphs. "
@@ -127,7 +114,6 @@ class ZeroDayDetector:
         else:
             risk = RiskState.NORMAL
 
-        # Identify top anomalous nodes by reconstruction residual for XAI handoff
         node_res = score_dict["node_residuals"].cpu().numpy()
         top_k = min(3, len(node_res))
         top_node_idx = np.argsort(node_res)[::-1][:top_k].tolist()
@@ -152,7 +138,6 @@ class ZeroDayDetector:
         )
 
     def export_calibration(self) -> dict:
-        """Exports calibrated detector state."""
         return {
             "tau_suspicious": self.tau_suspicious,
             "tau_alert": self.tau_alert,
@@ -161,7 +146,6 @@ class ZeroDayDetector:
         }
 
     def import_calibration(self, state: dict):
-        """Restores calibrated detector state."""
         self.tau_suspicious = state["tau_suspicious"]
         self.tau_alert = state["tau_alert"]
         self.is_calibrated = state.get("is_calibrated", True)
