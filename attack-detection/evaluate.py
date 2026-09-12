@@ -19,6 +19,9 @@ from model import GraphTransformerAutoencoder, ModelConfig
 from train import split_data, normalize_graph_features, align_graph_feature_dim, apply_saved_normalization
 from detector import ZeroDayDetector, RiskState, DetectionResult
 from scorer import AnomalyScorerConfig
+from plot_confusion_matrix import plot_confusion_matrix
+from plot_scenario_explainer import plot_scenario_explainer
+from generate_confusion_explainer import generate_confusion_explainer_html
 
 OUTPUTS_DIR = os.path.join(GT_DIR, "outputs")
 GRAPH_DATA_PATH = os.path.join(OUTPUTS_DIR, "graphs.pt")
@@ -30,7 +33,6 @@ SEED = 42
 
 
 def _rank_data_numpy(a: np.ndarray) -> np.ndarray:
-    """Assigns average ranks to tied values in pure numpy (matches scipy.stats.rankdata)."""
     a = np.asarray(a)
     n = len(a)
     if n == 0:
@@ -48,7 +50,6 @@ def _rank_data_numpy(a: np.ndarray) -> np.ndarray:
 
 
 def compute_roc_auc(scores: np.ndarray, labels: np.ndarray) -> float:
-    """Computes exact ROC-AUC using the Mann-Whitney U test formula with exact tie handling."""
     scores = np.asarray(scores, dtype=np.float64)
     labels = np.asarray(labels, dtype=np.int64)
 
@@ -69,7 +70,6 @@ def compute_roc_auc(scores: np.ndarray, labels: np.ndarray) -> float:
 
 
 def compute_pr_auc(scores: np.ndarray, labels: np.ndarray) -> float:
-    """Computes exact Precision-Recall Area Under Curve in pure numpy."""
     scores = np.asarray(scores, dtype=np.float64)
     labels = np.asarray(labels, dtype=np.int64)
 
@@ -78,12 +78,10 @@ def compute_pr_auc(scores: np.ndarray, labels: np.ndarray) -> float:
     if pos_count == 0 or neg_count == 0:
         return 0.0
 
-    # Sort descending by score
     desc_order = np.argsort(scores)[::-1]
     sorted_scores = scores[desc_order]
     sorted_labels = labels[desc_order]
 
-    # Find unique score thresholds
     distinct_indices = np.where(np.diff(sorted_scores))[0]
     threshold_indices = np.r_[distinct_indices, sorted_labels.size - 1]
 
@@ -93,7 +91,6 @@ def compute_pr_auc(scores: np.ndarray, labels: np.ndarray) -> float:
     precisions = tps / (tps + fps)
     recalls = tps / pos_count
 
-    # Anchor at recall 0 with initial precision
     recalls = np.r_[0.0, recalls]
     precisions = np.r_[precisions[0] if len(precisions) > 0 else 1.0, precisions]
 
@@ -102,9 +99,6 @@ def compute_pr_auc(scores: np.ndarray, labels: np.ndarray) -> float:
 
 
 def restore_or_split_graphs(graphs: list, checkpoint: dict):
-    """
-    Restores the exact train/val/test splits and normalization parameters from checkpoint.
-    """
     train_captures = checkpoint.get("train_captures")
     val_captures = checkpoint.get("val_captures")
     test_captures = checkpoint.get("test_captures")
@@ -115,7 +109,6 @@ def restore_or_split_graphs(graphs: list, checkpoint: dict):
         print("Restoring exact capture splits and feature normalizer from checkpoint metadata...")
         train_graphs = [g for g in graphs if g.capture_name in train_captures]
         val_graphs = [g for g in graphs if g.capture_name in val_captures]
-        # Test graphs = held out test ambient captures + all attack captures
         test_graphs = [g for g in graphs if g.capture_name in test_captures or g.y.item() == 1 or not str(g.capture_name).startswith("ambient_")]
         apply_saved_normalization(train_graphs, train_mean, train_std)
         apply_saved_normalization(val_graphs, train_mean, train_std)
@@ -128,7 +121,7 @@ def restore_or_split_graphs(graphs: list, checkpoint: dict):
         return train_graphs, val_graphs, test_graphs, mean, std
 
 
-def run_evaluation(scorer_config: AnomalyScorerConfig = None):
+def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = True):
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
@@ -203,7 +196,6 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None):
     scores = np.array([r.anomaly_score for r in results], dtype=np.float64)
     labels = np.array([r.ground_truth_label for r in results], dtype=np.int64)
 
-    # Use calibrated decision threshold (tau_suspicious) for binary detection
     preds_binary = (scores >= detector.tau_suspicious).astype(int)
 
     tp = int(np.sum((preds_binary == 1) & (labels == 1)))
@@ -224,14 +216,14 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None):
     print("OVERALL PERFORMANCE SUMMARY")
     print("=" * 70)
     print(f"  Total Test Windows      : {len(results)} (Benign: {np.sum(labels==0)}, Attack: {np.sum(labels==1)})")
-    print(f"  True Positives (TP)     : {tp:5d}  |  False Positives (FP) : {fp:5d}")
-    print(f"  False Negatives (FN)    : {fn:5d}  |  True Negatives (TN)  : {tn:5d}")
+    print(f"  True Positives          : {tp:5d}  |  False Positives (FP) : {fp:5d}")
+    print(f"  False Negatives         : {fn:5d}  |  True Negatives (TN)  : {tn:5d}")
     print("-" * 70)
-    print(f"  Decision Threshold (tau): {detector.tau_suspicious:.4f}")
-    print(f"  High-Risk Alert (tau)   : {detector.tau_alert:.4f}")
+    print(f"  Decision Threshold      : {detector.tau_suspicious:.4f}")
+    print(f"  High-Risk               : {detector.tau_alert:.4f}")
     print("-" * 70)
     print(f"  Precision               : {precision:.4f}")
-    print(f"  Recall (Detection Rate) : {recall:.4f}")
+    print(f"  Recall                  : {recall:.4f}")
     print(f"  F1-Score                : {f1:.4f}")
     print(f"  Accuracy                : {accuracy:.4f}")
     print(f"  False Positive Rate     : {fpr:.4f}")
@@ -240,7 +232,6 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None):
     print(f"  PR-AUC Score            : {pr_auc:.4f}")
     print("=" * 70)
 
-    # Per-capture breakdown
     by_capture = {}
     for r in results:
         by_capture.setdefault(r.capture_name, []).append(r)
@@ -270,7 +261,8 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None):
         print(f"{cap_name:<45} | {cap_type:<10} | {np.mean(cap_scores):<10.4f} | {f'{triggered_count}/{total_windows}':<15} | {latency_str:<8}")
 
     print("=" * 95)
-    return {
+
+    metrics = {
         "precision": precision,
         "recall": recall,
         "f1": f1,
@@ -280,6 +272,47 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None):
         "pr_auc": pr_auc,
     }
 
+    cm_save_path = os.path.join(OUTPUTS_DIR, "xai_visuals", "confusion_matrix.png")
+    plot_confusion_matrix(
+        y_true=labels,
+        y_pred=preds_binary,
+        class_names=["Benign", "Attack"],
+        metrics=metrics,
+        title=f"Zero-Day CAN Intrusion Detection",
+        save_path=cm_save_path,
+        show=False,
+    )
+
+    scenario_counts = {
+        "true_negative": tn,
+        "false_positive": fp,
+        "false_negative": fn,
+        "true_positive": tp,
+    }
+
+    html_save_path = os.path.join(OUTPUTS_DIR, "xai_visuals", "scenario_explainer.html")
+    generate_confusion_explainer_html(counts=scenario_counts, save_path=html_save_path)
+
+    table_save_path = os.path.join(OUTPUTS_DIR, "xai_visuals", "scenario_explainer_table.png")
+    plot_scenario_explainer(counts=scenario_counts, save_path=table_save_path, show=False)
+
+    if show_plot:
+        import webbrowser
+        import matplotlib.pyplot as plt
+        abs_html_path = "file:///" + os.path.abspath(html_save_path).replace("\\", "/")
+        print(f"\nOpening Interactive Animated Scenario Explainer in browser: {abs_html_path}")
+        webbrowser.open(abs_html_path)
+        print("Displaying evaluation windows (Confusion Matrix and Scenario Table) - close windows to complete.")
+        plt.show()
+
+    return metrics
+
 
 if __name__ == "__main__":
-    run_evaluation()
+    parser = argparse.ArgumentParser(description="Evaluate Zero-Day CAN Intrusion Detection Model")
+    parser.add_argument(
+        "--no-plot", action="store_true",
+        help="Disable interactive Matplotlib GUI window (saves PNG only)"
+    )
+    args = parser.parse_args()
+    run_evaluation(show_plot=not args.no_plot)

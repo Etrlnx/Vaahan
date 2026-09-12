@@ -492,3 +492,32 @@ The core principle is:
 > A zero-day attack does not need to look like a previously known attack if it can be shown to violate the learned behavioral structure of the vehicle's CAN network.
 
 The system therefore focuses on **behavioral deviation** rather than relying exclusively on attack signatures.
+
+---
+
+# 18. Evaluation & Scenario Explainability Suite
+
+The evaluation module (`attack-detection/evaluate.py`) evaluates held-out test captures against the calibrated threshold $\tau_{\text{suspicious}} = 0.7072$ and provides visual interpretation tools:
+
+### 1. Confusion Matrix (`plot_confusion_matrix.py`)
+- Renders a clean 2x2 confusion matrix (True Negative, False Positive, False Negative, True Positive).
+- Displays raw window counts, row-normalized rates (Recall and Specificity percentages), and dataset share.
+- Includes a grayscale bottom metrics banner detailing Accuracy, Precision, Recall, F1-Score, FPR, ROC-AUC, and PR-AUC.
+- Saved to: `graph-transformer/outputs/xai_visuals/confusion_matrix.png`.
+
+### 2. Scenario Explainer Infographic (`plot_scenario_explainer.py`)
+- Formulates a 2x2 infographic table translating the confusion matrix quadrants into plain-English operational scenarios for non-technical stakeholders:
+  - **True Negative (TN)**: Safe Car Identified as Safe (Optimal Outcome).
+  - **False Positive (FP)**: Safe Car Flagged as Under Attack (False Alarm).
+  - **False Negative (FN)**: Attacked Car Allowed as Safe (Missed Threat).
+  - **True Positive (TP)**: Attacked Car Intercepted (Successful Defense).
+- Outlines Vehicle Status, Model Decision, Real-World Outcome, and Model Role with live window counts.
+- Saved to: `graph-transformer/outputs/xai_visuals/scenario_explainer_table.png`.
+
+### 3. Interactive Telemetry Simulation (`generate_confusion_explainer.py`)
+- Generates a standalone interactive HTML telemetry animation (`scenario_explainer.html`).
+- Animates in-transit CAN message frames from the ECU, through the Graph Transformer anomaly scanner, to the adaptive security gateway barrier.
+- Automatically launches in the user's browser during evaluation.
+
+### 4. Centralized Explainer Metadata (`index.json`)
+- Stores all human-readable descriptions, technical parameters, and UI strings in a structured repository to ensure code cleanliness and zero hardcoded formatting.
