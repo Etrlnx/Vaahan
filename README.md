@@ -179,7 +179,11 @@ capstone/
 │   ├── detector.py            # ZeroDayDetector: calibrate, evaluate_graph, risk state
 │   ├── scorer.py              # AnomalyScorerConfig + TransitionBaseline NLL scoring
 │   ├── evaluate.py            # Zero-day benchmark — ROC-AUC, PR-AUC, F1, FPR, detection latency
-│   └── README.md              # Scoring architecture and evaluation protocol
+│   ├── plot_confusion_matrix.py       # Grayscale publication-quality 2x2 confusion matrix
+│   ├── plot_scenario_explainer.py     # Black-and-white 2x2 scenario infographic table
+│   ├── generate_confusion_explainer.py# Standalone interactive HTML telemetry animation
+│   ├── index.json             # Centralized scenario metadata and plain-English descriptions
+│   └── README.md              # Scoring architecture, evaluation, and explainer suite
 ├── explainability/            # Module: Full XAI evidence layer (MVP complete)
 │   ├── attention_analyzer.py  # Multi-head attention extraction + Attention Rollout
 │   ├── attribution.py         # Per-node & per-feature reconstruction error decomposition
@@ -256,6 +260,7 @@ python graph-transformer/train.py
 # Step 4: Run the zero-day detection benchmark on held-out attack captures
 python attack-detection/evaluate.py
 # -> Prints ROC-AUC, PR-AUC, F1, FPR, detection latency per attack family
+# -> Displays Confusion Matrix & Scenario Table windows + launches interactive browser simulation
 
 # Step 5: Run the XAI fidelity benchmark and generate visual dashboards
 python explainability/evalxai.py          # saves PNGs + HTML to outputs/xai_visuals/

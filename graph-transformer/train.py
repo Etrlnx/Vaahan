@@ -39,7 +39,6 @@ def split_data(graphs: list, val_fraction: float = VAL_FRACTION, seed: int = SEE
  
     rng = random.Random(seed)
 
-    # Separate ambient and attack graphs by capture name and label
     ambient_graphs = [g for g in graphs if g.y.item() == 0 and str(g.capture_name).startswith("ambient_")]
     attack_graphs = [g for g in graphs if g.y.item() == 1 or not str(g.capture_name).startswith("ambient_")]
 
@@ -74,7 +73,6 @@ def split_data(graphs: list, val_fraction: float = VAL_FRACTION, seed: int = SEE
 
 
 def align_graph_feature_dim(graphs, expected_dim: int):
-    """Backfills legacy graph files if their node-feature vector differs."""
     aligned = 0
     for g in graphs:
         if g.x.size(-1) != expected_dim:
@@ -105,7 +103,6 @@ def normalize_graph_features(train_graphs, val_graphs, test_graphs):
 
 
 def apply_saved_normalization(graphs: list, mean: torch.Tensor, std: torch.Tensor):
-    """Applies pre-computed normalization parameters to graphs."""
     mean = mean.to(torch.float32)
     std = std.to(torch.float32)
     for g in graphs:
@@ -141,7 +138,6 @@ def run_epoch(model, loader, optimizer, config, train=True):
 
 
 def _rank_data_numpy(a: np.ndarray) -> np.ndarray:
-    """Assigns average ranks to tied values in pure numpy (matches scipy.stats.rankdata)."""
     a = np.asarray(a)
     n = len(a)
     if n == 0:
@@ -159,7 +155,6 @@ def _rank_data_numpy(a: np.ndarray) -> np.ndarray:
 
 
 def compute_roc_auc(scores: np.ndarray, labels: np.ndarray) -> float:
-    """Computes exact ROC-AUC using the Mann-Whitney U statistic with exact tie handling."""
     scores = np.asarray(scores, dtype=np.float64)
     labels = np.asarray(labels, dtype=np.int64)
 
@@ -257,7 +252,6 @@ def main():
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            # Persist the full training artifact bundle
             torch.save({
                 "model_state_dict": model.state_dict(),
                 "config": config.__dict__,

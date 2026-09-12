@@ -1,12 +1,3 @@
-"""
-Unit & Smoke Tests for the Explainability Layer (XAI)
-------------------------------------------------------
-Validates:
-  1. AttentionAnalyzer layer extraction and rollout computation
-  2. FeatureAttributor residual decomposition and ranking
-  3. GraphLocalizer subgraph extraction and transition penalties
-  4. ReportGenerator structured JSON schema and natural language text synthesis
-"""
 
 import sys
 import os
@@ -105,12 +96,10 @@ class TestXAIComponents(unittest.TestCase):
         self.assertEqual(report.risk_state, "HIGH_RISK")
         self.assertTrue("RESTRICT_ID" in report.recommended_gateway_action)
 
-        # Validate JSON serialization
         json_str = generator.to_json(report)
         self.assertTrue("incident_id" in json_str)
         self.assertTrue("top_anomalous_ids" in json_str)
 
-        # Validate text output
         text_str = generator.to_text(report)
         self.assertTrue("SECURITY INCIDENT REPORT" in text_str)
 

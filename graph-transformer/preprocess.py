@@ -1,4 +1,3 @@
-# ROAD Dataset Preprocessing
 
 import os
 import glob
@@ -11,34 +10,23 @@ import numpy as np
 import pandas as pd
 
 
-# 1. CONFIGURATION
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROAD_ROOT = os.path.join(BASE_DIR, "road", "road")
 
-# Signal-translated captures live under these subfolders in the ROAD release.
 AMBIENT_DIR = os.path.join(ROAD_ROOT, "signal_extractions", "ambient")
 ATTACK_DIR = os.path.join(ROAD_ROOT, "signal_extractions", "attacks")
 OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
 
-# Windowing parameters
-# These were intentionally chosen to be conservative and stable for the ROAD data.
-# Raising them greatly increases the amount of raw message data retained per window.
-WINDOW_SIZE_SEC = 2.0     # length of each temporal window, in seconds
-STRIDE_SEC_BENIGN = 1.0   # allow overlap for benign windows (more training density)
-STRIDE_SEC_ATTACK = 2.0   # non-overlapping for attack windows (avoid train/test leakage)
-MIN_MESSAGES_PER_WINDOW = 5  # minimum number of CAN messages needed for a window to be kept
+WINDOW_SIZE_SEC = 2.0
+STRIDE_SEC_BENIGN = 1.0
+STRIDE_SEC_ATTACK = 2.0
+MIN_MESSAGES_PER_WINDOW = 5
 
-# The graph-building stage expects each window to retain the raw message rows.
-# Set True: graph pipeline can run.
-# Set False: pure statistics-only pass and want to save RAM
 KEEP_RAW_WINDOW_MESSAGES = True
 
 
-# 2. DATA STRUCTURES
-
 @dataclass
 class CaptureFile:
-    """Represents one raw ROAD CSV capture before windowing."""
     path: str
     capture_name: str
     is_attack: bool
@@ -51,12 +39,10 @@ class WindowRecord:
     capture_name: str
     window_start: float
     window_end: float
-    messages: Optional[pd.DataFrame] = None  # raw rows within this window, only when explicitly enabled
-    label: int = 0                          # 0 = benign window, 1 = contains attack traffic
+    messages: Optional[pd.DataFrame] = None
+    label: int = 0
     frac_attack_messages: float = 0.0
 
-
-# 3. FILE DISCOVERY
 
 def discover_captures(ambient_dir: str, attack_dir: str) -> list[CaptureFile]:
 
@@ -106,8 +92,6 @@ def _load_metadata_if_exists(csv_path: str) -> dict:
     return {}
 
 
-# 4. CSV PARSING
-
 def load_capture(capture: CaptureFile) -> pd.DataFrame:
 
     df = pd.read_csv(capture.path)
@@ -120,20 +104,14 @@ def load_capture(capture: CaptureFile) -> pd.DataFrame:
             f"Confirm this is a ROAD signal-translated CSV."
         )
 
-    # Normalize dtypes
     df["Label"] = df["Label"].astype(int)
-    df["ID"] = df["ID"].astype(str)  # keep as string/hex-safe; avoid int overflow surprises
+    df["ID"] = df["ID"].astype(str)
     df["Time"] = df["Time"].astype(float)
-    df = df.sort_values("Time").reset_index(drop=True) # Safety check 
+    df = df.sort_values("Time").reset_index(drop=True)
 
-    # Re-baseline time to start at 0 for this capture, simpler windowing math
     df["Time"] = df["Time"] - df["Time"].min()
 
     return df
-
-
-
-# 5. TEMPORAL WINDOWING
 
 
 def window_capture(df: pd.DataFrame, capture_name: str, is_attack: bool, keep_messages: bool = KEEP_RAW_WINDOW_MESSAGES) -> list[WindowRecord]:
@@ -151,7 +129,6 @@ def window_capture(df: pd.DataFrame, capture_name: str, is_attack: bool, keep_me
 
         if len(window_df) >= MIN_MESSAGES_PER_WINDOW:
             frac_attack = float(window_df["Label"].mean())
-            # Window-level label: any attack-labeled message -> window is "attack"
             window_label = int(window_df["Label"].max())
 
             windows.append(WindowRecord(
@@ -167,7 +144,6 @@ def window_capture(df: pd.DataFrame, capture_name: str, is_attack: bool, keep_me
 
     return windows
 
-# 5. DRIVER CODE
 
 def build_dataset(keep_messages: bool = KEEP_RAW_WINDOW_MESSAGES) -> list[WindowRecord]:
     captures = discover_captures(AMBIENT_DIR, ATTACK_DIR)
@@ -203,7 +179,6 @@ def save_dataset(windows: list[WindowRecord], output_dir: str):
         pickle.dump(windows, f)
     print(f"Saved {len(windows)} windows to {out_path}")
 
-    # Persist windowing parameters alongside dataset
     meta_path = os.path.join(output_dir, "road_windowed_metadata.json")
     metadata = {
         "window_duration_sec": WINDOW_SIZE_SEC,

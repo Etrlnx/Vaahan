@@ -5,17 +5,11 @@ from torch_geometric.nn import TransformerConv
 from torch_geometric.utils import negative_sampling
 
 
-# Configuration
-
-
 class ModelConfig:
-    # Set this to len(vocab) from graph_builder.py's saved id_vocab.pkl
     num_ids = 106
 
     node_stat_feature_dim = 9
 
-    # A slightly larger latent space helps the encoder distinguish abnormal
-    # ID activity patterns without exploding the parameter count on CPU.
     id_embedding_dim = 20
     hidden_dim = 96
     latent_dim = 48
@@ -24,12 +18,8 @@ class ModelConfig:
     dropout = 0.08
 
     reconstruct_edges = True
-    # Negative sampling ratio for edge reconstruction loss (negatives per positive edge)
     neg_sample_ratio: float = 1.0
 
-
-# GRAPH TRANSFORMER
-# Encoder
 
 class GraphTransformerEncoder(nn.Module):
     def __init__(self, config: ModelConfig):
@@ -50,15 +40,13 @@ class GraphTransformerEncoder(nn.Module):
         in_dim = config.hidden_dim
         for i in range(config.num_transformer_layers):
             out_dim = config.hidden_dim if i < config.num_transformer_layers - 1 else config.latent_dim
-            # TransformerConv splits out_dim across heads internally when concat=True;
-            # we request out_dim // heads per head so the final output is out_dim.
             self.transformer_layers.append(
                 TransformerConv(
                     in_channels=in_dim,
                     out_channels=out_dim // config.num_attention_heads,
                     heads=config.num_attention_heads,
                     dropout=config.dropout,
-                    edge_dim=1,        # we pass edge_weight as a 1-dim edge feature
+                    edge_dim=1,
                     concat=True,
                 )
             )
@@ -66,14 +54,12 @@ class GraphTransformerEncoder(nn.Module):
 
         self.dropout = nn.Dropout(config.dropout)
 
-        # Populated after each forward() call — attention weights per layer.
-        # Consumed later by the Explainability Layer.
         self.last_attention_weights = []
 
     def forward(self, x_stats, id_idx, edge_index, edge_weight):
 
-        id_emb = self.id_embedding(id_idx)                    # [num_nodes, id_embedding_dim]
-        h = torch.cat([x_stats, id_emb], dim=-1)               # [num_nodes, node_stat_feature_dim + id_embedding_dim]
+        id_emb = self.id_embedding(id_idx)
+        h = torch.cat([x_stats, id_emb], dim=-1)
         h = F.relu(self.input_proj(h))
 
         edge_attr = edge_weight.unsqueeze(-1) if edge_weight.numel() > 0 else None
@@ -81,9 +67,6 @@ class GraphTransformerEncoder(nn.Module):
         self.last_attention_weights = []
         for i, layer in enumerate(self.transformer_layers):
             if edge_index.shape[1] == 0:
-                # No edges in this graph (degenerate window) — TransformerConv
-                # with zero edges still works but attention is vacuous; skip
-                # attention capture for this case.
                 h = layer(h, edge_index, edge_attr=None)
             else:
                 h, (attn_edge_index, attn_weights) = layer(
@@ -96,14 +79,9 @@ class GraphTransformerEncoder(nn.Module):
                 h = F.relu(h)
                 h = self.dropout(h)
 
-        return h  # [num_nodes, latent_dim] — the latent graph representation
+        return h
 
-# DECODER 
 class GraphAutoencoderDecoder(nn.Module):
-    """
-    Reconstructs the original node statistical feature vector from the
-    latent node embedding produced by the encoder.
-    """
     def __init__(self, config: ModelConfig):
         super().__init__()
         self.mlp = nn.Sequential(
@@ -114,17 +92,15 @@ class GraphAutoencoderDecoder(nn.Module):
         )
 
     def forward(self, z):
-        return self.mlp(z)  # [num_nodes, node_stat_feature_dim]
+        return self.mlp(z)
 
 
 class EdgeDecoder(nn.Module):
     def forward(self, z, edge_index):
         src, dst = edge_index
         logits = (z[src] * z[dst]).sum(dim=-1)
-        return logits  # raw logits, apply sigmoid outside if needed
+        return logits
 
-
-# Model integration
 
 class GraphTransformerAutoencoder(nn.Module):
     def __init__(self, config: ModelConfig):
@@ -143,24 +119,18 @@ class GraphTransformerAutoencoder(nn.Module):
             edge_logits = self.edge_decoder(z, edge_index)
 
         return {
-            "z": z,                    # latent node embeddings — reused by anomaly scoring + XAI later
-            "x_recon": x_recon,        # reconstructed node features
+            "z": z,
+            "x_recon": x_recon,
             "edge_logits": edge_logits,
         }
 
     def get_attention_weights(self):
-        """Convenience accessor for the Explainability Layer (built later)."""
         return self.encoder.last_attention_weights
 
     def compute_edge_logits_with_neg_sampling(self, z, pos_edge_index, num_nodes):
-        """
-        Computes edge logits for both positive edges and sampled negative edges.
-        Returns concatenated logits and corresponding labels.
-        """
         if pos_edge_index.shape[1] == 0:
             return None, None
 
-        # Sample negative edges
         neg_edge_index = negative_sampling(
             edge_index=pos_edge_index,
             num_nodes=num_nodes,
@@ -168,7 +138,6 @@ class GraphTransformerAutoencoder(nn.Module):
             force_undirected=False,
         )
 
-        # Compute logits for positive and negative edges
         pos_logits = self.edge_decoder(z, pos_edge_index)
         neg_logits = self.edge_decoder(z, neg_edge_index)
 
@@ -181,13 +150,11 @@ class GraphTransformerAutoencoder(nn.Module):
         return logits, labels
 
     def get_edge_reconstruction_logits(self, z, edge_index):
-        """Returns logits for given edge_index (for evaluation)."""
         if self.edge_decoder is None or edge_index.shape[1] == 0:
             return None
         return self.edge_decoder(z, edge_index)
 
 
-# Loss metric
 def reconstruction_loss(outputs: dict, x_stats: torch.Tensor, edge_index: torch.Tensor,
                          config: ModelConfig, model: GraphTransformerAutoencoder = None) -> torch.Tensor:
     feature_weights = torch.tensor(
@@ -199,7 +166,6 @@ def reconstruction_loss(outputs: dict, x_stats: torch.Tensor, edge_index: torch.
     node_loss = (node_residual.pow(2) * feature_weights).mean()
 
     if config.reconstruct_edges and outputs["edge_logits"] is not None and model is not None:
-        # Use model's method to compute logits with negative sampling
         logits, labels = model.compute_edge_logits_with_neg_sampling(
             outputs["z"], edge_index, x_stats.shape[0]
         )

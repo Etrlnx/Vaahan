@@ -7,16 +7,14 @@ import torch
 from torch_geometric.data import Data
 from preprocess import WindowRecord
 
-# Environment configuration
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
 WINDOWED_DATA_PATH = os.path.join(OUTPUT_DIR, "road_windowed.pkl")
 GRAPH_OUTPUT_PATH = os.path.join(OUTPUT_DIR, "graphs.pt")
 VOCAB_OUTPUT_PATH = os.path.join(OUTPUT_DIR, "vocab.pkl")
-NODE_FEATURE_DIM = 9 # message count, inter-arrival stats, signal stats, activity share, signal range, signal channel count
+NODE_FEATURE_DIM = 9
 
-# 1. ID Lookup table
 def build_id_vocab(windows: list[WindowRecord]) -> dict:
     all_ids = set()
     for idx, w in enumerate(windows):
@@ -33,28 +31,17 @@ def build_id_vocab(windows: list[WindowRecord]) -> dict:
     return vocab
 
 
-
-# Feature Extraction
-
 def _extract_signal_columns(df: pd.DataFrame) -> list[str]:
-    """
-    Extracts signal columns to process the ids of the messages within it
-    """
     
     return [c for c in df.columns if c.startswith("Signal_")]
 
 
 def extract_node_features(id_messages: pd.DataFrame, window_duration: float, total_window_messages: int) -> np.ndarray:
-    """
-    Computes a fixed-size statistical feature vector that is more sensitive to
-    unusual ID behavior inside a window, not just raw volume.
-    """
     signal_cols = _extract_signal_columns(id_messages)
 
     msg_count = len(id_messages)
     activity_share = float(msg_count / max(total_window_messages, 1))
 
-    # Inter-arrival time stats
     times = id_messages["Time"].values
     if len(times) > 1:
         iats = np.diff(times)
@@ -71,7 +58,6 @@ def extract_node_features(id_messages: pd.DataFrame, window_duration: float, tot
         raw_signals = np.array([])
 
     if len(raw_signals) > 0:
-        # Symmetric log1p transformation to compress large 64-bit registers/timestamps
         signal_values = np.sign(raw_signals) * np.log1p(np.abs(raw_signals))
         signal_mean = float(np.mean(signal_values))
         signal_std = float(np.std(signal_values))
@@ -96,8 +82,6 @@ def extract_node_features(id_messages: pd.DataFrame, window_duration: float, tot
     ], dtype=np.float32)
 
 
-# 3. EDGE CONSTRUCTION
-
 def build_edges(messages: pd.DataFrame, node_index: dict) -> tuple[np.ndarray, np.ndarray]:
     sorted_msgs = messages.sort_values("Time")
     ids_in_order = sorted_msgs["ID"].values
@@ -107,37 +91,31 @@ def build_edges(messages: pd.DataFrame, node_index: dict) -> tuple[np.ndarray, n
         src_id = ids_in_order[k]
         dst_id = ids_in_order[k + 1]
         if src_id == dst_id:
-            continue  # skip self-loops from consecutive messages of the same ID
+            continue
         src = node_index[src_id]
         dst = node_index[dst_id]
         edge_counts[(src, dst)] = edge_counts.get((src, dst), 0) + 1
 
     if not edge_counts:
-        # Degenerate case: window had only one distinct ID, or every message
-        # was from the same ID. Return an empty edge set — the model needs
-        # to handle graphs with no edges gracefully.
         return np.zeros((2, 0), dtype=np.int64), np.zeros((0,), dtype=np.float32)
 
-    edges = np.array(list(edge_counts.keys())).T  # shape [2, num_edges]
+    edges = np.array(list(edge_counts.keys())).T
     weights = np.array(list(edge_counts.values()), dtype=np.float32)
 
     return edges, weights
 
 
-# 4. BUILD A SINGLE GRAPH FROM ONE WINDOW
-
 def build_graph_for_window(window: WindowRecord, global_vocab: dict) -> Data:
     df = window.messages
     unique_ids = df["ID"].unique().tolist()
 
-    # local node index for THIS graph (0..n_nodes-1)
     local_node_index = {id_str: i for i, id_str in enumerate(unique_ids)}
 
     window_duration = window.window_end - window.window_start
     total_window_messages = len(df)
 
     node_features = []
-    global_id_indices = []  # for the model's ID embedding lookup
+    global_id_indices = []
 
     for id_str in unique_ids:
         id_msgs = df[df["ID"] == id_str]
@@ -158,8 +136,6 @@ def build_graph_for_window(window: WindowRecord, global_vocab: dict) -> Data:
         edge_attr=edge_weight,
         y=torch.tensor([window.label], dtype=torch.long),
     )
-    # Stash extra fields PyG doesn't know about natively — still accessible
-    # as attributes on the Data object.
     data.id_idx = id_idx
     data.capture_name = window.capture_name
     data.window_start = window.window_start
@@ -170,11 +146,6 @@ def build_graph_for_window(window: WindowRecord, global_vocab: dict) -> Data:
 
     return data
 
-
-# ============================================================================
-# ============================================================================
-
-# 5. Driver function
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -195,7 +166,7 @@ def main():
     for i, w in enumerate(windows):
         try:
             g = build_graph_for_window(w, vocab)
-            if g.x.shape[0] < 2: # node threshold to consider graph for computation
+            if g.x.shape[0] < 2:
                 skipped += 1
                 continue
             graphs.append(g)
@@ -213,7 +184,6 @@ def main():
     with open(VOCAB_OUTPUT_PATH, "wb") as f:
         pickle.dump(vocab, f)
 
-    # Persist graph construction metadata
     import json
     meta_path = os.path.join(OUTPUT_DIR, "graphs_metadata.json")
     meta = {

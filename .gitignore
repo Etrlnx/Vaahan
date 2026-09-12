@@ -8,3 +8,6 @@ __pycache__/
 *.pyc
 *.pyo
 .vscode/
+# Comment index file
+index.json
+comments.py
