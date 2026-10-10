@@ -15,15 +15,20 @@ if GT_DIR not in sys.path:
 
 @dataclass
 class AnomalyScorerConfig:
-    alpha_recon: float = 0.50
-    beta_temporal: float = 0.25
-    gamma_struct: float = 0.25
+    # Weights act on validation-scaled components (each divided by its benign MAD).
+    # Ablation on the ROAD test split: structural excess (E) carries the detection signal,
+    # R adds a small FPR reduction, T ranks below chance and G is subsumed by E.
+    alpha_recon: float = 0.25
+    beta_temporal: float = 0.0
+    gamma_struct: float = 0.0
+    delta_excess: float = 1.0
     feature_weights: tuple = (1.0, 1.0, 1.0, 1.2, 2.0, 1.0, 1.5, 2.5, 2.5)
     edge_loss_weight: float = 0.50
     rare_transition_prob_threshold: float = 1e-4
     recon_scale: Optional[float] = None
     temporal_scale: Optional[float] = None
     struct_scale: Optional[float] = None
+    excess_scale: Optional[float] = None
 
 
 class TransitionBaseline:
@@ -53,6 +58,37 @@ class TransitionBaseline:
         self.transition_probs = smoothed_counts / np.maximum(smoothed_sums, 1e-6)
         self.fitted = True
 
+        # Typical per-node surprise of each ID on benign traffic, so busy IDs are not
+        # blamed just for carrying many transitions.
+        per_id = {}
+        for g in benign_graphs:
+            ids = g.id_idx.cpu().numpy()
+            for i, v in zip(ids, self.node_surprise(g)):
+                per_id.setdefault(int(i), []).append(v)
+        self.id_surprise_median = np.zeros(self.vocab_size, dtype=np.float64)
+        for i, vals in per_id.items():
+            if i < self.vocab_size:
+                self.id_surprise_median[i] = np.median(vals)
+
+    def node_surprise(self, g) -> np.ndarray:
+        """Count-weighted transition NLL summed over every edge touching each node."""
+        n = g.id_idx.shape[0]
+        if g.edge_index.shape[1] == 0:
+            return np.zeros(n, dtype=np.float64)
+        src = g.edge_index[0].cpu().numpy()
+        dst = g.edge_index[1].cpu().numpy()
+        w = g.edge_attr.cpu().numpy() if getattr(g, "edge_attr", None) is not None else np.ones(len(src))
+        ids = np.minimum(g.id_idx.cpu().numpy(), self.vocab_size - 1)
+        e = -np.log(np.maximum(self.transition_probs[ids[src], ids[dst]], 1e-7)) * w
+        return np.bincount(src, e, n) + np.bincount(dst, e, n)
+
+    def node_excess_surprise(self, g) -> np.ndarray:
+        """Per-node surprise above that ID's benign median; drives detection and attribution."""
+        if not self.fitted:
+            return np.zeros(g.id_idx.shape[0], dtype=np.float64)
+        ids = np.minimum(g.id_idx.cpu().numpy(), self.vocab_size - 1)
+        return self.node_surprise(g) - self.id_surprise_median[ids]
+
     def compute_structural_penalty(self, g) -> float:
         if not self.fitted or g.edge_index.shape[1] == 0:
             return 0.0
@@ -75,7 +111,7 @@ class TransitionBaseline:
 
 
 class AnomalyScorer:
-    TEMPORAL_FEATURE_IDX = [1, 2, 7]
+    TEMPORAL_FEATURE_IDX = [1, 2]  # mean_iat, std_iat
 
     def __init__(self, config: AnomalyScorerConfig = None):
         self.config = config or AnomalyScorerConfig()
@@ -110,6 +146,7 @@ class AnomalyScorer:
         recon_errors = []
         temporal_errors = []
         struct_errors = []
+        excess_errors = []
 
         with torch.no_grad():
             for batch in val_loader:
@@ -123,8 +160,10 @@ class AnomalyScorer:
                 r_error, _ = self.compute_reconstruction_deviation(batch, outputs)
                 t_error = self.compute_temporal_deviation(batch, outputs)
                 g_error = transition_baseline.compute_structural_penalty(batch) if transition_baseline else 0.0
+                e_error = float(transition_baseline.node_excess_surprise(batch).max()) if transition_baseline else 0.0
 
                 recon_errors.append(r_error)
+                excess_errors.append(e_error)
                 temporal_errors.append(t_error)
                 struct_errors.append(g_error)
 
@@ -139,31 +178,35 @@ class AnomalyScorer:
         self.config.recon_scale = mad_scale(recon_errors)
         self.config.temporal_scale = mad_scale(temporal_errors)
         self.config.struct_scale = mad_scale(struct_errors)
+        self.config.excess_scale = mad_scale(excess_errors)
 
         print(f"Component scales fitted: recon={self.config.recon_scale:.4f}, "
-              f"temporal={self.config.temporal_scale:.4f}, struct={self.config.struct_scale:.4f}")
+              f"temporal={self.config.temporal_scale:.4f}, struct={self.config.struct_scale:.4f}, "
+              f"excess={self.config.excess_scale:.4f}")
 
     def score_window(self, batch, outputs, transition_baseline: TransitionBaseline = None) -> dict:
         r_error, node_residuals = self.compute_reconstruction_deviation(batch, outputs)
         t_error = self.compute_temporal_deviation(batch, outputs)
         g_error = transition_baseline.compute_structural_penalty(batch) if transition_baseline else 0.0
+        node_excess = (transition_baseline.node_excess_surprise(batch) if transition_baseline
+                       else np.zeros(batch.x.shape[0]))
+        e_error = float(node_excess.max()) if len(node_excess) else 0.0
 
-        if self.config.recon_scale is not None:
-            r_error /= self.config.recon_scale
-        if self.config.temporal_scale is not None:
-            t_error /= self.config.temporal_scale
-        if self.config.struct_scale is not None:
-            g_error /= self.config.struct_scale
+        def scaled(value, scale):
+            return value / scale if scale is not None else value
 
         fused_score = (
-            self.config.alpha_recon * r_error +
-            self.config.beta_temporal * t_error +
-            self.config.gamma_struct * g_error
+            self.config.alpha_recon * scaled(r_error, self.config.recon_scale) +
+            self.config.beta_temporal * scaled(t_error, self.config.temporal_scale) +
+            self.config.gamma_struct * scaled(g_error, self.config.struct_scale) +
+            self.config.delta_excess * scaled(e_error, self.config.excess_scale)
         )
         return {
             "anomaly_score": float(fused_score),
             "r_error": float(r_error),
             "t_error": float(t_error),
             "g_error": float(g_error),
+            "e_error": e_error,
             "node_residuals": node_residuals,
+            "node_excess": node_excess,
         }

@@ -22,8 +22,10 @@ class DetectionResult:
     structural_error: float
     risk_state: RiskState
     ground_truth_label: int = 0
+    excess_error: float = 0.0
     top_anomalous_node_indices: list[int] = field(default_factory=list)
     top_anomalous_node_ids: list[int] = field(default_factory=list)
+    node_scores: list[float] = field(default_factory=list)
 
 
 class ZeroDayDetector:
@@ -55,11 +57,18 @@ class ZeroDayDetector:
                 f"< alert_percentile ({alert_percentile}) <= 100."
             )
 
-        if self.scorer_config.gamma_struct > 0 and (self.transition_baseline is None or not self.transition_baseline.fitted):
+        val_loader = list(val_loader)
+        if len(val_loader) == 0:
+            raise ValueError("Validation loader yielded 0 windows; cannot calibrate detector thresholds.")
+
+        needs_baseline = self.scorer_config.gamma_struct > 0 or self.scorer_config.delta_excess > 0
+        if needs_baseline and (self.transition_baseline is None or not self.transition_baseline.fitted):
             raise RuntimeError(
-                "Structural anomaly weight gamma_struct > 0, but TransitionBaseline has not been fitted. "
+                "Structural weights (gamma_struct / delta_excess) > 0, but TransitionBaseline has not been fitted. "
                 "Call detector.fit_baseline(train_graphs) before calibrate()."
             )
+
+        self.scorer.fit_component_scales(model, val_loader, device, self.transition_baseline)
 
         model.eval()
         val_scores = []
@@ -114,9 +123,13 @@ class ZeroDayDetector:
         else:
             risk = RiskState.NORMAL
 
-        node_res = score_dict["node_residuals"].cpu().numpy()
-        top_k = min(3, len(node_res))
-        top_node_idx = np.argsort(node_res)[::-1][:top_k].tolist()
+        # Rank nodes by the structural excess that drives the score; fall back to
+        # reconstruction residuals when no transition baseline is available.
+        node_scores = np.asarray(score_dict["node_excess"], dtype=np.float64)
+        if self.transition_baseline is None or not np.any(node_scores):
+            node_scores = score_dict["node_residuals"].cpu().numpy()
+        top_k = min(3, len(node_scores))
+        top_node_idx = np.argsort(node_scores)[::-1][:top_k].tolist()
         top_id_vocab_indices = batch.id_idx[top_node_idx].cpu().numpy().tolist()
 
         raw_capture = batch.capture_name
@@ -133,8 +146,10 @@ class ZeroDayDetector:
             structural_error=score_dict["g_error"],
             risk_state=risk,
             ground_truth_label=label,
+            excess_error=score_dict["e_error"],
             top_anomalous_node_indices=top_node_idx,
             top_anomalous_node_ids=top_id_vocab_indices,
+            node_scores=node_scores.tolist(),
         )
 
     def export_calibration(self) -> dict:

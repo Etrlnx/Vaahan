@@ -85,6 +85,26 @@ class TestDetectorContracts(unittest.TestCase):
         penalty = baseline.compute_structural_penalty(g)
         self.assertGreater(penalty, 0.0)
 
+    def test_node_excess_flags_injected_id(self):
+        from torch_geometric.data import Data
+
+        def chain(ids, counts):
+            g = Data(
+                x=torch.zeros((len(ids), 9)),
+                edge_index=torch.tensor([list(range(len(ids) - 1)), list(range(1, len(ids)))], dtype=torch.long),
+                edge_attr=torch.tensor(counts, dtype=torch.float32),
+            )
+            g.id_idx = torch.tensor(ids, dtype=torch.long)
+            return g
+
+        baseline = TransitionBaseline(vocab_size=10)
+        baseline.fit([chain([1, 2, 3, 4], [5.0, 5.0, 5.0])] * 3)
+        # ID 5 never seen in benign order and inserted between 2 and 3.
+        attacked = chain([1, 2, 5, 3, 4], [5.0, 5.0, 5.0, 5.0])
+        excess = baseline.node_excess_surprise(attacked)
+        self.assertEqual(int(np.argmax(excess)), 2)
+        self.assertLessEqual(baseline.node_excess_surprise(chain([1, 2, 3, 4], [5.0, 5.0, 5.0])).max(), 1e-9)
+
 
 class TestSignalScaling(unittest.TestCase):
     def test_symmetric_log1p(self):

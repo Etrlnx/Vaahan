@@ -160,13 +160,7 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
     print(f"Split: {len(train_graphs)} train, {len(val_graphs)} val, {len(test_graphs)} test.")
 
     print("\n[2/4] Initializing and Calibrating Zero-Day Detector...")
-    if scorer_config is None:
-        scorer_config = AnomalyScorerConfig(
-            alpha_recon=0.50,
-            beta_temporal=0.25,
-            gamma_struct=0.25,
-        )
-    detector = ZeroDayDetector(scorer_config)
+    detector = ZeroDayDetector(scorer_config or AnomalyScorerConfig())
     detector.fit_baseline(train_graphs, vocab_size=len(vocab))
 
     val_loader = DataLoader(val_graphs, batch_size=1, shuffle=False)
@@ -237,8 +231,8 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
         by_capture.setdefault(r.capture_name, []).append(r)
 
     print("\nPER-CAPTURE ZERO-DAY EVALUATION BREAKDOWN:")
-    print(f"{'Capture Name':<45} | {'Type':<10} | {'Score Mean':<10} | {'Alerts/Total':<15} | {'Latency':<8}")
-    print("-" * 95)
+    print(f"{'Capture Name':<45} | {'Type':<10} | {'Score Mean':<10} | {'Alerts/Total':<15} | {'Attack Hits':<12} | {'Latency':<8}")
+    print("-" * 110)
 
     for cap_name in sorted(by_capture):
         cap_results = by_capture[cap_name]
@@ -258,9 +252,13 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
                 latency = max(0.0, trigger_times[0] - attack_start_times[0])
                 latency_str = f"{latency:.2f}s"
 
-        print(f"{cap_name:<45} | {cap_type:<10} | {np.mean(cap_scores):<10.4f} | {f'{triggered_count}/{total_windows}':<15} | {latency_str:<8}")
+        n_attack = sum(cap_labels)
+        attack_hits = sum(1 for r in cap_results if r.ground_truth_label == 1 and r.anomaly_score >= detector.tau_suspicious)
+        hits_str = f"{attack_hits}/{n_attack}" if n_attack else "-"
 
-    print("=" * 95)
+        print(f"{cap_name:<45} | {cap_type:<10} | {np.mean(cap_scores):<10.4f} | {f'{triggered_count}/{total_windows}':<15} | {hits_str:<12} | {latency_str:<8}")
+
+    print("=" * 110)
 
     metrics = {
         "precision": precision,
