@@ -1,0 +1,66 @@
+D:\git_repos\capstone\.venv\Lib\site-packages\torch\jit\_script.py:1485: FutureWarning: `torch.jit.script` is not supported in Python 3.14+ and may break. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+======================================================================
+ZERO-DAY CAN INTRUSION DETECTION EVALUATION
+======================================================================
+
+[1/4] Loading graphs, vocabulary, and model weights...
+Restoring exact capture splits and feature normalizer from checkpoint metadata...
+Loaded 10996 total graphs. Vocab size: 106.
+Split: 7990 train, 2101 val, 905 test.
+
+[2/4] Initializing and Calibrating Zero-Day Detector...
+Component scales fitted: recon=0.0147, temporal=0.0063, struct=0.2103, excess=205.2368
+Detector Calibrated on 2101 validation windows:
+  tau_suspicious (95.0th percentile) : 6.2242
+  tau_alert      (99.0th percentile) : 9.6007
+
+[3/4] Evaluating Test Set (Held-Out Ambient Drives + 17 Attack Captures)...
+
+[4/4] Computing Intrusion Detection Metrics...
+
+======================================================================
+OVERALL PERFORMANCE SUMMARY
+======================================================================
+  Total Test Windows      : 905 (Benign: 736, Attack: 169)
+  True Positives          :   138  |  False Positives (FP) :    31
+  False Negatives         :    31  |  True Negatives (TN)  :   705
+----------------------------------------------------------------------
+  Decision Threshold      : 6.2242
+  High-Risk               : 9.6007
+----------------------------------------------------------------------
+  Precision               : 0.8166
+  Recall                  : 0.8166
+  F1-Score                : 0.8166
+  Accuracy                : 0.9315
+  False Positive Rate     : 0.0421
+----------------------------------------------------------------------
+  ROC-AUC Discrimination  : 0.9668
+  PR-AUC Score            : 0.8697
+======================================================================
+
+PER-CAPTURE ZERO-DAY EVALUATION BREAKDOWN:
+Capture Name                                  | Type       | Score Mean | Alerts/Total    | Attack Hits  | Latency 
+--------------------------------------------------------------------------------------------------------------
+accelerator_attack_drive_1                    | BENIGN     | 4.0982     | 1/44            | -            | N/A     
+accelerator_attack_drive_2                    | BENIGN     | 4.6101     | 2/37            | -            | N/A     
+accelerator_attack_reverse_1                  | BENIGN     | 5.3544     | 9/44            | -            | N/A     
+accelerator_attack_reverse_2                  | BENIGN     | 3.9859     | 0/53            | -            | N/A     
+ambient_dyno_drive_radio_infotainment         | BENIGN     | 4.3468     | 13/391          | -            | N/A     
+correlated_signal_attack_1_masquerade         | ATTACK     | 5.4219     | 5/17            | 5/12         | 2.00s   
+correlated_signal_attack_2_masquerade         | ATTACK     | 5.6550     | 3/15            | 3/12         | 2.00s   
+correlated_signal_attack_3_masquerade         | ATTACK     | 4.8143     | 0/9             | 0/7          | N/A     
+max_engine_coolant_temp_attack_masquerade     | ATTACK     | 5.3950     | 2/13            | 0/4          | N/A     
+max_speedometer_attack_1_masquerade           | ATTACK     | 7.6270     | 15/45           | 12/13        | 0.00s   
+max_speedometer_attack_2_masquerade           | ATTACK     | 8.3010     | 16/30           | 16/16        | 0.00s   
+max_speedometer_attack_3_masquerade           | ATTACK     | 11.0033    | 30/44           | 30/32        | 2.00s   
+reverse_light_off_attack_1_masquerade         | ATTACK     | 6.5357     | 4/15            | 4/4          | 0.00s   
+reverse_light_off_attack_2_masquerade         | ATTACK     | 9.2658     | 13/21           | 13/13        | 0.00s   
+reverse_light_off_attack_3_masquerade         | ATTACK     | 7.2485     | 12/29           | 12/13        | 0.00s   
+reverse_light_on_attack_1_masquerade          | ATTACK     | 7.9659     | 11/28           | 11/11        | 0.00s   
+reverse_light_on_attack_2_masquerade          | ATTACK     | 10.0168    | 20/37           | 19/19        | 0.00s   
+reverse_light_on_attack_3_masquerade          | ATTACK     | 7.8793     | 13/33           | 13/13        | 0.00s   
+==============================================================================================================
+  [Evaluation Visual] Saved Confusion Matrix to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\confusion_matrix.png
+  [Visual Explainer] Saved Interactive Scenario Explainer HTML to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\scenario_explainer.html
+ Saved Scenario Table to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\scenario_explainer_table.png
