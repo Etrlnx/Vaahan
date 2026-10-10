@@ -208,32 +208,27 @@ This is particularly important because an attack may alter communication relatio
 
 The individual signals are combined into an anomaly score.
 
-A generalized formulation is:
+Implemented formulation (`scorer.py`, `AnomalyScorerConfig`):
 
 ```text
 S_anomaly =
-    α R_error
-  + β T_error
-  + γ G_error
+    α · R_error / σ_R
+  + β · T_error / σ_T
+  + γ · G_error / σ_G
+  + δ · E_error / σ_E          with α = 0.25, β = 0, γ = 0, δ = 1.0
 ```
 
 where:
 
-- `R_error` = reconstruction error
-- `T_error` = temporal deviation
-- `G_error` = graph-structural deviation
-- `α`, `β`, `γ` = weighting parameters
+- `R_error` = weighted node reconstruction MSE + 0.5 × edge BCE
+- `T_error` = reconstruction error on the timing features (`mean_iat`, `std_iat`)
+- `G_error` = count-weighted mean transition NLL, −log P(id_v | id_u), from the benign Markov baseline
+- `E_error` = per-ID transition excess: for each node, the count-weighted NLL of all its incident edges minus that ID's benign median; the window takes the maximum over nodes
+- `σ_c` = 1.4826 × MAD of the component on the benign validation windows
 
-The values should be determined experimentally.
+The weights were chosen by ablation (see `knowledge-graph/knowledge-graph.md` §5.3): E carries most of the detection signal, R adds a small false-positive reduction, T ranks attacks below benign traffic, and G is subsumed by E. Because the attack captures were visible while choosing them, the reported numbers are optimistic until repeated-split validation is done.
 
-The final implementation may additionally use:
-
-- normalization
-- adaptive thresholds
-- statistical calibration
-- confidence estimation
-
-The project should avoid arbitrarily selecting thresholds without experimental justification.
+Thresholds are benign-validation percentiles: τ_suspicious (95th) = 6.2242 is the binary decision threshold and τ_alert (99th) = 9.6007 marks HIGH_RISK.
 
 ---
 
@@ -497,7 +492,7 @@ The system therefore focuses on **behavioral deviation** rather than relying exc
 
 # 18. Evaluation & Scenario Explainability Suite
 
-The evaluation module (`attack-detection/evaluate.py`) evaluates held-out test captures against the calibrated threshold $\tau_{\text{suspicious}} = 0.7072$ and provides visual interpretation tools:
+The evaluation module (`attack-detection/evaluate.py`) evaluates held-out test captures against the calibrated threshold $\tau_{\text{suspicious}} = 6.2242$ and provides visual interpretation tools:
 
 ### 1. Confusion Matrix (`plot_confusion_matrix.py`)
 - Renders a clean 2x2 confusion matrix (True Negative, False Positive, False Negative, True Positive).

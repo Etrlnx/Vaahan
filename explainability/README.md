@@ -137,40 +137,48 @@ When an alert is triggered, the evidence fusion engine synthesizes numerical ten
 
 ### B. Natural Language Security Triage Report (For Human Analysts)
 
+Excerpt of a real report produced by `evalxai.py` (structural list truncated):
+
 ```text
 ================================================================================
-SECURITY INCIDENT REPORT [HIGH RISK] — Incident #INC-20260823-0042
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-345C9FBF
 ================================================================================
-Timestamp: 42.00s | Capture: max_speedometer_attack_3_masquerade
-Anomaly Score: 0.8883 (Threshold: 0.7072) | Risk Level: HIGH_RISK
-
-PRIMARY EVIDENCE SUMMARY:
-1. Signal Value Outlier on CAN ID 0x0D0 (Speedometer / Wheel Speed):
-   - 'signal_max' exceeded normal baseline by +3.85 standard deviations.
-   - 'signal_range' expanded significantly (+3.42 sigma), indicating aggressive
-     signal override while message frequency remained within normal bounds.
-
-2. Structural Sequencing Anomaly:
-   - Observed transition 0x0D0 -> 0x1A0 has an empirical prior probability < 0.01%.
-   - Suggests masquerade message injection interrupting expected arbitration cycle.
-
-3. Model Attention Localization:
-   - 74.2% of layer-4 attention concentrated on the (0x0D0, 0x0B4, 0x1A0) subgraph.
-
-RECOMMENDED GATEWAY ACTION:
--> Restrict communication on CAN ID 0x0D0 and flag downstream gateway telemetry.
+Capture: max_speedometer_attack_1_masquerade | Timestamp: 48.00s
+Anomaly Score: 15.3162 (Decision Tau: 6.2242, Alert Tau: 9.6007)
+COMPONENT ANOMALY BREAKDOWN:
+  - Reconstruction Residual (R_error): 0.1768
+  - Temporal Dynamics Jitter (T_error): 0.0110
+  - Structural Sequence Penalty (G_error): 3.0247
+  - Per-ID Transition Excess   (E_error): 2528.4137
+PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
+  1. CAN ID 208 (Speedometer & Reverse-Light Status (ROAD injection target)):
+     -> Share of Window Transition Excess: 23.8%
+     -> Key Deviating Dimensions:
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.1552 (46.1%)
+        * signal_range    [Dynamic Signal Span Range]: residual=0.1081 (32.1%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=0.0483 (14.3%)
+  ...
+STRUCTURAL SEQUENCING ANOMALIES:
+  * Transition 208 -> 837 (Count: 14, NLL: 16.12) [RARE TRANSITION]
+  * Transition 192 -> 208 (Count: 25, NLL: 10.33) [RARE TRANSITION]
+  * Transition 208 -> 1760 (Count: 35, NLL: 10.20) [RARE TRANSITION]
+  ...
+================================================================================
+RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (208) + ESCALATE_ALERT
 ================================================================================
 ```
 
 ---
 
-## 4. Ground-Truth Fidelity Evaluation (`evaluate_xai.py`)
+## 4. Ground-Truth Fidelity Evaluation (`evalxai.py`)
 
 Explainability is evaluated quantitatively against the ROAD dataset's ground-truth attack metadata:
 
 1. **Hit Rate @ Top-K ($HR@K$)**: Does the top-ranked anomalous CAN ID match the true attacked arbitration ID documented in the ROAD attack metadata?
 2. **Feature Grounding Fidelity**: Does the top-attributed feature match the physical attack mechanism (e.g., `signal_max` for max-value masquerade vs `mean_iat` for injection bursts)?
-3. **Subgraph Localization Sparsity**: Does the explanation isolate a compact, interpretable subgraph (1–3 nodes) rather than diffusely highlighting the whole bus?
+3. **Subgraph Localization Sparsity**: Does the explanation isolate a compact, interpretable subgraph (1–3 nodes) rather than diffusely highlighting the whole bus? *(not yet measured)*
+
+The target ID per capture is read from ROAD `attacks/metadata.json` (`injection_id`): `0x0D0` for speedometer and reverse-light attacks, `0x6E0` for correlated-signal and `0x4E7` for coolant. These match the IDs of the `Label = 1` messages. Current results on 138 detected attack windows: **HR@1 94.20%, HR@3 96.38%, feature grounding 84.06%**. CAN IDs are ranked by the detector's per-node transition excess; attention edges are ranked by *lift* (weight × target in-degree), because a target with a single incoming edge always receives softmax weight 1.0.
 
 ---
 

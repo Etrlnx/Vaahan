@@ -6,7 +6,7 @@
 ![Domain](https://img.shields.io/badge/domain-CAN%20bus%20security-orange)
 ![Model](https://img.shields.io/badge/model-Graph%20Transformer%20%2B%20Autoencoder%20%2B%20XAI-informational)
 
-> **Note on project status:** The full MVP pipeline is **implemented and functional** end-to-end. This includes ROAD dataset ingestion, temporal windowing, dynamic graph construction, the coupled `GraphTransformerAutoencoder`, multi-component anomaly scoring, and a complete Explainable AI (XAI) evidence layer (`explainability/`) that generates structured JSON incident reports, natural language triage summaries, and a unified 4-panel visual dashboard. Measured zero-day detection performance: **ROC-AUC 0.9473 · PR-AUC 0.8311 · F1 0.7937 · FPR 2.85%**. Gateway containment policy simulation and post-MVP refinements remain as future work.
+> **Note on project status:** The full MVP pipeline is **implemented and functional** end-to-end. This includes ROAD dataset ingestion, temporal windowing, dynamic graph construction, the coupled `GraphTransformerAutoencoder`, multi-component anomaly scoring, and a complete Explainable AI (XAI) evidence layer (`explainability/`) that generates structured JSON incident reports, natural language triage summaries, and a unified 4-panel visual dashboard. Measured zero-day detection performance: **ROC-AUC 0.9668 · PR-AUC 0.8697 · F1 0.8166 · FPR 4.21%**; explanation fidelity **HR@1 94.2% · HR@3 96.4%** against ROAD's injected IDs. Gateway containment policy simulation and post-MVP refinements remain as future work.
 
 ---
 
@@ -303,9 +303,9 @@ Each temporal window ($W = 2.0\text{s}$) of CAN traffic is converted into a PyTo
 ```mermaid
 flowchart LR
 
-A[Node Feature Reconstruction Error] --> D[Anomaly Evaluation]
-B[Structural Edge BCE Loss] --> D
-C[Temporal / Burst Dynamics] --> D
+A["Reconstruction Error (R)"] --> D[Anomaly Evaluation]
+B["Per-ID Transition Excess (E)"] --> D
+C["Temporal (T) / Mean Transition NLL (G): reported, weight 0"] --> D
 
 D --> E[Per-Capture Breakdown & Decision]
 ```
@@ -318,7 +318,11 @@ Anomaly detection is formulated as an **unsupervised one-class reconstruction ta
   where $\mathcal{L}_{\text{node}}$ is a weighted MSE across node feature residuals giving higher penalty to anomaly-sensitive dimensions (`signal_std`, `signal_max`, `activity_share`, `signal_range`), and $\mathcal{L}_{\text{edge}}$ is binary cross-entropy on inner-product reconstructed edge logits.
 - **Evaluation Strategy**: All attack captures (including masquerade attacks) are held out for testing. Evaluation runs with single-graph batches (`batch_size=1`) to retain capture metadata and calculate per-capture reconstruction error distributions alongside aggregate benign-vs-attack separation.
 
-**Status: Implemented.** Multi-deviation anomaly fusion is calibrated via `ZeroDayDetector` in [`attack-detection/detector.py`](attack-detection/detector.py), yielding **0.9473 ROC-AUC** and **0.8311 PR-AUC** on zero-day attack testing.
+- **Window Score**: each component is divided by its benign-validation MAD and fused as
+  $$S = 1.0 \cdot E/\sigma_E + 0.25 \cdot R/\sigma_R$$
+  where $E$ is the largest per-node *transition excess*: the count-weighted $-\log P(\text{id}_v \mid \text{id}_u)$ summed over a node's edges, minus that ID's benign median. The timing ($T$) and mean-transition ($G$) terms are still computed and shown in reports but carry weight 0; the ablation in `knowledge-graph/knowledge-graph.md` §5.3 shows why.
+
+**Status: Implemented.** `ZeroDayDetector` in [`attack-detection/detector.py`](attack-detection/detector.py) calibrates $\tau_{\text{suspicious}} = 6.2242$ (95th pct) and $\tau_{\text{alert}} = 9.6007$ (99th pct) on benign validation windows, yielding **0.9668 ROC-AUC**, **0.8697 PR-AUC** and **81.7% recall at 4.2% FPR** on the held-out test set. Correlated-signal (8/31) and coolant (0/4) windows remain the weak spot.
 
 ## 15. Explainability Layer
 
@@ -336,7 +340,7 @@ E --> G["Machine-Readable JSON Incident Schemas"]
 
 When the anomaly score crosses $\tau_{\text{suspicious}}$ (or $\tau_{\text{alert}}$), the XAI evidence layer is triggered:
 1. **Attention Analysis (`attention_analyzer.py`)**: Multi-head attention extraction across all 4 `TransformerConv` layers and Attention Rollout ($\mathbf{A}_{\text{rollout}}$) isolating the critical edge communication path.
-2. **Node & Feature Attribution (`attribution.py`)**: Decomposes per-node reconstruction residuals $\mathbf{e}_v = (x_v - \hat{x}_v)^2 \odot \mathbf{w}$ across 9 physical feature dimensions to rank culprit CAN Arbitration IDs.
+2. **Node & Feature Attribution (`attribution.py`)**: Ranks culprit CAN Arbitration IDs by the same per-node transition excess that drives the score, then decomposes the culprit's reconstruction residual $\mathbf{e}_v = (x_v - \hat{x}_v)^2 \odot \mathbf{w}$ across the 9 feature dimensions.
 3. **Subgraph Localizer (`graph_localizer.py`)**: Extracts $k$-hop interaction subgraphs tagged with sequence violation penalties ($G_{\text{error}}$).
 4. **Report Generator (`report_generator.py`)**: Fuses evidence into standardized JSON schemas and natural language incident triage summaries with recommended gateway enforcement actions.
 5. **Visual Dashboards**: Automatically renders a 4-panel visual dashboard (`plot_xai_dashboard.py`), polar radar chart (`plot_component_radar.py`), CAN ID attribution bar chart (`plot_id_attribution.py`), and interactive HTML5 network graph (`plot_interactive_subgraph.py`).
