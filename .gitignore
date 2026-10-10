@@ -11,3 +11,4 @@ __pycache__/
 # Comment index file
 index.json
 comments.py
+knowledge-graph/
