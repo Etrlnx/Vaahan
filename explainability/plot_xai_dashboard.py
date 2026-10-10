@@ -12,25 +12,34 @@ except ImportError:
     _MPL_OK = False
 
 
+# Benign validation 99th percentiles of each raw component (radar spoke = value / p99).
+TAU_R = 0.5456
+TAU_T = 0.1649
+TAU_G = 2.8964
+TAU_E = 838.29
+
+
 def _draw_radar(ax, report, legend_border=True, legend_edgecolor="#334155", legend_linewidth=1.0):
-    categories = ["Recon (R)", "Timing (T)", "Struct (G)", "Anomaly Score"]
+    categories = ["Recon (R)", "Timing (T)", "Struct (G)", "Excess (E)", "Anomaly Score"]
     num_vars   = len(categories)
 
     r_raw = float(report.component_breakdown.get("reconstruction_error", 0.0))
     t_raw = float(report.component_breakdown.get("temporal_error",       0.0))
     g_raw = float(report.component_breakdown.get("structural_error",     0.0))
+    e_raw = float(report.component_breakdown.get("excess_error",         0.0))
     s_raw = float(report.anomaly_score)
     tau_s = float(report.decision_threshold)
     tau_a = float(report.alert_threshold)
 
-    norm  = tau_a if tau_a > 0 else 1.0
-    cap   = norm * 1.25
-    def _norm(v):
-        return min(v / norm, cap / norm)
+    r_norm = r_raw / max(TAU_R, 1e-4)
+    t_norm = t_raw / max(TAU_T, 1e-4)
+    g_norm = g_raw / max(TAU_G, 1e-4)
+    e_norm = max(e_raw, 0.0) / max(TAU_E, 1e-4)
+    s_norm = s_raw / max(tau_s, 1e-4)
 
-    values  = [_norm(r_raw), _norm(t_raw), _norm(g_raw), _norm(s_raw)]
-    tau_s_n = tau_s / norm
-    tau_a_n = 1.0
+    values = [r_norm, t_norm, g_norm, e_norm, s_norm]
+    alert_ratio = tau_a / max(tau_s, 1e-4)
+    cap = max(1.8, max(values) * 1.15, alert_ratio * 1.1)
 
     angles  = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
     values  += values[:1]
@@ -43,26 +52,25 @@ def _draw_radar(ax, report, legend_border=True, legend_edgecolor="#334155", lege
     ax.fill(angles, values, color=color, alpha=0.30)
 
     circ = np.linspace(0, 2 * np.pi, 120)
-    ax.plot(circ, [tau_s_n] * 120, color="#F59E0B", linestyle="--", linewidth=1.4,
-            label=f"Decision  τ={tau_s:.4f}")
-    ax.plot(circ, [tau_a_n] * 120, color="#EF4444", linestyle=":",  linewidth=1.7,
-            label=f"Alert      τ={tau_a:.4f}")
+    ax.plot(circ, [1.0] * 120, color="#F59E0B", linestyle="--", linewidth=1.4,
+            label="Decision (1.0x \u03c4)")
+    ax.plot(circ, [alert_ratio] * 120, color="#EF4444", linestyle=":",  linewidth=1.7,
+            label=f"Alert ({alert_ratio:.2f}x \u03c4)")
 
     ax.set_theta_offset(np.pi / 2)
     ax.set_theta_direction(-1)
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(categories, fontsize=9.5, fontweight="bold", color="#000000")
-    ax.set_ylim(0, cap / norm)
-    ax.tick_params(colors="#FFFFFF", labelsize=7.5)
-    ax.grid(color="#334155", linestyle="--", alpha=0.65)
+    ax.set_ylim(0, cap)
+    ax.tick_params(colors="#6C757D", labelsize=7.5)
+    ax.grid(color="#CBD5E1", linestyle="--", alpha=0.65)
     ax.set_facecolor("#FFFFFF")
 
     ax.set_title(
-        f"Component Deviation Profile\n",
+        "Normalized Deviation Profile\n",
         size=10, weight="bold", color="#000000", pad=14,
     )
-    # Additional metrics: f"R={r_raw:.3f}  T={t_raw:.3f}  G={g_raw:.3f}  S={s_raw:.4f}  (normalised to τₐ={tau_a:.4f})"
-    
+
     ax.legend(loc="upper right", bbox_to_anchor=(1.42, 1.12),
               fontsize=8, facecolor="#FFFFFF", edgecolor=legend_edgecolor if legend_border else "none",
               linewidth=legend_linewidth, labelcolor="#000000")
@@ -126,10 +134,10 @@ def _draw_id_bars(ax, report):
     bars = ax.barh(range(len(labels)), contribs, color=cols, height=0.5, edgecolor="#ffffff")
     ax.set_yticks(range(len(labels)))
     ax.set_yticklabels(labels, fontsize=10, fontweight="bold", color="#000000")
-    ax.set_xlabel("Graph Error Share (%)", fontsize=10, fontweight="bold", color="#000000")
+    ax.set_xlabel("Share of Transition Excess (%)", fontsize=10, fontweight="bold", color="#000000")
     ax.set_xlim(0, max(100.0, max(contribs) * 1.28 if contribs else 100.0))
     ax.grid(axis="x", color="#334155", linestyle="--", alpha=0.55)
-    ax.tick_params(colors="#ffffff")
+    ax.tick_params(colors="#000000")
     ax.set_facecolor("#ffffff")
     ax.set_title("CAN ID Anomaly Contribution", color="#000000", fontsize=11, fontweight="bold", pad=10)
 

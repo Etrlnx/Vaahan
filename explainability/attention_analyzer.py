@@ -24,6 +24,7 @@ class AttendedEdge:
     target_id_str: str
     attention_score: float
     layer_scores: list[float]
+    attention_lift: float = 1.0
 
 
 class AttentionAnalyzer:
@@ -68,6 +69,10 @@ class AttentionAnalyzer:
         src_nodes = batch.edge_index[0].cpu().numpy()
         dst_nodes = batch.edge_index[1].cpu().numpy()
         global_ids = batch.id_idx.cpu().numpy()
+        # Softmax runs over each target's incoming edges, so a lone incoming edge always
+        # scores 1.0. Lift = weight x in-degree measures attention above uniform.
+        in_degree = np.bincount(dst_nodes, minlength=batch.x.shape[0])
+        lift = mean_attention * in_degree[dst_nodes]
 
         attended_edges = []
         for i in range(num_edges):
@@ -84,9 +89,10 @@ class AttentionAnalyzer:
                 target_id_str=dst_id_str,
                 attention_score=float(mean_attention[i]),
                 layer_scores=[float(layer_edge_attns[l, i]) for l in range(num_layers)],
+                attention_lift=float(lift[i]),
             ))
 
-        attended_edges.sort(key=lambda e: e.attention_score, reverse=True)
+        attended_edges.sort(key=lambda e: e.attention_lift, reverse=True)
         return attended_edges[:top_k]
 
     def compute_attention_rollout(

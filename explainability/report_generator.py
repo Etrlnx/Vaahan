@@ -22,31 +22,15 @@ from graph_localizer import GraphLocalizer, LocalSubgraph
 from scorer import TransitionBaseline
 
 
+# Only IDs whose function is documented by ROAD attack metadata; the vehicle's full
+# signal map is not public, so everything else stays unmapped rather than guessed.
 FUNCTIONAL_ID_HINTS = {
-    "0x0D0": "Speedometer / Vehicle Wheel Speed",
-    "208": "Speedometer / Vehicle Wheel Speed",
-    "0x0D1": "Wheel Speed Sensors (FL/FR/RL/RR)",
-    "209": "Wheel Speed Sensors (FL/FR/RL/RR)",
-    "0x0B4": "Reverse Light / Gear Shift Status",
-    "180": "Reverse Light / Gear Shift Status",
-    "0x0B6": "Turn Signals & Hazard Indicators",
-    "182": "Turn Signals & Hazard Indicators",
-    "0x0C0": "Engine RPM / Accelerator Pedal Angle",
-    "192": "Engine RPM / Accelerator Pedal Angle",
-    "0x0F2": "Engine Coolant Temperature & Thermal Subsystem",
-    "242": "Engine Coolant Temperature & Thermal Subsystem",
-    "0x1A0": "Steering Angle Sensor & Yaw Rate",
-    "416": "Steering Angle Sensor & Yaw Rate",
-    "0x2B0": "Brake Pressure & ABS Actuator",
-    "688": "Brake Pressure & ABS Actuator",
-    "0x320": "Door Lock & Body Control Module",
-    "800": "Door Lock & Body Control Module",
-    "0x350": "Transmission Control Module (TCM)",
-    "848": "Transmission Control Module (TCM)",
-    "0x430": "Instrument Cluster & Dashboard Display",
-    "1072": "Instrument Cluster & Dashboard Display",
-    "0x434": "Instrument Cluster Indicators",
-    "1076": "Instrument Cluster Indicators",
+    "0x0D0": "Speedometer & Reverse-Light Status (ROAD injection target)",
+    "208": "Speedometer & Reverse-Light Status (ROAD injection target)",
+    "0x6E0": "Wheel Speeds (ROAD correlated-signal target)",
+    "1760": "Wheel Speeds (ROAD correlated-signal target)",
+    "0x4E7": "Engine Coolant Temperature (ROAD injection target)",
+    "1255": "Engine Coolant Temperature (ROAD injection target)",
 }
 
 
@@ -61,9 +45,9 @@ def lookup_functional_hint(id_val: str) -> str:
             dec_val = int(id_str)
         hex_key = f"0x{dec_val:03X}"
         dec_key = str(dec_val)
-        return FUNCTIONAL_ID_HINTS.get(hex_key, FUNCTIONAL_ID_HINTS.get(dec_key, "Standard ECU Telemetry"))
+        return FUNCTIONAL_ID_HINTS.get(hex_key, FUNCTIONAL_ID_HINTS.get(dec_key, "Unmapped ECU (no public signal map)"))
     except ValueError:
-        return "Standard ECU Telemetry"
+        return "Unmapped ECU (no public signal map)"
 
 
 @dataclass
@@ -112,7 +96,8 @@ class ReportGenerator:
         incident_id = f"INC-{uuid.uuid4().hex[:8].upper()}"
 
         node_attributions = self.attributor.attribute_window(
-            batch, outputs, top_k_nodes=3, top_k_features=3
+            batch, outputs, top_k_nodes=3, top_k_features=3,
+            node_scores=detection_result.node_scores or None,
         )
 
         top_ids_payload = []
@@ -144,6 +129,7 @@ class ReportGenerator:
                 "source_id": ae.source_id_str,
                 "target_id": ae.target_id_str,
                 "attention_weight": round(ae.attention_score, 4),
+                "attention_lift": round(ae.attention_lift, 2),
             }
             for ae in attended_edges
         ]
@@ -186,6 +172,7 @@ class ReportGenerator:
                 "reconstruction_error": round(detection_result.reconstruction_error, 4),
                 "temporal_error": round(detection_result.temporal_error, 4),
                 "structural_error": round(detection_result.structural_error, 4),
+                "excess_error": round(detection_result.excess_error, 4),
             },
             top_anomalous_ids=top_ids_payload,
             structural_anomalies=structural_payload,
@@ -208,12 +195,13 @@ class ReportGenerator:
         lines.append(f"  - Reconstruction Residual (R_error): {report.component_breakdown['reconstruction_error']:.4f}")
         lines.append(f"  - Temporal Dynamics Jitter (T_error): {report.component_breakdown['temporal_error']:.4f}")
         lines.append(f"  - Structural Sequence Penalty (G_error): {report.component_breakdown['structural_error']:.4f}")
+        lines.append(f"  - Per-ID Transition Excess   (E_error): {report.component_breakdown.get('excess_error', 0.0):.4f}")
         lines.append("-" * 80)
         lines.append("PRIMARY ATTRIBUTED CAN ARBITRATION IDS:")
 
         for i, node_data in enumerate(report.top_anomalous_ids, start=1):
             lines.append(f"  {i}. CAN ID {node_data['arbitration_id']} ({node_data['functional_description']}):")
-            lines.append(f"     -> Graph Anomaly Contribution: {node_data['anomaly_contribution_pct']:.1f}%")
+            lines.append(f"     -> Share of Window Transition Excess: {node_data['anomaly_contribution_pct']:.1f}%")
             lines.append(f"     -> Key Deviating Dimensions:")
             for feat in node_data["top_deviating_features"]:
                 lines.append(f"        * {feat['feature']:<15} [{feat['description']}]: residual={feat['residual']:.4f} ({feat['feature_contribution_pct']:.1f}%)")
@@ -229,7 +217,7 @@ class ReportGenerator:
             lines.append("-" * 80)
             lines.append("TRANSFORMER ATTENTION FOCUS:")
             for ta in report.top_attended_interactions:
-                lines.append(f"  * {ta['source_id']:<8} <---> {ta['target_id']:<8} (Attention Weight: {ta['attention_weight']:.4f})")
+                lines.append(f"  * {ta['source_id']:<8} ---> {ta['target_id']:<8} (Attention: {ta['attention_weight']:.4f}, {ta.get('attention_lift', 1.0):.2f}x uniform)")
 
         lines.append("=" * 80)
         lines.append(f"RECOMMENDED GATEWAY POLICY ACTION: {report.recommended_gateway_action}")

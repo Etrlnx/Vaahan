@@ -1,6 +1,7 @@
 
 import os
 import sys
+import json
 import pickle
 import random
 import numpy as np
@@ -19,7 +20,8 @@ for p in (GT_DIR, AD_DIR, BASE_DIR, PARENT_DIR):
 from model import GraphTransformerAutoencoder, ModelConfig
 from train import align_graph_feature_dim
 from evaluate import restore_or_split_graphs
-from detector import ZeroDayDetector, RiskState
+from typing import Optional
+from detector import ZeroDayDetector, RiskState, DetectionResult
 from scorer import AnomalyScorerConfig
 from report_generator import ReportGenerator, SecurityIncidentReport
 
@@ -32,28 +34,27 @@ CHECKPOINT_PATH = os.path.join(OUTPUTS_DIR, "best_model.pt")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 SEED = 42
 
-GROUND_TRUTH_TARGETS = {
-    "speedometer": {
-        "target_ids": ["0x0D0", "208", "0x0D1", "209", "0x430", "1072", "0x434", "1076", "0x350", "848"],
-        "expected_features": ["signal_max", "signal_range", "signal_mean"],
-    },
-    "reverse_light": {
-        "target_ids": ["0x0B4", "180", "0x0B6", "182", "0x2B0", "688", "0x320", "800"],
-        "expected_features": ["signal_mean", "signal_max", "signal_min", "signal_range"],
-    },
-    "correlated": {
-        "target_ids": ["0x0D0", "208", "0x0D1", "209", "0x1A0", "416"],
-        "expected_features": ["signal_mean", "signal_range", "signal_std"],
-    },
-    "coolant": {
-        "target_ids": ["0x0F2", "242", "0x0C0", "192", "0x1F0", "496"],
-        "expected_features": ["signal_max", "signal_mean", "signal_range"],
-    },
-    "accelerator": {
-        "target_ids": ["0x0C0", "192", "0x0D0", "208", "0x350", "848"],
-        "expected_features": ["signal_max", "signal_mean", "msg_count", "mean_iat"],
-    },
+ATTACK_METADATA_PATH = os.path.join(GT_DIR, "road", "road", "signal_extractions", "attacks", "metadata.json")
+
+# Expected physical tell per attack family; the attacked ID itself comes from ROAD metadata.
+EXPECTED_FEATURES = {
+    "speedometer": ["signal_max", "signal_range", "signal_mean"],
+    "reverse_light": ["signal_mean", "signal_max", "signal_min", "signal_range"],
+    "correlated": ["signal_mean", "signal_range", "signal_std"],
+    "coolant": ["signal_max", "signal_mean", "signal_range"],
 }
+
+
+def load_injection_ids(path: str = ATTACK_METADATA_PATH) -> dict:
+    """Map capture name -> injected arbitration ID, verified against per-message Label==1 rows."""
+    if not os.path.exists(path):
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        meta = json.load(f)
+    return {name: m["injection_id"] for name, m in meta.items() if m.get("injection_id")}
+
+
+INJECTION_IDS = load_injection_ids()
 
 
 def normalize_can_id(id_val) -> set:
@@ -83,11 +84,27 @@ def is_target_hit(predicted_id: str, target_id_list: list) -> bool:
 
 
 def get_ground_truth_for_capture(capture_name: str) -> dict:
-    name_lower = capture_name.lower()
-    for key, gt in GROUND_TRUTH_TARGETS.items():
-        if key in name_lower:
-            return gt
-    return {"target_ids": [], "expected_features": []}
+    name = capture_name.removesuffix("_masquerade")
+    target = INJECTION_IDS.get(capture_name) or INJECTION_IDS.get(name)
+    feats = next((v for k, v in EXPECTED_FEATURES.items() if k in name.lower()), [])
+    return {"target_ids": [target] if target else [], "expected_features": feats}
+
+
+def get_attack_family(capture_name: str) -> str:
+    c = str(capture_name).lower()
+    if "speedometer" in c:
+        return "speedometer"
+    if "reverse_light_off" in c:
+        return "reverse_light_off"
+    if "reverse_light_on" in c:
+        return "reverse_light_on"
+    if "correlated" in c:
+        return "correlated_signal"
+    if "coolant" in c:
+        return "coolant"
+    if "accelerator" in c:
+        return "accelerator"
+    return c
 
 
 from plot_component_radar import plot_component_radar
@@ -128,8 +145,7 @@ def run_xai_evaluation(show_plots: bool = False):
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    scorer_config = AnomalyScorerConfig(alpha_recon=0.50, beta_temporal=0.25, gamma_struct=0.25)
-    detector = ZeroDayDetector(scorer_config)
+    detector = ZeroDayDetector(AnomalyScorerConfig())
     detector.fit_baseline(train_graphs, vocab_size=len(vocab))
 
     val_loader = DataLoader(val_graphs, batch_size=1, shuffle=False)
@@ -145,7 +161,8 @@ def run_xai_evaluation(show_plots: bool = False):
     hit_top3_count = 0
     feature_match_count = 0
 
-    sample_reports: list[SecurityIncidentReport] = []
+    attack_candidates: dict[str, tuple[DetectionResult, SecurityIncidentReport]] = {}
+    benign_report: Optional[SecurityIncidentReport] = None
 
     with torch.no_grad():
         for batch in test_loader:
@@ -158,38 +175,66 @@ def run_xai_evaluation(show_plots: bool = False):
             )
             res = detector.evaluate_graph(batch, outputs)
 
-            if res.ground_truth_label == 1 and res.anomaly_score >= detector.tau_suspicious:
-                total_attack_alerts += 1
-                gt = get_ground_truth_for_capture(res.capture_name)
-                target_ids = gt["target_ids"]
-                expected_feats = gt["expected_features"]
-
-                report = report_gen.generate_report(
+            if res.ground_truth_label == 0 and res.anomaly_score < detector.tau_suspicious and benign_report is None:
+                benign_report = report_gen.generate_report(
                     batch, outputs, res, model,
                     decision_threshold=detector.tau_suspicious,
                     alert_threshold=detector.tau_alert
                 )
 
-                if len(sample_reports) < 4:
-                    if not any(r.capture_name == report.capture_name for r in sample_reports):
-                        sample_reports.append(report)
+            if res.ground_truth_label == 1:
+                fam = get_attack_family(res.capture_name)
+                if fam not in attack_candidates or res.anomaly_score > attack_candidates[fam][0].anomaly_score:
+                    rep = report_gen.generate_report(
+                        batch, outputs, res, model,
+                        decision_threshold=detector.tau_suspicious,
+                        alert_threshold=detector.tau_alert
+                    )
+                    attack_candidates[fam] = (res, rep)
 
-                if target_ids and report.top_anomalous_ids:
-                    top1_id = report.top_anomalous_ids[0]["arbitration_id"]
-                    top3_ids = [n["arbitration_id"] for n in report.top_anomalous_ids[:3]]
+                if res.anomaly_score >= detector.tau_suspicious:
+                    total_attack_alerts += 1
+                    gt = get_ground_truth_for_capture(res.capture_name)
+                    target_ids = gt["target_ids"]
+                    expected_feats = gt["expected_features"]
 
-                    if is_target_hit(top1_id, target_ids):
-                        hit_top1_count += 1
-                    if any(is_target_hit(tid, target_ids) for tid in top3_ids):
-                        hit_top3_count += 1
+                    report = report_gen.generate_report(
+                        batch, outputs, res, model,
+                        decision_threshold=detector.tau_suspicious,
+                        alert_threshold=detector.tau_alert
+                    )
 
-                    top1_feats = [f["feature"] for f in report.top_anomalous_ids[0]["top_deviating_features"]]
-                    if any(f in expected_feats for f in top1_feats):
-                        feature_match_count += 1
+                    if target_ids and report.top_anomalous_ids:
+                        top1_id = report.top_anomalous_ids[0]["arbitration_id"]
+                        top3_ids = [n["arbitration_id"] for n in report.top_anomalous_ids[:3]]
+
+                        if is_target_hit(top1_id, target_ids):
+                            hit_top1_count += 1
+                        if any(is_target_hit(tid, target_ids) for tid in top3_ids):
+                            hit_top3_count += 1
+
+                        top1_feats = [f["feature"] for f in report.top_anomalous_ids[0]["top_deviating_features"]]
+                        if any(f in expected_feats for f in top1_feats):
+                            feature_match_count += 1
+
+    sample_reports: list[SecurityIncidentReport] = []
+    priority_fams = ["speedometer", "reverse_light_off", "reverse_light_on", "correlated_signal"]
+    for fam in priority_fams:
+        if fam in attack_candidates:
+            sample_reports.append(attack_candidates[fam][1])
+
+    for fam, (_, rep) in attack_candidates.items():
+        if len(sample_reports) >= 4:
+            break
+        if rep not in sample_reports:
+            sample_reports.append(rep)
 
     hr_1 = (hit_top1_count / max(total_attack_alerts, 1)) * 100.0
     hr_3 = (hit_top3_count / max(total_attack_alerts, 1)) * 100.0
     feat_fidelity = (feature_match_count / max(total_attack_alerts, 1)) * 100.0
+
+    if benign_report is not None:
+        sample_reports.append(benign_report)
 
     print("\n" + "=" * 80)
     print("EXPLAINABILITY FIDELITY BENCHMARK RESULTS")
@@ -209,7 +254,8 @@ def run_xai_evaluation(show_plots: bool = False):
     os.makedirs(visuals_dir, exist_ok=True)
 
     for i, rep in enumerate(sample_reports):
-        prefix = os.path.join(visuals_dir, f"incident_{i + 1:02d}_{rep.capture_name.replace(' ', '_')}")
+        tag = f"benign_baseline_{rep.capture_name.replace(' ', '_')}" if rep.risk_state == "NORMAL" else rep.capture_name.replace(' ', '_')
+        prefix = os.path.join(visuals_dir, f"incident_{i + 1:02d}_{tag}")
 
         print(f"\n--- Incident {i + 1} [{rep.risk_state}] ({rep.capture_name} @ {rep.timestamp}s) ---")
         print(report_gen.to_text(rep))

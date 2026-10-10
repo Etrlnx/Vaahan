@@ -80,7 +80,10 @@ class FeatureAttributor:
         outputs: dict,
         top_k_nodes: int = 3,
         top_k_features: int = 3,
+        node_scores: Optional[list] = None,
     ) -> list[NodeAttribution]:
+        """Rank nodes by `node_scores` (the detector's per-node evidence) when given,
+        else by weighted reconstruction residual; features are always ranked by residual."""
         x_observed = batch.x.cpu().numpy()
         x_reconstructed = outputs["x_recon"].cpu().numpy()
         global_ids = batch.id_idx.cpu().numpy()
@@ -93,6 +96,8 @@ class FeatureAttributor:
         weighted_residuals = squared_diff * self.feature_weights[np.newaxis, :]
 
         node_errors = weighted_residuals.sum(axis=-1)
+        if node_scores is not None and len(node_scores) == num_nodes:
+            node_errors = np.clip(np.asarray(node_scores, dtype=np.float64), 0.0, None)
         total_graph_error = max(float(node_errors.sum()), 1e-6)
 
         ranked_node_indices = np.argsort(node_errors)[::-1]

@@ -158,11 +158,107 @@ def export_interactive_html(report, save_path: str):
   <title>XAI Subgraph - {report.incident_id}</title>
   <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
   <style>
-    body {{ margin: 0; background:
-    .card {{ background:
-    .card h3 {{ margin-top: 0; font-size: 14px; color:
-    .metric-row {{ display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }}
-    .metric-val {{ font-weight: bold; color:
+    :root {{
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-alt: #1f2937;
+      --card: rgba(15, 23, 42, 0.9);
+      --border: rgba(148, 163, 184, 0.35);
+      --text: #e2e8f0;
+      --muted: #cbd5e1;
+      --accent: #38bdf8;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }}
+
+    html, body {{
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #020817 0%, #111827 100%);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }}
+
+    #header {{
+      padding: 16px 20px 8px 20px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.85);
+    }}
+
+    #header h2 {{
+      margin: 0 0 8px 0;
+      font-size: 26px;
+      color: var(--text);
+    }}
+
+    .badge {{
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: #dbeafe;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      font-weight: 600;
+      font-size: 12px;
+    }}
+
+    #container {{
+      display: flex;
+      gap: 18px;
+      height: calc(100vh - 92px);
+      padding: 18px;
+      box-sizing: border-box;
+    }}
+
+    #mynetwork {{
+      flex: 1 1 auto;
+      min-width: 0;
+      min-height: 420px;
+      height: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.8);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
+    }}
+
+    #sidebar {{
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }}
+
+    .card {{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }}
+
+    .card h3 {{
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #f8fafc;
+    }}
+
+    .metric-row {{
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }}
+
+    .metric-val {{
+      font-weight: bold;
+      color: #f8fafc;
+      text-align: right;
+    }}
   </style>
 </head>
 <body>
@@ -180,6 +276,7 @@ def export_interactive_html(report, save_path: str):
         <div class="metric-row"><span>Recon Residual (R):</span><span class="metric-val">{report.component_breakdown.get('reconstruction_error', 0.0):.4f}</span></div>
         <div class="metric-row"><span>Temporal Jitter (T):</span><span class="metric-val">{report.component_breakdown.get('temporal_error', 0.0):.4f}</span></div>
         <div class="metric-row"><span>Structural Penalty (G):</span><span class="metric-val">{report.component_breakdown.get('structural_error', 0.0):.4f}</span></div>
+        <div class="metric-row"><span>Transition Excess (E):</span><span class="metric-val">{report.component_breakdown.get('excess_error', 0.0):.1f}</span></div>
       </div>
       <div class="card">
         <h3>GATEWAY ENFORCEMENT</h3>
@@ -203,20 +300,33 @@ def export_interactive_html(report, save_path: str):
         shape: 'dot',
         font: {{ color: '#FFFFFF', size: 14, face: 'sans-serif' }},
         borderWidth: 2,
-        shadow: true
+        shadow: true,
+        color: {{
+          background: '#0ea5e9',
+          border: '#e2e8f0',
+          highlight: {{ background: '#f59e0b', border: '#fef3c7' }},
+          hover: {{ background: '#38bdf8', border: '#e0f2fe' }}
+        }}
       }},
       edges: {{
         arrows: 'to',
         color: {{ color: '#38BDF8', highlight: '#EF4444', hover: '#F59E0B' }},
-        smooth: {{ type: 'continuous' }}
+        smooth: {{ type: 'continuous' }},
+        width: 2,
+        selectionWidth: 2
       }},
       physics: {{
+        enabled: true,
         barnesHut: {{ gravitationalConstant: -4000, centralGravity: 0.3, springLength: 120 }}
       }},
-      interaction: {{ hover: true, tooltipDelay: 100 }}
+      interaction: {{ hover: true, tooltipDelay: 100 }},
+      layout: {{
+        improvedLayout: true
+      }}
     }};
 
     const network = new vis.Network(container, data, options);
+    network.fit();
 
     network.on("selectNode", function (params) {{
       const nodeId = params.nodes[0];
@@ -224,7 +334,7 @@ def export_interactive_html(report, save_path: str):
       if (node) {{
         document.getElementById('nodeDetails').style.display = 'block';
         document.getElementById('detailId').innerText = 'CAN ID: ' + node.id;
-        document.getElementById('detailContent').innerHTML = 
+        document.getElementById('detailContent').innerHTML =
           '<b>Subsystem:</b> ' + node.desc + '<br>' +
           '<b>Graph Contribution:</b> ' + node.contrib + '<br><br>' +
           '<b>Top Deviating Features:</b><br>' + node.features;

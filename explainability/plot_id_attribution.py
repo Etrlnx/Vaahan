@@ -37,7 +37,7 @@ def plot_id_attribution(report, save_path: str = None, title: str = None):
     bars1 = ax1.barh(range(len(id_labels)), contrib_pcts, color=colors, height=0.55, edgecolor="#1D3557", linewidth=1.2)
     ax1.set_yticks(range(len(id_labels)))
     ax1.set_yticklabels(id_labels, fontsize=10, fontweight="bold", color="#1D3557")
-    ax1.set_xlabel("Graph Anomaly Contribution (%)", fontsize=11, fontweight="bold", color="#1D3557")
+    ax1.set_xlabel("Share of Transition Excess (%)", fontsize=11, fontweight="bold", color="#1D3557")
     ax1.set_xlim(0, max(100.0, max(contrib_pcts) * 1.25 if contrib_pcts else 100.0))
     ax1.set_title("Ranked CAN Arbitration IDs", fontsize=12, fontweight="bold", color="#0B090A", pad=12)
     ax1.grid(axis="x", linestyle="--", alpha=0.6)
