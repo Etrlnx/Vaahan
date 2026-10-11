@@ -1,0 +1,13 @@
+ambient_dyno_drive_basic_long: 1251s
+ambient_dyno_drive_basic_short: 445s
+ambient_dyno_drive_benign_anomaly: 456s
+ambient_dyno_drive_extended_long: 658s
+ambient_dyno_drive_extended_short: 360s
+ambient_dyno_drive_radio_infotainment: 390s
+ambient_dyno_drive_winter: 48s
+ambient_dyno_exercise_all_bits: 2173s
+ambient_dyno_idle_radio_infotainment: 661s
+ambient_dyno_reverse: 51s
+ambient_highway_street_driving_diagnostics: 470s
+ambient_highway_street_driving_long: 3764s
+Wrote 144 synthetic captures to D:\git_repos\capstone\graph-transformer\outputs\synthetic
