@@ -20,11 +20,13 @@ BATCH_SIZE = 8
 NUM_EPOCHS = 30
 LEARNING_RATE = 5e-4
 VAL_FRACTION = 0.15
+CALIB_TAIL = 0.2        # last 20% of every train capture is held out for validation/calibration
 SEED = 42
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 from model import GraphTransformerAutoencoder, ModelConfig, reconstruction_loss
+from preprocess import WINDOW_SIZE_SEC
 
 
 def set_seed(seed: int = SEED):
@@ -35,34 +37,79 @@ def set_seed(seed: int = SEED):
         torch.cuda.manual_seed_all(seed)
 
 
-def split_data(graphs: list, val_fraction: float = VAL_FRACTION, seed: int = SEED):
- 
-    rng = random.Random(seed)
+SYNTHETIC_PREFIX = "synthetic__"
 
-    ambient_graphs = [g for g in graphs if g.y.item() == 0 and str(g.capture_name).startswith("ambient_")]
-    attack_graphs = [g for g in graphs if g.y.item() == 1 or not str(g.capture_name).startswith("ambient_")]
 
-    by_capture = {}
-    for g in ambient_graphs:
-        by_capture.setdefault(g.capture_name, []).append(g)
+def synthetic_parent(capture_name: str):
+    """`synthetic__<parent>__<attack>` -> `<parent>`; None for real captures."""
+    name = str(capture_name)
+    return name.split("__")[1] if name.startswith(SYNTHETIC_PREFIX) else None
 
-    ambient_captures = sorted(list(by_capture.keys()))
-    rng.shuffle(ambient_captures)
 
-    n_val = max(1, int(len(ambient_captures) * val_fraction))
-    val_captures = ambient_captures[:n_val]
-    remaining = ambient_captures[n_val:]
+def split_captures(ambient_captures: list, val_fraction: float = VAL_FRACTION, seed: int = SEED,
+                   fold: int = None, n_folds: int = None):
+    """Capture-level split. Default: one seeded split (15% val, 15% of rest test).
+    Fold mode: shuffled captures are cut into n_folds groups; group `fold` is test, the
+    first capture of the next group is val, the rest train - every capture is tested once."""
+    captures = sorted(ambient_captures)
+    random.Random(seed).shuffle(captures)
+    if fold is None:
+        n_val = max(1, int(len(captures) * val_fraction))
+        remaining = captures[n_val:]
+        n_test = max(1, int(len(remaining) * 0.15))
+        return remaining[n_test:], captures[:n_val], remaining[:n_test]
+    groups = [list(g) for g in np.array_split(captures, n_folds)]
+    test = groups[fold]
+    val = groups[(fold + 1) % n_folds][:1]
+    train = [c for c in captures if c not in test and c not in val]
+    return train, val, test
 
-    n_test = max(1, int(len(remaining) * 0.15))
-    test_ambient_captures = remaining[:n_test]
-    train_captures = remaining[n_test:]
 
-    train_benign = [g for c in train_captures for g in by_capture[c]]
-    val_benign = [g for c in val_captures for g in by_capture[c]]
-    test_benign = [g for c in test_ambient_captures for g in by_capture[c]]
-    test_set = test_benign + attack_graphs
+def is_test_graph(g, test_ambient_captures) -> bool:
+    """Test = held-out ambient captures, every real attack-folder capture, and only the
+    attack-labelled windows of synthetic captures whose parent capture is held out."""
+    name = str(g.capture_name)
+    parent = synthetic_parent(name)
+    if parent is not None:
+        return parent in test_ambient_captures and g.y.item() == 1
+    return name in test_ambient_captures or not name.startswith("ambient_") or g.y.item() == 1
 
-    attack_captures = sorted(list({g.capture_name for g in attack_graphs}))
+
+def partition_benign(graphs: list, train_captures, val_captures, calib_tail: float = CALIB_TAIL):
+    """Benign train/val windows. Val = whole val captures + the time-ordered tail of every train
+    capture, so thresholds see every driving domain (dyno and highway), not one drive. Windows
+    straddling the tail cutoff are dropped so no CAN message is in both train and val."""
+    benign = [g for g in graphs if g.y.item() == 0]
+    val = [g for g in benign if g.capture_name in val_captures]
+    train = []
+    if calib_tail <= 0:
+        return [g for g in benign if g.capture_name in train_captures], val
+    last_start = {}
+    for g in benign:
+        if g.capture_name in train_captures:
+            last_start[g.capture_name] = max(last_start.get(g.capture_name, 0.0), float(g.window_start))
+    for g in benign:
+        if g.capture_name not in train_captures:
+            continue
+        cutoff = (1.0 - calib_tail) * (last_start[g.capture_name] + WINDOW_SIZE_SEC)
+        start = float(g.window_start)
+        if start + WINDOW_SIZE_SEC <= cutoff:
+            train.append(g)
+        elif start >= cutoff:
+            val.append(g)
+    return train, val
+
+
+def split_data(graphs: list, val_fraction: float = VAL_FRACTION, seed: int = SEED,
+               fold: int = None, n_folds: int = None):
+    ambient_names = {g.capture_name for g in graphs if str(g.capture_name).startswith("ambient_")}
+    train_captures, val_captures, test_ambient_captures = split_captures(
+        list(ambient_names), val_fraction, seed, fold, n_folds)
+
+    train_benign, val_benign = partition_benign(graphs, train_captures, val_captures)
+    test_set = [g for g in graphs if is_test_graph(g, test_ambient_captures)]
+
+    attack_captures = sorted({g.capture_name for g in test_set if not str(g.capture_name).startswith("ambient_")})
 
     print(f"Split captures: {len(train_captures)} train ambient, {len(val_captures)} val ambient, "
           f"{len(test_ambient_captures)} test ambient, {len(attack_captures)} attack captures.")
@@ -216,8 +263,17 @@ def compute_per_graph_reconstruction_error(model, loader, config):
     return results
 
 
-def main():
+FOLDS_DIR = os.path.join(OUTPUT_DIR, "folds")
+
+
+def fold_checkpoint_path(fold: int) -> str:
+    return os.path.join(FOLDS_DIR, f"fold_{fold}.pt")
+
+
+def main(fold: int = None, n_folds: int = None):
     set_seed(SEED)
+    checkpoint_path = CHECKPOINT_PATH if fold is None else fold_checkpoint_path(fold)
+    os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
 
     print("Loading graphs and vocab...")
     graphs = torch.load(GRAPH_DATA_PATH, weights_only=False)
@@ -229,7 +285,7 @@ def main():
     config.num_ids = len(vocab)
 
     align_graph_feature_dim(graphs, config.node_stat_feature_dim)
-    train_graphs, val_graphs, test_graphs, train_caps, val_caps, test_caps = split_data(graphs)
+    train_graphs, val_graphs, test_graphs, train_caps, val_caps, test_caps = split_data(graphs, fold=fold, n_folds=n_folds)
     train_mean, train_std = normalize_graph_features(train_graphs, val_graphs, test_graphs)
 
     train_loader = DataLoader(train_graphs, batch_size=BATCH_SIZE, shuffle=True)
@@ -261,13 +317,16 @@ def main():
                 "train_std": train_std.cpu(),
                 "train_captures": train_caps,
                 "val_captures": val_caps,
+                "calib_tail": CALIB_TAIL,
                 "test_captures": test_caps,
                 "seed": SEED,
+                "fold": fold,
+                "n_folds": n_folds,
                 "vocab": vocab,
-            }, CHECKPOINT_PATH)
+            }, checkpoint_path)
 
     print("\nEvaluating on test set (held-out benign + all attack windows)...")
-    checkpoint = torch.load(CHECKPOINT_PATH, weights_only=False)
+    checkpoint = torch.load(checkpoint_path, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
 
     graph_results = compute_per_graph_reconstruction_error(model, test_loader, config)
@@ -302,4 +361,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="Train the graph transformer autoencoder")
+    parser.add_argument("--fold", type=int, default=None, help="Fold index for capture-rotation CV")
+    parser.add_argument("--n-folds", type=int, default=None, help="Number of capture-rotation folds")
+    parser.add_argument("--threads", type=int, default=None, help="torch CPU threads (for parallel folds)")
+    args = parser.parse_args()
+    if (args.fold is None) != (args.n_folds is None):
+        parser.error("--fold and --n-folds must be given together")
+    if args.threads:
+        torch.set_num_threads(args.threads)
+    main(args.fold, args.n_folds)
