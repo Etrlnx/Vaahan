@@ -16,8 +16,12 @@ VOCAB_OUTPUT_PATH = os.path.join(OUTPUT_DIR, "vocab.pkl")
 NODE_FEATURE_DIM = 9
 
 def build_id_vocab(windows: list[WindowRecord]) -> dict:
+    """Vocabulary from benign ambient captures only; IDs seen only in attack or synthetic
+    captures map to <UNK> at inference instead of getting an untrained embedding."""
     all_ids = set()
     for idx, w in enumerate(windows):
+        if not str(w.capture_name).startswith("ambient_"):
+            continue
         if w.messages is None:
             raise ValueError(
                 f"Window {idx} ({w.capture_name}) has no raw messages. "

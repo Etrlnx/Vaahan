@@ -16,10 +16,12 @@ ROAD_ROOT = os.path.join(BASE_DIR, "road", "road")
 AMBIENT_DIR = os.path.join(ROAD_ROOT, "signal_extractions", "ambient")
 ATTACK_DIR = os.path.join(ROAD_ROOT, "signal_extractions", "attacks")
 OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
+SYNTHETIC_DIR = os.path.join(OUTPUT_DIR, "synthetic")  # written by attack_injector.py
 
 WINDOW_SIZE_SEC = 2.0
+# One stride for every capture: unequal strides give benign and attack windows different overlap.
 STRIDE_SEC_BENIGN = 1.0
-STRIDE_SEC_ATTACK = 2.0
+STRIDE_SEC_ATTACK = 1.0
 MIN_MESSAGES_PER_WINDOW = 5
 
 KEEP_RAW_WINDOW_MESSAGES = True
@@ -44,7 +46,7 @@ class WindowRecord:
     frac_attack_messages: float = 0.0
 
 
-def discover_captures(ambient_dir: str, attack_dir: str) -> list[CaptureFile]:
+def discover_captures(ambient_dir: str, attack_dir: str, synthetic_dir: str = SYNTHETIC_DIR) -> list[CaptureFile]:
 
     captures = []
 
@@ -67,6 +69,15 @@ def discover_captures(ambient_dir: str, attack_dir: str) -> list[CaptureFile]:
             capture_name=name,
             is_attack=True,
             metadata=_load_metadata_if_exists(csv_path),
+        ))
+
+    for csv_path in sorted(glob.glob(os.path.join(synthetic_dir, "*.csv"))):
+        name = os.path.splitext(os.path.basename(csv_path))[0]
+        captures.append(CaptureFile(
+            path=csv_path,
+            capture_name=name,
+            is_attack=True,
+            metadata=_load_metadata_if_exists(csv_path).get(name, {}),
         ))
 
     if not captures:
@@ -114,7 +125,10 @@ def load_capture(capture: CaptureFile) -> pd.DataFrame:
     return df
 
 
-def window_capture(df: pd.DataFrame, capture_name: str, is_attack: bool, keep_messages: bool = KEEP_RAW_WINDOW_MESSAGES) -> list[WindowRecord]:
+def window_capture(df: pd.DataFrame, capture_name: str, is_attack: bool, keep_messages: bool = KEEP_RAW_WINDOW_MESSAGES,
+                   attack_interval: Optional[tuple] = None) -> list[WindowRecord]:
+    """Window label = 1 if any message has Label 1, or (synthetic captures) if the window
+    overlaps `attack_interval` - needed for suspension attacks, which remove frames."""
     stride = STRIDE_SEC_BENIGN if not is_attack else STRIDE_SEC_ATTACK
     total_duration = df["Time"].max()
 
@@ -130,6 +144,8 @@ def window_capture(df: pd.DataFrame, capture_name: str, is_attack: bool, keep_me
         if len(window_df) >= MIN_MESSAGES_PER_WINDOW:
             frac_attack = float(window_df["Label"].mean())
             window_label = int(window_df["Label"].max())
+            if attack_interval is not None and window_start < attack_interval[1] and window_end > attack_interval[0]:
+                window_label = 1
 
             windows.append(WindowRecord(
                 capture_name=capture_name,
@@ -158,7 +174,9 @@ def build_dataset(keep_messages: bool = KEEP_RAW_WINDOW_MESSAGES) -> list[Window
               f"({'attack' if capture.is_attack else 'ambient'}) ...")
 
         df = load_capture(capture)
-        windows = window_capture(df, capture.capture_name, capture.is_attack, keep_messages=keep_messages)
+        interval = capture.metadata.get("injection_interval") if capture.metadata.get("synthetic") else None
+        windows = window_capture(df, capture.capture_name, capture.is_attack, keep_messages=keep_messages,
+                                 attack_interval=interval)
         all_windows.extend(windows)
 
         print(f"    -> {len(df)} messages, {len(windows)} windows kept "
