@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
+from preprocess import OUTPUT_DIR
 GRAPH_DATA_PATH = os.path.join(OUTPUT_DIR, "graphs.pt")
 VOCAB_PATH = os.path.join(OUTPUT_DIR, "vocab.pkl")
 CHECKPOINT_PATH = os.path.join(OUTPUT_DIR, "best_model.pt")

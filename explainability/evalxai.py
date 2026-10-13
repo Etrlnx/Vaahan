@@ -26,7 +26,7 @@ from scorer import AnomalyScorerConfig
 from report_generator import ReportGenerator, SecurityIncidentReport
 
 
-OUTPUTS_DIR = os.path.join(GT_DIR, "outputs")
+from preprocess import OUTPUT_DIR as OUTPUTS_DIR
 GRAPH_DATA_PATH = os.path.join(OUTPUTS_DIR, "graphs.pt")
 VOCAB_PATH = os.path.join(OUTPUTS_DIR, "vocab.pkl")
 CHECKPOINT_PATH = os.path.join(OUTPUTS_DIR, "best_model.pt")

@@ -24,7 +24,7 @@ from plot_confusion_matrix import plot_confusion_matrix
 from plot_scenario_explainer import plot_scenario_explainer
 from generate_confusion_explainer import generate_confusion_explainer_html
 
-OUTPUTS_DIR = os.path.join(GT_DIR, "outputs")
+from preprocess import OUTPUT_DIR as OUTPUTS_DIR, DATASET
 GRAPH_DATA_PATH = os.path.join(OUTPUTS_DIR, "graphs.pt")
 VOCAB_PATH = os.path.join(OUTPUTS_DIR, "vocab.pkl")
 CHECKPOINT_PATH = os.path.join(OUTPUTS_DIR, "best_model.pt")
@@ -255,7 +255,7 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
         sum(r.anomaly_score >= tau for r in syn_windows) / len(syn_windows) if syn_windows else None)
 
     print("\n" + "=" * 70)
-    print("REAL ROAD PERFORMANCE (held-out ambient + ROAD attack captures)")
+    print(f"REAL {DATASET.upper()} PERFORMANCE (held-out ambient + real attack captures)")
     print("=" * 70)
     print(f"  Total Test Windows      : {len(real)} (Benign: {np.sum(labels==0)}, Attack: {np.sum(labels==1)})")
     print(f"  True Positives          : {tp:5d}  |  False Positives (FP) : {fp:5d}")
@@ -306,6 +306,19 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
             alerts = f"{triggered_count}/{len(cap_results)}"
             print(f"{cap_name:<45} | {cap_type:<10} | {np.mean(cap_scores):<10.4f} | {alerts:<15} | {hits_str:<12} | {latency_str:<8}")
         print("=" * 110)
+
+    # Datasets with their own test subsets name captures "<subset>__<file>" (e.g. can-train-and-test
+    # test_01..test_04). Report each subset on its own windows (benign + attack frames of those files).
+    groups = sorted({str(r.capture_name).split("__")[0] for r in real if "__" in str(r.capture_name)})
+    metrics["per_subset"] = {}
+    for grp in groups:
+        rs = [r for r in real if str(r.capture_name).startswith(grp + "__")]
+        g_scores = np.array([r.anomaly_score for r in rs], dtype=np.float64)
+        g_labels = np.array([r.ground_truth_label for r in rs], dtype=np.int64)
+        metrics["per_subset"][grp] = _binary_metrics(g_scores, g_labels, tau)
+        m = metrics["per_subset"][grp]
+        print(f"  [{grp}] windows {len(rs)} (attack {int(g_labels.sum())}) | ROC {m['roc_auc']:.4f} | PR {m['pr_auc']:.4f} | "
+              f"P {m['precision']:.3f} | R {m['recall']:.3f} | F1 {m['f1']:.3f} | FPR {m['fpr']:.3f}")
 
     metrics["synthetic"] = synthetic
     metrics["tau_suspicious"] = tau

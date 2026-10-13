@@ -169,8 +169,8 @@ CAN traffic that reaches the learned pipeline is first grouped into temporal win
 | XAI Evaluation Suite | `evalxai.py` — HR@1, HR@3, Feature Grounding Fidelity against ROAD ground truth | ✅ Implemented |
 | Synthetic Attack Injector | `attack_injector.py` — fabrication, suspension, clock drift, flooding at a fixed 3-level grid, injected only into test-held captures | ✅ Implemented |
 | Capture-Rotation Evaluation | `train.py --fold i --n-folds 6` + `evaluate.py --folds 6` — every benign capture tested exactly once | ✅ Implemented |
-| Unit Test Suite | `tests/test_pipeline.py`, `tests/test_xai.py`, `tests/test_injector.py` — 23 tests | ✅ Implemented |
-| Second Dataset | can-train-and-test (DTU; 4 real vehicles, 7.5 GB) in `the second/`, gitignored | 🔄 Downloaded, converter pending |
+| Unit Test Suite | `tests/test_pipeline.py`, `tests/test_xai.py`, `tests/test_injector.py`, `tests/test_converter.py` — 24 tests | ✅ Implemented |
+| Second Dataset | can-train-and-test (DTU; 4 real vehicles, 7.5 GB) in `the second/`, gitignored; `convert_can_train_and_test.py` + `CAN_DATASET` switch | ✅ Implemented (per-set runs) |
 | Gateway / Policy Simulation | Custom rule-based policy engine for allow/restrict/isolate/alert decisions | 🔲 Planned |
 | Experiment Tracking | PyTorch checkpoints + per-capture metric logs (TensorBoard/W&B integration planned) | 🔲 Planned |
 
@@ -204,6 +204,7 @@ capstone/
 │   ├── preprocess.py          # Data ingestion & temporal windowing for ROAD dataset
 │   ├── graph_builder.py       # Dynamic graph construction (9D node features, benign-only ID vocab, directed edges)
 │   ├── attack_injector.py     # Synthetic timing attacks -> outputs/synthetic/ (+ metadata.json)
+│   ├── convert_can_train_and_test.py  # Raw frames (hex payload) -> ROAD CSV layout, one set at a time
 │   ├── model.py               # Coupled GraphTransformerAutoencoder (TransformerConv + MLP/edge decoders)
 │   ├── train.py               # Benign-only training, capture split / 6-fold rotation, leakage-safe test assignment
 │   ├── road/                  # Local ROAD dataset directory (signal-translated CSVs)
@@ -211,7 +212,8 @@ capstone/
 ├── tests/
 │   ├── test_pipeline.py       # 10 unit tests: detector contracts, metric correctness, edge cases
 │   ├── test_xai.py            # XAI component unit tests
-│   └── test_injector.py       # Injector behaviour, fold disjointness, synthetic leakage rule
+│   ├── test_injector.py       # Injector behaviour, fold disjointness, synthetic leakage rule
+│   └── test_converter.py      # Payload bytes, hex IDs, labels, short/empty DLC
 ├── the second/                # can-train-and-test dataset + DATASET_INFO.md (gitignored, local only)
 ├── requirements.txt           # Core Python dependencies
 ├── CHANGELOG.md               # Project-level milestone history
@@ -279,6 +281,23 @@ python attack-detection/evaluate.py --folds 6
 python explainability/evalxai.py          # saves PNGs + HTML to outputs/xai_visuals/
 python explainability/evalxai.py --show   # same + opens interactive Matplotlib windows
 ```
+
+**Second dataset (can-train-and-test).** Every script reads the `CAN_DATASET` environment variable:
+- `road` (the default) keeps the paths above.
+- Any other name reads `the second/converted/<name>/` and writes to `graph-transformer/outputs/<name>/`, so each dataset gets its own vocabulary, transition baseline and models.
+
+```bash
+python graph-transformer/convert_can_train_and_test.py set_01   # -> the second/converted/ctt_set_01/
+export CAN_DATASET=ctt_set_01                                     # PowerShell: $env:CAN_DATASET="ctt_set_01"
+python graph-transformer/preprocess.py && python graph-transformer/graph_builder.py
+python graph-transformer/train.py && python attack-detection/evaluate.py --no-plot
+# -> evaluate.py also prints metrics per dataset test subset (test_01 .. test_04)
+```
+
+How the converter maps the data:
+- **Payload bytes become signals:** `Signal_k_of_ID` is payload byte k.
+- **Training uses only the attack-free drives,** each cut into 4 time parts.
+- **The dataset's own `test_01`–`test_04` files are the test set.**
 
 ## 13. Graph Construction
 
