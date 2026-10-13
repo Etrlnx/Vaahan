@@ -20,7 +20,7 @@ BATCH_SIZE = 8
 NUM_EPOCHS = 30
 LEARNING_RATE = 5e-4
 VAL_FRACTION = 0.15
-CALIB_TAIL = 0.2        # last 20% of every train capture is held out for validation/calibration
+CALIB_TAIL = 0.0        # >0 moves the last fraction of each train capture into validation (tried 0.2: lower fold means)
 SEED = 42
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

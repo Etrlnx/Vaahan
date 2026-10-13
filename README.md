@@ -6,7 +6,7 @@
 ![Domain](https://img.shields.io/badge/domain-CAN%20bus%20security-orange)
 ![Model](https://img.shields.io/badge/model-Graph%20Transformer%20%2B%20Autoencoder%20%2B%20XAI-informational)
 
-> **Note on project status:** The full MVP pipeline is **implemented and functional** end-to-end. This includes ROAD dataset ingestion, temporal windowing, dynamic graph construction, the coupled `GraphTransformerAutoencoder`, multi-component anomaly scoring, and a complete Explainable AI (XAI) evidence layer (`explainability/`) that generates structured JSON incident reports, natural language triage summaries, and a unified 4-panel visual dashboard. Measured zero-day detection performance: **ROC-AUC 0.9668 · PR-AUC 0.8697 · F1 0.8166 · FPR 4.21%**; explanation fidelity **HR@1 94.2% · HR@3 96.4%** against ROAD's injected IDs. Gateway containment policy simulation and post-MVP refinements remain as future work.
+> **Note on project status:** The full MVP pipeline is **implemented and functional** end-to-end. This includes ROAD dataset ingestion, temporal windowing, dynamic graph construction, the coupled `GraphTransformerAutoencoder`, multi-component anomaly scoring, and a complete Explainable AI (XAI) evidence layer (`explainability/`) that generates structured JSON incident reports, natural language triage summaries, and a unified 4-panel visual dashboard. Measured zero-day detection performance on real ROAD attacks, 6-fold capture rotation (mean ± std): **ROC-AUC 0.967 ± 0.005 · recall 85.7% ± 5.3% · precision 67.7% ± 20.3% · F1 72.9% ± 14.8%**; seed-42 model: **ROC-AUC 0.9672 · PR-AUC 0.9081 · F1 0.8496 · FPR 5.04%**. Explanation fidelity **HR@1 90.3% · HR@3 94.1%** against ROAD's injected IDs. Synthetic timing attacks (fabrication, suspension, clock drift, flooding) are reported separately (§17). Gateway containment policy simulation and post-MVP refinements remain as future work.
 
 ---
 
@@ -167,7 +167,10 @@ CAN traffic that reaches the learned pipeline is first grouped into temporal win
 | Multi-Component Anomaly Scoring | `ZeroDayDetector` fusing reconstruction (R), temporal (T) and structural (G) signals | ✅ Implemented |
 | Explainability Layer | Attention Rollout + Feature Attribution + Subgraph Localizer + Incident Report Generator + Visual Dashboard | ✅ Implemented (MVP) |
 | XAI Evaluation Suite | `evalxai.py` — HR@1, HR@3, Feature Grounding Fidelity against ROAD ground truth | ✅ Implemented |
-| Unit Test Suite | `tests/test_pipeline.py` + `tests/test_xai.py` — 10 pipeline + XAI contract tests | ✅ Implemented |
+| Synthetic Attack Injector | `attack_injector.py` — fabrication, suspension, clock drift, flooding at a fixed 3-level grid, injected only into test-held captures | ✅ Implemented |
+| Capture-Rotation Evaluation | `train.py --fold i --n-folds 6` + `evaluate.py --folds 6` — every benign capture tested exactly once | ✅ Implemented |
+| Unit Test Suite | `tests/test_pipeline.py`, `tests/test_xai.py`, `tests/test_injector.py` — 23 tests | ✅ Implemented |
+| Second Dataset | can-train-and-test (DTU; 4 real vehicles, 7.5 GB) in `the second/`, gitignored | 🔄 Downloaded, converter pending |
 | Gateway / Policy Simulation | Custom rule-based policy engine for allow/restrict/isolate/alert decisions | 🔲 Planned |
 | Experiment Tracking | PyTorch checkpoints + per-capture metric logs (TensorBoard/W&B integration planned) | 🔲 Planned |
 
@@ -199,14 +202,17 @@ capstone/
 │   ├── CHANGELOG.md           # Milestone & engineering change history
 │   ├── README.md              # Detailed architecture, schema, & usage documentation
 │   ├── preprocess.py          # Data ingestion & temporal windowing for ROAD dataset
-│   ├── graph_builder.py       # Dynamic graph construction (9D node features, global ID vocab, directed edges)
+│   ├── graph_builder.py       # Dynamic graph construction (9D node features, benign-only ID vocab, directed edges)
+│   ├── attack_injector.py     # Synthetic timing attacks -> outputs/synthetic/ (+ metadata.json)
 │   ├── model.py               # Coupled GraphTransformerAutoencoder (TransformerConv + MLP/edge decoders)
-│   ├── train.py               # Benign-only training, capture-aware CV, train-only normalization, evaluation
+│   ├── train.py               # Benign-only training, capture split / 6-fold rotation, leakage-safe test assignment
 │   ├── road/                  # Local ROAD dataset directory (signal-translated CSVs)
-│   └── outputs/               # graphs.pt, vocab.pkl, best_model.pt, xai_visuals/
+│   └── outputs/               # graphs.pt, vocab.pkl, best_model.pt, folds/, synthetic/, fold_results.json, xai_visuals/
 ├── tests/
 │   ├── test_pipeline.py       # 10 unit tests: detector contracts, metric correctness, edge cases
-│   └── test_xai.py            # XAI component unit tests
+│   ├── test_xai.py            # XAI component unit tests
+│   └── test_injector.py       # Injector behaviour, fold disjointness, synthetic leakage rule
+├── the second/                # can-train-and-test dataset + DATASET_INFO.md (gitignored, local only)
 ├── requirements.txt           # Core Python dependencies
 ├── CHANGELOG.md               # Project-level milestone history
 ├── task_list.md               # Architecture review checklist & implementation plan
@@ -245,7 +251,11 @@ pip install -r requirements.txt
 The full pipeline runs in sequence from the repository root:
 
 ```bash
-# Step 1: Preprocess raw ROAD dataset into temporal window records
+# Step 0 (optional): Generate synthetic timing attacks from the ambient captures
+python graph-transformer/attack_injector.py
+# -> Emits outputs/synthetic/*.csv + metadata.json (picked up by preprocess.py)
+
+# Step 1: Preprocess raw ROAD dataset into temporal window records (2.0 s windows, 1.0 s stride)
 python graph-transformer/preprocess.py
 # -> Emits outputs/road_windowed.pkl
 
@@ -256,11 +266,14 @@ python graph-transformer/graph_builder.py
 # Step 3: Train Graph Transformer + Autoencoder on benign captures
 python graph-transformer/train.py
 # -> Saves outputs/best_model.pt with weights, vocab, splits, and normalizer
+python graph-transformer/train.py --fold 0 --n-folds 6   # repeat for folds 0-5 -> outputs/folds/fold_i.pt
 
 # Step 4: Run the zero-day detection benchmark on held-out attack captures
 python attack-detection/evaluate.py
 # -> Prints ROC-AUC, PR-AUC, F1, FPR, detection latency per attack family
 # -> Displays Confusion Matrix & Scenario Table windows + launches interactive browser simulation
+python attack-detection/evaluate.py --folds 6
+# -> Per-fold + mean +- std ROAD metrics and pooled synthetic results -> outputs/fold_results.json
 
 # Step 5: Run the XAI fidelity benchmark and generate visual dashboards
 python explainability/evalxai.py          # saves PNGs + HTML to outputs/xai_visuals/
@@ -320,9 +333,9 @@ Anomaly detection is formulated as an **unsupervised one-class reconstruction ta
 
 - **Window Score**: each component is divided by its benign-validation MAD and fused as
   $$S = 1.0 \cdot E/\sigma_E + 0.25 \cdot R/\sigma_R$$
-  where $E$ is the largest per-node *transition excess*: the count-weighted $-\log P(\text{id}_v \mid \text{id}_u)$ summed over a node's edges, minus that ID's benign median. The timing ($T$) and mean-transition ($G$) terms are still computed and shown in reports but carry weight 0; the ablation in `knowledge-graph/knowledge-graph.md` §5.3 shows why.
+  where $E$ is the largest per-node *transition excess*: the count-weighted $-\log P(\text{id}_v \mid \text{id}_u)$ summed over a node's edges, minus that ID's benign median. The timing ($T$) and mean-transition ($G$) terms are still computed and shown in reports but carry weight 0; the ablation in `knowledge-graph/knowledge-graph.md` §5.4 shows why.
 
-**Status: Implemented.** `ZeroDayDetector` in [`attack-detection/detector.py`](attack-detection/detector.py) calibrates $\tau_{\text{suspicious}} = 6.2242$ (95th pct) and $\tau_{\text{alert}} = 9.6007$ (99th pct) on benign validation windows, yielding **0.9668 ROC-AUC**, **0.8697 PR-AUC** and **81.7% recall at 4.2% FPR** on the held-out test set. Correlated-signal (8/31) and coolant (0/4) windows remain the weak spot.
+**Status: Implemented.** `ZeroDayDetector` in [`attack-detection/detector.py`](attack-detection/detector.py) calibrates $\tau_{\text{suspicious}} = 5.0893$ (95th pct) and $\tau_{\text{alert}} = 7.1042$ (99th pct) on benign validation windows (seed-42 split), yielding **0.9672 ROC-AUC**, **0.9081 PR-AUC** and **85.7% recall at 5.0% FPR** on the held-out test set. Correlated-signal (27/61) and coolant (0/7) windows remain the weak spot.
 
 ## 15. Explainability Layer
 
@@ -388,11 +401,43 @@ Using the following metrics:
 | Explanation fidelity | How well the generated security explanation reflects the actual evidence driving the anomaly score |
 | Inference overhead | Computational cost of the graph pipeline relative to real-time execution constraints |
 
+### Evaluation protocol and current results
+
+- **Splits are by capture, never by window.** Benign windows from one drive never sit in both train and test.
+- **Two protocols**:
+  - The seed-42 single split produces `best_model.pt`, the deliverable model.
+  - A 6-fold capture rotation retrains 6 evaluation-only models so every benign drive is tested once (14,742 benign test windows in total).
+- **Synthetic attacks are leakage-safe.** They are injected after the split, only into captures held out for test, and reported separately from real ROAD attacks.
+
+| Real ROAD attacks | Seed-42 split | 6-fold mean ± std |
+|---|---|---|
+| ROC-AUC | 0.9672 | 0.9671 ± 0.0045 |
+| PR-AUC | 0.9081 | 0.8588 ± 0.0369 |
+| Precision | 84.21% | 67.69% ± 20.33% |
+| Recall | 85.71% | 85.71% ± 5.34% |
+| F1 | 84.96% | 72.89% ± 14.81% |
+| FPR | 5.04% | 7.08% ± 4.99% (pooled 9.42%) |
+
+Synthetic window recall, pooled over the 6 folds (low → high intensity):
+
+| Attack | Window recall |
+|---|---|
+| Flooding | 96–98% |
+| Fabrication | 65–88% |
+| Clock drift | 47–56% |
+| Suspension | 21–40% |
+
+Known limits:
+- **Fold variance comes from domain shift.** Fold 3 flags 19.7% of the long highway drive, and only 2 of the 12 benign drives are highway.
+- **Suspension is weak.** The score only looks at message orderings that are present, so missing messages barely register.
+
+Full detail is in `knowledge-graph/knowledge-graph.md` §5.
+
 ## 18. Future Work
 
 Beyond the core implemented representation and detection pipeline:
 
-- **Multi-vehicle / multi-dataset evaluation** — testing across multiple CAN datasets (e.g., Car-Hacking, syncCAN) and vehicle platforms.
+- **Multi-vehicle / multi-dataset evaluation** — in progress. can-train-and-test (DTU; Chevrolet Impala, Silverado, Traverse, Subaru Forester) is downloaded to `the second/`. Next: a raw-byte converter to ROAD's CSV layout and a `--dataset` flag, so each dataset gets its own vocabulary, baseline and models.
 - **Adaptive/online learning** — updating the model's notion of "normal" behavior over time as legitimate traffic patterns evolve.
 - **Cross-attack-family generalization** — systematically evaluating zero-day detection across distinct attack families (masquerade, fuzzing, spoofing, replay).
 - **Hardware-in-the-loop validation** — evaluating whether the pipeline meets real-time latency and resource constraints on representative in-vehicle gateway hardware.
