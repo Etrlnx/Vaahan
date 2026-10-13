@@ -42,7 +42,13 @@ EXPECTED_FEATURES = {
     "reverse_light": ["signal_mean", "signal_max", "signal_min", "signal_range"],
     "correlated": ["signal_mean", "signal_range", "signal_std"],
     "coolant": ["signal_max", "signal_mean", "signal_range"],
+    # Synthetic timing attacks (attack_injector.py): the tell is cadence / volume, not payload.
+    "fabrication": ["msg_count", "mean_iat", "std_iat", "activity_share"],
+    "suspension": ["msg_count", "mean_iat", "std_iat", "activity_share"],
+    "drift": ["mean_iat", "std_iat", "msg_count"],
+    "flooding": ["msg_count", "activity_share", "mean_iat"],
 }
+SYNTHETIC_METADATA_PATH = os.path.join(GT_DIR, "outputs", "synthetic", "metadata.json")
 
 
 def load_injection_ids(path: str = ATTACK_METADATA_PATH) -> dict:
@@ -55,6 +61,9 @@ def load_injection_ids(path: str = ATTACK_METADATA_PATH) -> dict:
 
 
 INJECTION_IDS = load_injection_ids()
+if os.path.exists(SYNTHETIC_METADATA_PATH):
+    with open(SYNTHETIC_METADATA_PATH, "r", encoding="utf-8") as _f:
+        INJECTION_IDS.update({name: m["target_id"] for name, m in json.load(_f).items()})
 
 
 def normalize_can_id(id_val) -> set:
@@ -86,7 +95,8 @@ def is_target_hit(predicted_id: str, target_id_list: list) -> bool:
 def get_ground_truth_for_capture(capture_name: str) -> dict:
     name = capture_name.removesuffix("_masquerade")
     target = INJECTION_IDS.get(capture_name) or INJECTION_IDS.get(name)
-    feats = next((v for k, v in EXPECTED_FEATURES.items() if k in name.lower()), [])
+    family = name.split("__")[2] if name.startswith("synthetic__") else name  # skip parent name
+    feats = next((v for k, v in EXPECTED_FEATURES.items() if k in family.lower()), [])
     return {"target_ids": [target] if target else [], "expected_features": feats}
 
 
@@ -156,10 +166,8 @@ def run_xai_evaluation(show_plots: bool = False):
     print("\n[2/3] Evaluating Explanation Fidelity on True Attack Windows...")
     test_loader = DataLoader(test_graphs, batch_size=1, shuffle=False)
 
-    total_attack_alerts = 0
-    hit_top1_count = 0
-    hit_top3_count = 0
-    feature_match_count = 0
+    # Fidelity counters kept apart for real ROAD and synthetic attacks.
+    counts = {grp: {"alerts": 0, "top1": 0, "top3": 0, "feat": 0} for grp in ("road", "synthetic")}
 
     attack_candidates: dict[str, tuple[DetectionResult, SecurityIncidentReport]] = {}
     benign_report: Optional[SecurityIncidentReport] = None
@@ -182,9 +190,10 @@ def run_xai_evaluation(show_plots: bool = False):
                     alert_threshold=detector.tau_alert
                 )
 
+            is_synthetic = str(res.capture_name).startswith("synthetic__")
             if res.ground_truth_label == 1:
                 fam = get_attack_family(res.capture_name)
-                if fam not in attack_candidates or res.anomaly_score > attack_candidates[fam][0].anomaly_score:
+                if not is_synthetic and (fam not in attack_candidates or res.anomaly_score > attack_candidates[fam][0].anomaly_score):
                     rep = report_gen.generate_report(
                         batch, outputs, res, model,
                         decision_threshold=detector.tau_suspicious,
@@ -193,7 +202,8 @@ def run_xai_evaluation(show_plots: bool = False):
                     attack_candidates[fam] = (res, rep)
 
                 if res.anomaly_score >= detector.tau_suspicious:
-                    total_attack_alerts += 1
+                    c = counts["synthetic" if is_synthetic else "road"]
+                    c["alerts"] += 1
                     gt = get_ground_truth_for_capture(res.capture_name)
                     target_ids = gt["target_ids"]
                     expected_feats = gt["expected_features"]
@@ -209,13 +219,13 @@ def run_xai_evaluation(show_plots: bool = False):
                         top3_ids = [n["arbitration_id"] for n in report.top_anomalous_ids[:3]]
 
                         if is_target_hit(top1_id, target_ids):
-                            hit_top1_count += 1
+                            c["top1"] += 1
                         if any(is_target_hit(tid, target_ids) for tid in top3_ids):
-                            hit_top3_count += 1
+                            c["top3"] += 1
 
                         top1_feats = [f["feature"] for f in report.top_anomalous_ids[0]["top_deviating_features"]]
                         if any(f in expected_feats for f in top1_feats):
-                            feature_match_count += 1
+                            c["feat"] += 1
 
     sample_reports: list[SecurityIncidentReport] = []
     priority_fams = ["speedometer", "reverse_light_off", "reverse_light_on", "correlated_signal"]
@@ -229,9 +239,6 @@ def run_xai_evaluation(show_plots: bool = False):
         if rep not in sample_reports:
             sample_reports.append(rep)
 
-    hr_1 = (hit_top1_count / max(total_attack_alerts, 1)) * 100.0
-    hr_3 = (hit_top3_count / max(total_attack_alerts, 1)) * 100.0
-    feat_fidelity = (feature_match_count / max(total_attack_alerts, 1)) * 100.0
 
     if benign_report is not None:
         sample_reports.append(benign_report)
@@ -239,10 +246,12 @@ def run_xai_evaluation(show_plots: bool = False):
     print("\n" + "=" * 80)
     print("EXPLAINABILITY FIDELITY BENCHMARK RESULTS")
     print("=" * 80)
-    print(f"  Evaluated Attack Alert Windows    : {total_attack_alerts}")
-    print(f"  Hit Rate @ Top-1 (HR@1)           : {hr_1:.2f}%  (Top-1 CAN ID matches ground-truth)")
-    print(f"  Hit Rate @ Top-3 (HR@3)           : {hr_3:.2f}%  (Target in Top-3 CAN IDs)")
-    print(f"  Feature Grounding Fidelity Rate   : {feat_fidelity:.2f}%  (Physical signal matches attack mode)")
+    for grp, c in counts.items():
+        n = max(c["alerts"], 1)
+        print(f"  [{grp.upper()}] Evaluated Attack Alert Windows : {c['alerts']}")
+        print(f"  [{grp.upper()}] Hit Rate @ Top-1 (HR@1)        : {100.0 * c['top1'] / n:.2f}%")
+        print(f"  [{grp.upper()}] Hit Rate @ Top-3 (HR@3)        : {100.0 * c['top3'] / n:.2f}%")
+        print(f"  [{grp.upper()}] Feature Grounding Fidelity     : {100.0 * c['feat'] / n:.2f}%")
     print("=" * 80)
 
     print("\n[3/3] Generating Visual Explanations & Security Incident Reports...")
