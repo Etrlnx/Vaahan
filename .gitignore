@@ -12,5 +12,5 @@ __pycache__/
 index.json
 comments.py
 knowledge-graph/
-# Second dataset (can-train-and-test, DTU) - local only for now
+# Former second dataset (can-train-and-test, DTU) - local data, no longer used by the pipeline
 the second/

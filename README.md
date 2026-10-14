@@ -166,11 +166,10 @@ CAN traffic that reaches the learned pipeline is first grouped into temporal win
 | Dynamic Graph Generation | Custom PyG graph builder (`graph_builder.py`) with 9D node stats & ID vocabulary embedding | ✅ Implemented |
 | Multi-Component Anomaly Scoring | `ZeroDayDetector` fusing reconstruction (R), temporal (T) and structural (G) signals | ✅ Implemented |
 | Explainability Layer | Attention Rollout + Feature Attribution + Subgraph Localizer + Incident Report Generator + Visual Dashboard | ✅ Implemented (MVP) |
-| XAI Evaluation Suite | `evalxai.py` — HR@1, HR@3, Feature Grounding Fidelity against ROAD metadata and can-train-and-test per-frame labels | ✅ Implemented |
+| XAI Evaluation Suite | `evalxai.py` — HR@1, HR@3, Feature Grounding Fidelity against ROAD ground truth | ✅ Implemented |
 | Synthetic Attack Injector | `attack_injector.py` — fabrication, suspension, clock drift, flooding at a fixed 3-level grid, injected only into test-held captures | ✅ Implemented |
 | Capture-Rotation Evaluation | `train.py --fold i --n-folds 6` + `evaluate.py --folds 6` — every benign capture tested exactly once | ✅ Implemented |
-| Unit Test Suite | `tests/test_pipeline.py`, `tests/test_xai.py`, `tests/test_injector.py`, `tests/test_converter.py` — 24 tests | ✅ Implemented |
-| Second Dataset | can-train-and-test (DTU; 4 real vehicles, 7.5 GB) in `the second/`, gitignored; `convert_can_train_and_test.py` + `CAN_DATASET` switch | ✅ Implemented (per-set runs) |
+| Unit Test Suite | `tests/test_pipeline.py`, `tests/test_xai.py`, `tests/test_injector.py` — 28 tests | ✅ Implemented |
 | Gateway / Policy Simulation | Custom rule-based policy engine for allow/restrict/isolate/alert decisions | 🔲 Planned |
 | Experiment Tracking | PyTorch checkpoints + per-capture metric logs (TensorBoard/W&B integration planned) | 🔲 Planned |
 
@@ -204,8 +203,6 @@ capstone/
 │   ├── preprocess.py          # Data ingestion & temporal windowing for ROAD dataset
 │   ├── graph_builder.py       # Dynamic graph construction (9D node features, benign-only ID vocab, directed edges)
 │   ├── attack_injector.py     # Synthetic timing attacks -> outputs/synthetic/ (+ metadata.json)
-│   ├── convert_can_train_and_test.py  # Raw frames (hex payload) -> ROAD CSV layout, one set at a time
-│   │                                  # graph_builder.py windows + builds graphs per capture (low memory)
 │   ├── model.py               # Coupled GraphTransformerAutoencoder (TransformerConv + MLP/edge decoders)
 │   ├── train.py               # Benign-only training, capture split / 6-fold rotation, leakage-safe test assignment
 │   ├── road/                  # Local ROAD dataset directory (signal-translated CSVs)
@@ -213,14 +210,13 @@ capstone/
 ├── tests/
 │   ├── test_pipeline.py       # 10 unit tests: detector contracts, metric correctness, edge cases
 │   ├── test_xai.py            # XAI component unit tests
-│   ├── test_injector.py       # Injector behaviour, fold disjointness, synthetic leakage rule
-│   └── test_converter.py      # Payload bytes, hex IDs, labels, short/empty DLC
+│   └── test_injector.py       # Injector behaviour, fold disjointness, synthetic leakage rule
 ├── new/                       # VS Code notebooks, one per pipeline step (thin runners over the modules) + run logs
 │   ├── graph2/                # 01_preprocess, 02_graph_builder, 03_train
 │   ├── attack2/               # 01_evaluate
 │   ├── explainability2/       # 01_evalxai
-│   └── logger/                # Logs of every run, per dataset (ctt_set_01..04/)
-├── the second/                # can-train-and-test dataset + DATASET_INFO.md (gitignored, local only)
+│   └── logger/                # Logs of pipeline runs
+├── logs/                      # Logs of rejected experiments (see logs/README.md)
 ├── requirements.txt           # Core Python dependencies
 ├── CHANGELOG.md               # Project-level milestone history
 ├── task_list.md               # Architecture review checklist & implementation plan
@@ -256,7 +252,7 @@ pip install -r requirements.txt
 
 ## 12. Usage
 
-**Notebooks:** `new/` has one VS Code notebook per step. Each notebook only sets `CAN_DATASET` and calls the modules below, so it always runs the same code as the scripts.
+**Notebooks:** `new/` has one VS Code notebook per step. Each notebook calls the modules below, so it always runs the same code as the scripts.
 
 The full pipeline runs in sequence from the repository root:
 
@@ -290,26 +286,6 @@ python explainability/evalxai.py          # saves PNGs + HTML to outputs/xai_vis
 python explainability/evalxai.py --show   # same + opens interactive Matplotlib windows
 python explainability/evalxai.py --timing # rate term on: score and attribution use max(E, T)
 ```
-
-**Second dataset (can-train-and-test).** Every script reads the `CAN_DATASET` environment variable:
-- `road` (the default) keeps the paths above.
-- Any other name reads `the second/converted/<name>/` and writes to `graph-transformer/outputs/<name>/`, so each dataset gets its own vocabulary, transition baseline and models.
-
-```bash
-python graph-transformer/convert_can_train_and_test.py set_01   # -> the second/converted/ctt_set_01/
-export CAN_DATASET=ctt_set_01                                     # PowerShell: $env:CAN_DATASET="ctt_set_01"
-python graph-transformer/preprocess.py && python graph-transformer/graph_builder.py
-python graph-transformer/train.py && python attack-detection/evaluate.py --no-plot
-# -> evaluate.py also prints metrics per dataset test subset (test_01 .. test_04)
-python attack-detection/evaluate.py --no-plot --timing   # adds the per-ID rate term, max(E, T)
-```
-
-How the converter maps the data:
-- **Payload bytes become signals:** `Signal_k_of_ID` is payload byte k.
-- **Training uses benign driving from `train_01` only:**
-  - the attack-free drives, each cut into 4 time parts;
-  - stretches of the labelled attack drives that stay at least 2 s away from every attack frame and last at least 30 s. This gives 3–10× more benign data.
-- **The dataset's own `test_01`–`test_04` files are the test set.**
 
 ## 13. Graph Construction
 
@@ -366,8 +342,8 @@ Anomaly detection is formulated as an **unsupervised one-class reconstruction ta
   $$S = 1.0 \cdot E/\sigma_E + 0.25 \cdot R/\sigma_R$$
   where $E$ is the largest per-node *transition excess*: the count-weighted $-\log P(\text{id}_v \mid \text{id}_u)$ summed over a node's edges, minus that ID's benign median. The mean-transition term ($G$) carries weight 0; the ablation in `knowledge-graph/knowledge-graph.md` §5.4 shows why.
 - **Optional rate term ($T$, `evaluate.py --timing`)**: the largest per-ID deviation of message count from that ID's own benign median, in MAD units (floored at one message). Expected IDs (present in at least 99% of benign windows) that are missing from a window count as a count of 0, which catches suspended ECUs. When enabled, the score uses $\max(E/\sigma_E,\ T/\sigma_T)$ instead of $E/\sigma_E$. It is off by default:
-  - it lifts injection and retiming attacks on can-train-and-test (§17);
-  - but on ROAD masquerades, where the attacker keeps the real ECU's rate, it lowers fold ROC-AUC from 0.967 to 0.783. On ROAD's synthetic suspension attacks it raises window recall from 21–40% to 44–74%.
+  - on ROAD's synthetic suspension attacks it raises window recall from 21–40% to 44–74%;
+  - but on ROAD masquerades, where the attacker keeps the real ECU's rate, it lowers fold ROC-AUC from 0.967 to 0.783.
 
 **Status: Implemented.** `ZeroDayDetector` in [`attack-detection/detector.py`](attack-detection/detector.py) calibrates $\tau_{\text{suspicious}} = 5.0893$ (95th pct) and $\tau_{\text{alert}} = 7.1042$ (99th pct) on benign validation windows (seed-42 split), yielding **0.9672 ROC-AUC**, **0.9081 PR-AUC** and **85.7% recall at 5.0% FPR** on the held-out test set. Correlated-signal (27/61) and coolant (0/7) windows remain the weak spot.
 
@@ -468,65 +444,27 @@ Known limits:
 
 Full detail is in `knowledge-graph/knowledge-graph.md` §5.
 
-### Second dataset: can-train-and-test (4 real vehicles)
+### Experiments and negative results
 
-Each set is a separate run with its own vocabulary, baseline and model, using the dataset's own test subsets. The table shows known-vehicle subsets (single split, seed 42):
+**Rate term (`--timing`).** It is a threat-model choice:
+- **Helps attacks that change message rates.** On ROAD's synthetic suspension attacks, window recall rises from 21–40% to 44–74% (9/12 episodes at every level), and synthetic top-1 attribution reaches 100% because a silent expected ID is named first.
+- **Hurts ROAD's real masquerades,** where the attacker keeps the real ECU's rate: fold ROC-AUC 0.967 → 0.783.
 
-| Set | Training windows | test_01 ROC / FPR / P / R (known attacks) | test_03 ROC / FPR / P / R (unknown attacks) |
-|---|---|---|---|
-| set_01 | 5,416 | 0.973 / 4.4% / 38.0% / 90.2% | 0.810 / 4.7% / 41.7% / 22.7% |
-| set_02 | 5,824 | 0.773 / 4.7% / 20.3% / 46.1% | 0.572 / 6.2% / 8.4% / 22.7% |
-| set_03 | 3,737 | 0.980 / 0.5% / 92.6% / 79.8% | 0.769 / 1.8% / 64.6% / 13.1% |
-| set_04 | 4,686 | 0.980 / 3.5% / 89.3% / 92.8% | 0.991 / 4.9% / 62.9% / 97.9% |
+**Detection versus attack intensity.** The model never trains on attacks, so rare attack types are not a training-data problem; what matters is how much an attack disturbs a window. On ROAD (default), recall is 91% for windows with 101+ attack frames and 50% at 21–100, and 11/13 attack episodes are caught with a median latency of 0 s.
 
-With the optional rate term (`--timing`), on known-vehicle subsets:
+**Tried and rejected,** each under a rule fixed before the run (logs in `logs/`):
+- **Multi-window CUSUM:** FPR rose from about 5% to 20–70%. Benign test drives run slightly hot for long stretches compared with the single validation drive.
+- **Payload change features and a per-ID payload score P:** ROAD ROC-AUC fell to 0.46–0.66. ROAD's decoded signals change on almost every frame, so the change rate is benign noise.
+- **Per-drive score normalisation:** fold ROC-AUC fell to 0.831; during an attack, the running median absorbs the attack's own scores. A gated version (only windows below τ update the median) reached 0.948, but the fold FPR spread did not narrow, because fold 3's highway false alarms come in bursts, not as a steady per-drive offset.
+- **Per-ID value baseline:** ROAD ROC-AUC fell below chance (0.35–0.43). Benign values swing with driving, while spoofed values stay inside the normal range.
 
-| Set | test_01 ROC / FPR / P / R | test_03 ROC / FPR / P / R |
-|---|---|---|
-| set_01 | 0.995 / 4.0% / 41.8% / 98.2% | 0.875 / 5.2% / 67.4% / 72.9% |
-| set_02 | 0.847 / 3.8% / 25.9% / 51.5% | 0.697 / 3.7% / 23.8% / 45.3% |
-| set_03 | 0.975 / 0.9% / 87.9% / 81.0% | 0.931 / 2.2% / 88.4% / 69.4% |
-| set_04 | 0.997 / 2.3% / 93.3% / 99.9% | 0.987 / 4.8% / 63.2% / 97.6% |
-
-What this shows:
-- **More benign training data helps.** Adding the attack-free stretches of the labelled training drives cut the mean known-vehicle FPR from 12.2% to 3.3% (test_01) and from 12.3% to 4.4% (test_03).
-- **Timing-only attacks need the rate term.** Without it, unknown `interval` attacks (which only change an ID's period) are mostly missed. With `--timing`, mean test_03 ROC-AUC rises from 0.786 to 0.873 and recall from 39% to 71%. Mean test_01 ROC-AUC rises from 0.926 to 0.953, and FPR falls from 3.3% to 2.7%.
-- **The rate term is not universal.** It hurts ROAD's rate-preserving masquerades, so the right score depends on the attack model. A label-free selector (how much T raises the benign threshold) chose wrongly on 2 of 5 datasets, so this stays a threat-model choice.
-- **Accumulating evidence across windows did not help (yet).** A per-capture CUSUM raised FPR from about 5% to 20–70%: benign test drives run slightly hot for long stretches compared with the single validation drive. It needs per-drive score normalisation first.
-- **Payload change features did not help.** Adding per-ID payload change rate and largest byte jump to the graph (rebuild and retrain), plus a per-ID payload score P, cut ROAD ROC-AUC to 0.46–0.66. ROAD's decoded signals change on almost every frame, so the change rate is benign noise. It was reverted (logs in `logs/`). Payload attacks need per-ID expected-value models instead.
-- **Per-drive score normalisation did not help.** Subtracting each drive's running median narrowed the ROAD fold FPR spread (±5.0 → ±3.5 points) but lowered ROC-AUC from 0.967 to 0.831: during an attack, the running median absorbs the attack's own scores. A gated version (only windows below τ update the median) kept more recall (79%) but still lowered fold ROC-AUC to 0.948 and did not narrow the FPR spread: fold 3's highway false alarms come in bursts, not as a steady per-drive offset.
-- **A per-ID value baseline did not help.** Scoring each ID's signal mean/min/max against its own benign values pushed ROAD ROC-AUC below chance (0.35–0.43) and caught 0 of 68 payload-attack windows. Benign values swing with driving, while ROAD's spoofed values stay inside the normal range and are often steadier than real ones.
-- **set_02 is weak because of its attacks, not the model.** Apart from DoS, its attacks average 0.03–0.07 attack frames per window. For example, `standstill-3` has 6 spoofed frames in 372 s, so each attack window holds one valid-looking frame among about 3,000. Its DoS files are fully caught.
-
-**Detection versus attack intensity.** The model never trains on attacks, so rare attack types are not a training-data problem. What matters is how much an attack disturbs a window. `evaluate.py` reports window recall by injected attack frames per 2 s window, plus episode detection: an episode is a run of consecutive attack windows, and it is caught if any of its windows alarms. Pooled over the 4 can-train-and-test sets (known vehicle):
-
-| Attack frames per window | 1 | 2–5 | 6–20 | 21–100 | 101+ | Episodes caught (test_01 / test_03) |
-|---|---|---|---|---|---|---|
-| Default (E) | 2% | 10% | 10% | 42% | 100% | 57/67 / 49/95 |
-| `--timing` (max(E,T)) | 4% | 22% | 83% | 94% | 95% | 62/67 / 59/95 |
-
-- **Minimum detectable intensity:** with the rate term, about 6 injected frames per 2 s window (roughly 0.2% of the window's traffic) gives 83% window recall.
-- **Below that, detection fails for any window-level detector.** For example, `standstill-4` has 52 attack frames in 430 s. Catching these needs evidence accumulated across windows (planned).
-- **ROAD (default):** 91% recall for windows with 101+ attack frames, 50% at 21–100, and 11/13 attack episodes caught with a median latency of 0 s.
-
-**Explanation fidelity on can-train-and-test.** The ground truth is the IDs of the attack-labelled frames inside each window; injected IDs outside the vocabulary count as `<UNK>`. With `--timing`, attribution ranks IDs by max(E, T) per node, so a retimed ID is blamed for its own rate change instead of its neighbours' shifted transitions. Top-1 hit rate (alerting attack windows):
-
-| Set | test_01 default | test_01 `--timing` | test_03 default | test_03 `--timing` |
-|---|---|---|---|---|
-| set_01 | 100% (101) | 100% (110) | 28.3% (173) | **89.2%** (556) |
-| set_02 | 63.6% (77) | 84.9% (86) | 91.2% (34) | 98.5% (68) |
-| set_03 | 80.6% (201) | 81.4% (204) | 56.8% (95) | **94.1%** (504) |
-| set_04 | 97.1% (930) | 98.5% (1,001) | 75.1% (329) | 92.7% (328) |
-
-- **ROAD with `--timing`:** synthetic attacks reach 100% top-1, including suspension, because an expected ID that falls silent is named first. Real masquerades are barely detected in this mode (38 alerts instead of 288), which is why ROAD runs with T off.
-- **Unknown-vehicle subsets** (`test_02`, `test_04`) are not quoted: almost every ID there is `<UNK>`, so naming `<UNK>` counts as a hit.
-- **Unknown-vehicle subsets (`test_02`, `test_04`) alarm on nearly every window.** The baseline is specific to one vehicle by design.
+**Earlier multi-dataset version.** The pipeline was also run on the can-train-and-test dataset (DTU; 4 real vehicles), where known-vehicle results were ROC-AUC 0.953 on known attacks and 0.873 on zero-day attacks. That support was removed to keep the codebase ROAD-only; it is preserved at git tag `multidataset-final`.
 
 ## 18. Future Work
 
 Beyond the core implemented representation and detection pipeline:
 
-- **Multi-vehicle / multi-dataset evaluation** — in progress. can-train-and-test (DTU; Chevrolet Impala, Silverado, Traverse, Subaru Forester) is downloaded to `the second/`. Next: a raw-byte converter to ROAD's CSV layout and a `--dataset` flag, so each dataset gets its own vocabulary, baseline and models.
+- **Multi-vehicle / multi-dataset evaluation** — prototyped on can-train-and-test (git tag `multidataset-final`) and removed to keep the codebase ROAD-only; a candidate for future work.
 - **Adaptive/online learning** — updating the model's notion of "normal" behavior over time as legitimate traffic patterns evolve.
 - **Cross-attack-family generalization** — systematically evaluating zero-day detection across distinct attack families (masquerade, fuzzing, spoofing, replay).
 - **Hardware-in-the-loop validation** — evaluating whether the pipeline meets real-time latency and resource constraints on representative in-vehicle gateway hardware.

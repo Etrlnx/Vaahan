@@ -26,7 +26,7 @@ from scorer import AnomalyScorerConfig
 from report_generator import ReportGenerator, SecurityIncidentReport
 
 
-from preprocess import OUTPUT_DIR as OUTPUTS_DIR, DATASET, ATTACK_DIR, WINDOW_SIZE_SEC, STRIDE_SEC_ATTACK
+from preprocess import OUTPUT_DIR as OUTPUTS_DIR
 GRAPH_DATA_PATH = os.path.join(OUTPUTS_DIR, "graphs.pt")
 VOCAB_PATH = os.path.join(OUTPUTS_DIR, "vocab.pkl")
 CHECKPOINT_PATH = os.path.join(OUTPUTS_DIR, "best_model.pt")
@@ -100,33 +100,6 @@ def get_ground_truth_for_capture(capture_name: str) -> dict:
     return {"target_ids": [target] if target else [], "expected_features": feats}
 
 
-# Datasets other than ROAD (e.g. can-train-and-test) inject frames on existing or random IDs; the tell
-# is volume and cadence of the injected ID.
-INJECTION_FEATURES = ["msg_count", "activity_share", "mean_iat", "std_iat"]
-
-
-def window_attack_ids(attack_dir: str, vocab: dict) -> dict:
-    """{(capture, window_start): [attacked IDs]} from the Label==1 frames inside each window, for
-    datasets whose ground truth is per frame. IDs outside the vocabulary are named <UNK>, which is
-    what the model can attribute them to."""
-    import glob
-    import pandas as pd
-    truth = {}
-    for path in glob.glob(os.path.join(attack_dir, "*.csv")):
-        cap = os.path.splitext(os.path.basename(path))[0]
-        df = pd.read_csv(path, usecols=["Label", "Time", "ID"])
-        t0 = df["Time"].min()
-        att = df[df["Label"] == 1]
-        for t, i in zip(att["Time"].to_numpy() - t0, att["ID"].astype(str)):
-            name = i if i in vocab else "<UNK>"
-            last = np.floor(t / STRIDE_SEC_ATTACK) * STRIDE_SEC_ATTACK
-            for k in range(int(np.ceil(WINDOW_SIZE_SEC / STRIDE_SEC_ATTACK))):  # windows whose span holds t
-                start = float(last - k * STRIDE_SEC_ATTACK)
-                if start >= 0 and start + WINDOW_SIZE_SEC > t:
-                    truth.setdefault((cap, start), set()).add(name)
-    return {k: sorted(v) for k, v in truth.items()}
-
-
 def get_attack_family(capture_name: str) -> str:
     c = str(capture_name).lower()
     if "speedometer" in c:
@@ -191,16 +164,12 @@ def run_xai_evaluation(show_plots: bool = False, timing: bool = False):
     detector.calibrate(model, val_loader, device=DEVICE, suspicious_percentile=95.0, alert_percentile=99.0)
 
     report_gen = ReportGenerator(vocab=vocab, transition_baseline=detector.transition_baseline)
-    window_truth = window_attack_ids(ATTACK_DIR, vocab) if DATASET != "road" else {}
 
     print("\n[2/3] Evaluating Explanation Fidelity on True Attack Windows...")
     test_loader = DataLoader(test_graphs, batch_size=1, shuffle=False)
 
     # Fidelity counters kept apart for real ROAD and synthetic attacks.
-    real_grp = "road" if DATASET == "road" else DATASET
-    counts = {grp: {"alerts": 0, "top1": 0, "top3": 0, "feat": 0} for grp in (real_grp, "synthetic")}
-    if DATASET != "road":  # one counter per dataset test subset (test_01 .. test_04)
-        counts = {}
+    counts = {grp: {"alerts": 0, "top1": 0, "top3": 0, "feat": 0} for grp in ("road", "synthetic")}
 
     attack_candidates: dict[str, tuple[DetectionResult, SecurityIncidentReport]] = {}
     benign_report: Optional[SecurityIncidentReport] = None
@@ -235,16 +204,11 @@ def run_xai_evaluation(show_plots: bool = False, timing: bool = False):
                     attack_candidates[fam] = (res, rep)
 
                 if res.anomaly_score >= detector.tau_suspicious:
-                    grp = ("synthetic" if is_synthetic else
-                           str(res.capture_name).split("__")[0] if DATASET != "road" else real_grp)
-                    c = counts.setdefault(grp, {"alerts": 0, "top1": 0, "top3": 0, "feat": 0})
+                    c = counts["synthetic" if is_synthetic else "road"]
                     c["alerts"] += 1
                     gt = get_ground_truth_for_capture(res.capture_name)
                     target_ids = gt["target_ids"]
                     expected_feats = gt["expected_features"]
-                    if window_truth:
-                        target_ids = window_truth.get((res.capture_name, float(res.window_start)), [])
-                        expected_feats = INJECTION_FEATURES
 
                     report = report_gen.generate_report(
                         batch, outputs, res, model,
