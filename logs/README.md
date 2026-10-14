@@ -1,6 +1,6 @@
 # Experiment logs (2026-10-14)
 
-Run logs for five rejected experiments, kept as evidence. Results and reasoning are in the root README (§17) and the knowledge graph (§5.4h, §5.4i).
+ROAD run logs for five rejected experiments, kept as evidence (the can-train-and-test logs were removed with that dataset; see git tag `multidataset-final`). Results and reasoning are in the root README (§17) and the knowledge graph (§5.4h, §5.4i).
 
 | Log | Model / graphs | Experiment |
 |---|---|---|

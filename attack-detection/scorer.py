@@ -18,7 +18,7 @@ class AnomalyScorerConfig:
     # Weights act on validation-scaled components (each divided by its benign MAD).
     # Ablation on the ROAD test split: structural excess (E) carries the detection signal,
     # R adds a small FPR reduction and G is subsumed by E. T (per-ID rate deviation) is off by
-    # default: it lifts injection/retiming attacks on can-train-and-test (mean test_03 ROC 0.786 -> 0.893)
+    # default: it lifts injection/retiming attacks (ROAD synthetic suspension 21-40% -> 44-74% recall)
     # but cuts ROAD masquerade fold ROC 0.967 -> 0.858, where attackers keep the real ECU's rate.
     # Enable with beta_temporal=1.0 (evaluate.py --timing).
     alpha_recon: float = 0.25

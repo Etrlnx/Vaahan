@@ -70,7 +70,6 @@ The pipeline ingests signal-translated CSV captures from the **ROAD (Real Autono
   - `STRIDE_SEC_BENIGN = STRIDE_SEC_ATTACK = 1.0`: one stride for every capture, so benign and attack windows have the same overlap. Leakage is prevented by splitting by capture, not by stride.
   - `MIN_MESSAGES_PER_WINDOW = 5`: Threshold filtering out sparse/degenerate windows.
 - **Output**: `road_windowed.pkl` holds the window index and labels (`0 = benign`, `1 = attack`). `graph_builder.py` re-reads the raw messages one capture at a time.
-- **Datasets**: the `CAN_DATASET` environment variable selects `road` (default) or a converted can-train-and-test set (`ctt_set_01`–`04`, produced by `convert_can_train_and_test.py`). Each dataset gets its own `outputs/<dataset>/`.
 - **Synthetic attacks**: `attack_injector.py` writes fabrication, suspension, drift and flooding episodes to `outputs/synthetic/`, only from captures held out for test.
 
 ---
@@ -196,9 +195,6 @@ python graph-transformer/train.py --fold 0 --n-folds 6   # repeat for folds 0-5 
 # Optional: synthetic timing attacks (run before step 1)
 python graph-transformer/attack_injector.py
 
-# Second dataset: convert one can-train-and-test set, then run steps 1-3 with CAN_DATASET set
-python graph-transformer/convert_can_train_and_test.py set_01
-CAN_DATASET=ctt_set_01 python graph-transformer/preprocess.py
 ```
 
 ---

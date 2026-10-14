@@ -172,9 +172,7 @@ RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (208) + ESCALATE_ALERT
 
 ## 4. Ground-Truth Fidelity Evaluation (`evalxai.py`)
 
-Explainability is evaluated quantitatively against ground truth:
-- **ROAD:** the attack metadata.
-- **can-train-and-test (`CAN_DATASET=ctt_set_0x`):** the IDs of the attack-labelled frames inside each window. Injected IDs outside the vocabulary count as `<UNK>`, and results are reported per test subset.
+Explainability is evaluated quantitatively against the ROAD dataset's ground-truth attack metadata:
 
 1. **Hit Rate @ Top-K ($HR@K$)**: Does the top-ranked anomalous CAN ID match the true attacked arbitration ID documented in the ROAD attack metadata?
 2. **Feature Grounding Fidelity**: Does the top-attributed feature match the physical attack mechanism (e.g., `signal_max` for max-value masquerade vs `mean_iat` for injection bursts)?
@@ -182,7 +180,7 @@ Explainability is evaluated quantitatively against ground truth:
 
 The target ID per capture is read from ROAD `attacks/metadata.json` (`injection_id`): `0x0D0` for speedometer and reverse-light attacks, `0x6E0` for correlated-signal and `0x4E7` for coolant. These match the IDs of the `Label = 1` messages. Current ROAD results (seed-42 model, 288 detected attack windows): **HR@1 90.28%, HR@3 94.10%, feature grounding 95.14%**.
 
-With `evalxai.py --timing`, IDs are ranked by max(E, T) per node, so a retimed ID is blamed for its own rate change. A suspended ECU that is normally always present is named first, with `msg_count` = 0 as the evidence. This mode lifts can-train-and-test zero-day top-1 to 89–99%.
+With `evalxai.py --timing`, IDs are ranked by max(E, T) per node, so a retimed ID is blamed for its own rate change. A suspended ECU that is normally always present is named first, with `msg_count` = 0 as the evidence. With this mode, ROAD synthetic attacks reach 100% top-1, including suspension.
 
 By default, CAN IDs are ranked by the detector's per-node transition excess; attention edges are ranked by *lift* (weight × target in-degree), because a target with a single incoming edge always receives softmax weight 1.0.
 

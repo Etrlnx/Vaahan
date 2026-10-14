@@ -228,7 +228,7 @@ where:
 
 The weights were chosen by ablation (see `knowledge-graph/knowledge-graph.md` §5.4): E carries most of the detection signal, R adds a small false-positive reduction, and G is subsumed by E. The attack captures were visible while choosing them; the 6-fold capture rotation (ROC-AUC 0.967 ± 0.005) is the more robust estimate.
 
-T is off by default. It lifts injection and retiming attacks on can-train-and-test (zero-day ROC-AUC 0.786 → 0.873), but on ROAD's masquerades, where the attacker keeps the real ECU's rate, it lowers fold ROC-AUC from 0.967 to 0.783. Whether to use it is a threat-model choice.
+T is off by default. It lifts rate-changing attacks (ROAD synthetic suspension recall 21–40% → 44–74%), but on ROAD's masquerades, where the attacker keeps the real ECU's rate, it lowers fold ROC-AUC from 0.967 to 0.783. Whether to use it is a threat-model choice.
 
 Thresholds are benign-validation percentiles. On the seed-42 ROAD split, τ_suspicious (95th) = 5.0893 is the binary decision threshold and τ_alert (99th) = 7.1042 marks HIGH_RISK.
 
@@ -497,7 +497,6 @@ The system therefore focuses on **behavioral deviation** rather than relying exc
 The evaluation module (`attack-detection/evaluate.py`) evaluates held-out test captures against the calibrated threshold ($\tau_{\text{suspicious}} = 5.0893$ on the seed-42 ROAD split).
 
 Besides window metrics, it reports:
-- metrics per dataset test subset (for can-train-and-test: `test_01`–`test_04`);
 - recall by attack intensity (injected frames per window);
 - episode detection with latency;
 - distinct false-alarm events per hour.
@@ -505,7 +504,6 @@ Besides window metrics, it reports:
 Flags:
 - `--folds 6` runs the capture-rotation estimate.
 - `--timing` enables T.
-- The `CAN_DATASET` environment variable selects the dataset.
 
 It also provides visual interpretation tools:
 

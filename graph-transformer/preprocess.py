@@ -13,19 +13,9 @@ import pandas as pd
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROAD_ROOT = os.path.join(BASE_DIR, "road", "road")
 
-# CAN_DATASET picks the dataset for every pipeline script. "road" (default) keeps the original
-# paths; any other name reads converted CSVs from "the second/converted/<name>/{ambient,attacks}"
-# and writes to outputs/<name>/, so datasets never share a vocabulary, baseline or model.
-DATASET = os.environ.get("CAN_DATASET", "road")
-if DATASET == "road":
-    AMBIENT_DIR = os.path.join(ROAD_ROOT, "signal_extractions", "ambient")
-    ATTACK_DIR = os.path.join(ROAD_ROOT, "signal_extractions", "attacks")
-    OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
-else:
-    _converted = os.path.join(os.path.dirname(BASE_DIR), "the second", "converted", DATASET)
-    AMBIENT_DIR = os.path.join(_converted, "ambient")
-    ATTACK_DIR = os.path.join(_converted, "attacks")
-    OUTPUT_DIR = os.path.join(BASE_DIR, "outputs", DATASET)
+AMBIENT_DIR = os.path.join(ROAD_ROOT, "signal_extractions", "ambient")
+ATTACK_DIR = os.path.join(ROAD_ROOT, "signal_extractions", "attacks")
+OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
 SYNTHETIC_DIR = os.path.join(OUTPUT_DIR, "synthetic")  # written by attack_injector.py
 
 WINDOW_SIZE_SEC = 2.0
