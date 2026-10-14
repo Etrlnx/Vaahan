@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.5.0] - 2026-10-14 — Evaluation rigour, second dataset, rate term
+
+### Added
+- **Capture-level evaluation:**
+  - 6-fold capture rotation (`train.py --fold`, `evaluate.py --folds`): ROAD ROC-AUC 0.967 ± 0.005.
+  - Equal 1.0 s stride for all captures.
+  - Leakage-safe synthetic timing attacks (`attack_injector.py`).
+- **can-train-and-test** (DTU; 4 real vehicles):
+  - `convert_can_train_and_test.py` and the `CAN_DATASET` switch.
+  - Benign stretches of the labelled training drives used as extra training data.
+  - Known-vehicle results: known attacks ROC-AUC 0.953, zero-day 0.873 (with `--timing`).
+- **Optional per-ID rate term T** (`--timing`): message-count deviation plus a missing-ID (suspension) check, fused as max(E, T).
+- **Reporting:**
+  - recall by attack intensity;
+  - episode detection and latency;
+  - distinct false-alarm events per hour;
+  - per-subset metrics.
+- **XAI:**
+  - per-window ground truth for can-train-and-test;
+  - max(E, T) attribution;
+  - a silent expected ID is named first.
+
+### Changed
+- Vocabulary is built from benign captures only.
+- Graphs are built one capture at a time (about 0.5 GB peak, identical output).
+- `new/` notebooks became thin runners over the modules.
+
+### Rejected after testing (documented in README §17 and `logs/`)
+- Calibration tail pool.
+- Per-ID excess scaling.
+- Label-free T selector.
+- Multi-window CUSUM.
+- Payload change features and payload score.
+- Per-drive normalisation, plain and gated.
+- Per-ID value baseline.
+
+---
+
 ## [0.4.0] - 2026-08-24 — Explainable AI (XAI) Layer & Visual Dashboards (MVP Complete)
 
 ### Added
