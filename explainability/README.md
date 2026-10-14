@@ -144,7 +144,7 @@ Excerpt of a real report produced by `evalxai.py` (structural list truncated):
 SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-345C9FBF
 ================================================================================
 Capture: max_speedometer_attack_1_masquerade | Timestamp: 48.00s
-Anomaly Score: 15.3162 (Decision Tau: 6.2242, Alert Tau: 9.6007)
+Anomaly Score: 15.3162 (Decision Tau: 5.0893, Alert Tau: 7.1042)
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 0.1768
   - Temporal Dynamics Jitter (T_error): 0.0110
@@ -172,13 +172,19 @@ RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (208) + ESCALATE_ALERT
 
 ## 4. Ground-Truth Fidelity Evaluation (`evalxai.py`)
 
-Explainability is evaluated quantitatively against the ROAD dataset's ground-truth attack metadata:
+Explainability is evaluated quantitatively against ground truth:
+- **ROAD:** the attack metadata.
+- **can-train-and-test (`CAN_DATASET=ctt_set_0x`):** the IDs of the attack-labelled frames inside each window. Injected IDs outside the vocabulary count as `<UNK>`, and results are reported per test subset.
 
 1. **Hit Rate @ Top-K ($HR@K$)**: Does the top-ranked anomalous CAN ID match the true attacked arbitration ID documented in the ROAD attack metadata?
 2. **Feature Grounding Fidelity**: Does the top-attributed feature match the physical attack mechanism (e.g., `signal_max` for max-value masquerade vs `mean_iat` for injection bursts)?
 3. **Subgraph Localization Sparsity**: Does the explanation isolate a compact, interpretable subgraph (1–3 nodes) rather than diffusely highlighting the whole bus? *(not yet measured)*
 
-The target ID per capture is read from ROAD `attacks/metadata.json` (`injection_id`): `0x0D0` for speedometer and reverse-light attacks, `0x6E0` for correlated-signal and `0x4E7` for coolant. These match the IDs of the `Label = 1` messages. Current results on 138 detected attack windows: **HR@1 94.20%, HR@3 96.38%, feature grounding 84.06%**. CAN IDs are ranked by the detector's per-node transition excess; attention edges are ranked by *lift* (weight × target in-degree), because a target with a single incoming edge always receives softmax weight 1.0.
+The target ID per capture is read from ROAD `attacks/metadata.json` (`injection_id`): `0x0D0` for speedometer and reverse-light attacks, `0x6E0` for correlated-signal and `0x4E7` for coolant. These match the IDs of the `Label = 1` messages. Current ROAD results (seed-42 model, 288 detected attack windows): **HR@1 90.28%, HR@3 94.10%, feature grounding 95.14%**.
+
+With `evalxai.py --timing`, IDs are ranked by max(E, T) per node, so a retimed ID is blamed for its own rate change. A suspended ECU that is normally always present is named first, with `msg_count` = 0 as the evidence. This mode lifts can-train-and-test zero-day top-1 to 89–99%.
+
+By default, CAN IDs are ranked by the detector's per-node transition excess; attention edges are ranked by *lift* (weight × target in-degree), because a target with a single incoming edge always receives softmax weight 1.0.
 
 ---
 

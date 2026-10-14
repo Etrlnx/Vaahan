@@ -26,6 +26,9 @@ class DetectionResult:
     top_anomalous_node_indices: list[int] = field(default_factory=list)
     top_anomalous_node_ids: list[int] = field(default_factory=list)
     node_scores: list[float] = field(default_factory=list)
+    # Set when an expected ID is absent and its deficit outscores every present node (suspension).
+    missing_id_index: Optional[int] = None
+    missing_id_score: float = 0.0
 
 
 class ZeroDayDetector:
@@ -37,11 +40,11 @@ class ZeroDayDetector:
         self.tau_alert: float = 1.00
         self.is_calibrated: bool = False
 
-    def fit_baseline(self, benign_train_graphs: list, vocab_size: int = 106):
+    def fit_baseline(self, benign_train_graphs: list, vocab_size: int = 106, count_zero: Optional[float] = None):
         if not benign_train_graphs:
             raise ValueError("benign_train_graphs is empty; cannot fit transition baseline.")
         self.transition_baseline = TransitionBaseline(vocab_size=vocab_size)
-        self.transition_baseline.fit(benign_train_graphs)
+        self.transition_baseline.fit(benign_train_graphs, count_zero=count_zero)
 
     def calibrate(
         self,
@@ -124,11 +127,23 @@ class ZeroDayDetector:
         else:
             risk = RiskState.NORMAL
 
-        # Rank nodes by the structural excess that drives the score; fall back to
-        # reconstruction residuals when no transition baseline is available.
+        # Rank nodes by the evidence that drives the score: structural excess, or with the rate term
+        # on, max(E, T) per node in the same scaled units as the fused score (a retimed ID is blamed
+        # for its own rate, not its neighbours' shifted transitions). Fall back to reconstruction
+        # residuals when no transition baseline is available.
         node_scores = np.asarray(score_dict["node_excess"], dtype=np.float64)
+        cfg = self.scorer_config
+        if cfg.beta_temporal > 0 and cfg.excess_scale and cfg.temporal_scale:
+            node_scores = np.maximum(cfg.delta_excess * node_scores / cfg.excess_scale,
+                                     cfg.beta_temporal * np.asarray(score_dict["node_rate"]) / cfg.temporal_scale)
         if self.transition_baseline is None or not np.any(node_scores):
             node_scores = score_dict["node_residuals"].cpu().numpy()
+        missing_idx, missing_score = None, 0.0
+        if cfg.beta_temporal > 0 and cfg.temporal_scale and self.transition_baseline is not None:
+            dev, idx = self.transition_baseline.missing_id_deviation(batch)
+            scaled = cfg.beta_temporal * dev / cfg.temporal_scale
+            if idx is not None and scaled > (float(np.max(node_scores)) if len(node_scores) else 0.0):
+                missing_idx, missing_score = idx, scaled
         top_k = min(3, len(node_scores))
         top_node_idx = np.argsort(node_scores)[::-1][:top_k].tolist()
         top_id_vocab_indices = batch.id_idx[top_node_idx].cpu().numpy().tolist()
@@ -151,6 +166,8 @@ class ZeroDayDetector:
             top_anomalous_node_indices=top_node_idx,
             top_anomalous_node_ids=top_id_vocab_indices,
             node_scores=node_scores.tolist(),
+            missing_id_index=missing_idx,
+            missing_id_score=missing_score,
         )
 
     def export_calibration(self) -> dict:

@@ -142,6 +142,69 @@ def _binary_metrics(scores, labels, tau):
     }
 
 
+INTENSITY_BINS = [(1, 1), (2, 5), (6, 20), (21, 100), (101, None)]  # attack frames per window
+
+
+def attack_frames(g) -> int:
+    return int(round(float(g.frac_attack_messages) * float(g.graph_message_count)))
+
+
+def intensity_and_episodes(pairs: list, tau: float, stride: float = 1.0) -> dict:
+    """pairs = [(graph, DetectionResult)] for real captures. Window recall per attack-frame bin, and
+    episode detection: consecutive attack windows of a capture (gap <= stride) are one episode, caught
+    if any of its windows alarms."""
+    attack = [(g, r) for g, r in pairs if r.ground_truth_label == 1]
+    bins = {}
+    for lo, hi in INTENSITY_BINS:
+        sel = [r for g, r in attack if attack_frames(g) >= lo and (hi is None or attack_frames(g) <= hi)]
+        label = f"{lo}" if lo == hi else (f"{lo}+" if hi is None else f"{lo}-{hi}")
+        bins[label] = {"windows": len(sel), "recall": (sum(r.anomaly_score >= tau for r in sel) / len(sel)) if sel else None}
+    by_cap = {}
+    for g, r in attack:
+        by_cap.setdefault(r.capture_name, []).append(r)
+    episodes, latencies = 0, []
+    for rs in by_cap.values():
+        rs.sort(key=lambda r: r.window_start)
+        ep = [rs[0]]
+        for r in rs[1:] + [None]:
+            if r is not None and r.window_start - ep[-1].window_start <= stride + 1e-9:
+                ep.append(r)
+                continue
+            episodes += 1
+            alarms = [x.window_start for x in ep if x.anomaly_score >= tau]
+            if alarms:
+                latencies.append(min(alarms) - ep[0].window_start)
+            ep = [r]
+    return {"intensity_recall": bins, "episodes": episodes, "episodes_detected": len(latencies),
+            "median_latency_s": float(np.median(latencies)) if latencies else None}
+
+
+def print_intensity(tag: str, d: dict):
+    cells = " | ".join(f"{k}: {v['recall']:.0%} ({v['windows']})" if v["recall"] is not None else f"{k}: -"
+                       for k, v in d["intensity_recall"].items())
+    lat = f"{d['median_latency_s']:.1f}s" if d["median_latency_s"] is not None else "N/A"
+    print(f"  [{tag}] episodes {d['episodes_detected']}/{d['episodes']} (median latency {lat}) | "
+          f"recall by attack frames/window -> {cells}")
+
+
+def alarm_events_per_hour(results: list, tau: float, stride: float = 1.0) -> float:
+    """Distinct alarm events per hour of benign driving: alarmed windows of one capture that are at
+    most one stride apart form one event (overlapping windows otherwise count one burst many times).
+    Each window advances `stride` seconds, so len(results) * stride is the driving time covered."""
+    by_cap = {}
+    for r in results:
+        by_cap.setdefault(r.capture_name, []).append(r)
+    events = 0
+    for rs in by_cap.values():
+        last = None
+        for r in sorted(rs, key=lambda x: x.window_start):
+            if r.anomaly_score >= tau:
+                if last is None or r.window_start - last > stride + 1e-9:
+                    events += 1
+                last = r.window_start
+    return 3600.0 * events / max(len(results) * stride, 1e-9)
+
+
 def summarize_synthetic(results: list, tau: float) -> dict:
     """Per attack type / intensity: window recall and episode detection (one episode per capture)."""
     groups = {}
@@ -212,7 +275,9 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
 
     print("\n[2/4] Initializing and Calibrating Zero-Day Detector...")
     detector = ZeroDayDetector(scorer_config or AnomalyScorerConfig())
-    detector.fit_baseline(train_graphs, vocab_size=len(vocab))
+    # msg_count = 0 in normalised units, so expected-but-absent IDs register as rate deviations.
+    detector.fit_baseline(train_graphs, vocab_size=len(vocab),
+                          count_zero=float(-train_mean[0] / train_std[0]))
 
     val_loader = DataLoader(val_graphs, batch_size=1, shuffle=False)
     detector.calibrate(
@@ -249,6 +314,7 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
     # 1 s stride -> each ambient window is one second of driving.
     metrics["false_alarm_windows_per_hour"] = (
         3600.0 * sum(r.anomaly_score >= tau for r in benign_ambient) / max(len(benign_ambient), 1))
+    metrics["false_alarm_events_per_hour"] = alarm_events_per_hour(benign_ambient, tau)
     synthetic = summarize_synthetic(results, tau)
     syn_windows = [r for r in results if synthetic_parent(r.capture_name) is not None]
     metrics["synthetic_window_recall"] = (
@@ -266,7 +332,8 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
     print("-" * 70)
     for k in ("precision", "recall", "f1", "accuracy", "fpr", "roc_auc", "pr_auc"):
         print(f"  {k:<24}: {metrics[k]:.4f}")
-    print(f"  {'false alarms / hour':<24}: {metrics['false_alarm_windows_per_hour']:.1f} (ambient driving)")
+    print(f"  {'false alarms / hour':<24}: {metrics['false_alarm_windows_per_hour']:.1f} windows, "
+          f"{metrics['false_alarm_events_per_hour']:.1f} distinct events (ambient driving)")
     print("=" * 70)
 
     if synthetic:
@@ -309,6 +376,10 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
 
     # Datasets with their own test subsets name captures "<subset>__<file>" (e.g. can-train-and-test
     # test_01..test_04). Report each subset on its own windows (benign + attack frames of those files).
+    real_pairs = [(g, r) for g, r in zip(test_graphs, results) if synthetic_parent(r.capture_name) is None]
+    print("\nATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)")
+    metrics["intensity"] = intensity_and_episodes(real_pairs, tau)
+    print_intensity("all real", metrics["intensity"])
     groups = sorted({str(r.capture_name).split("__")[0] for r in real if "__" in str(r.capture_name)})
     metrics["per_subset"] = {}
     for grp in groups:
@@ -316,9 +387,15 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
         g_scores = np.array([r.anomaly_score for r in rs], dtype=np.float64)
         g_labels = np.array([r.ground_truth_label for r in rs], dtype=np.int64)
         metrics["per_subset"][grp] = _binary_metrics(g_scores, g_labels, tau)
+        metrics["per_subset"][grp]["false_alarm_events_per_hour"] = alarm_events_per_hour(
+            [r for r in rs if r.ground_truth_label == 0], tau)
+        metrics["per_subset"][grp]["intensity"] = intensity_and_episodes(
+            [(g, r) for g, r in real_pairs if str(r.capture_name).startswith(grp + "__")], tau)
         m = metrics["per_subset"][grp]
         print(f"  [{grp}] windows {len(rs)} (attack {int(g_labels.sum())}) | ROC {m['roc_auc']:.4f} | PR {m['pr_auc']:.4f} | "
-              f"P {m['precision']:.3f} | R {m['recall']:.3f} | F1 {m['f1']:.3f} | FPR {m['fpr']:.3f}")
+              f"P {m['precision']:.3f} | R {m['recall']:.3f} | F1 {m['f1']:.3f} | FPR {m['fpr']:.3f} | "
+              f"false-alarm events/h {m['false_alarm_events_per_hour']:.1f}")
+        print_intensity(grp, m["intensity"])
 
     metrics["synthetic"] = synthetic
     metrics["tau_suspicious"] = tau
@@ -374,7 +451,7 @@ def run_fold_evaluation(n_folds: int, scorer_config: AnomalyScorerConfig = None)
         per_fold.append(run_evaluation(scorer_config=cfg, show_plot=False, checkpoint_path=fold_checkpoint_path(fold),
                                        save_visuals=False, verbose=False))
     keys = ["roc_auc", "pr_auc", "precision", "recall", "f1", "accuracy", "fpr",
-            "false_alarm_windows_per_hour", "synthetic_window_recall"]
+            "false_alarm_windows_per_hour", "false_alarm_events_per_hour", "synthetic_window_recall"]
     summary = {k: {"mean": float(np.mean([m[k] for m in per_fold])), "std": float(np.std([m[k] for m in per_fold]))}
                for k in keys}
     pooled_fp = sum(m["fp"] for m in per_fold)

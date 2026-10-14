@@ -9,6 +9,14 @@ once a first stable pipeline exists).
 
 ## [Unreleased]
 
+### Changed (2026-10-14)
+- **Strides:** one 1.0 s stride for every capture; leakage is handled by capture-level splits.
+- **Splitting:** seed-42 split plus 6-fold capture rotation (`--fold/--n-folds`).
+- **Vocabulary:** built from benign ambient captures only.
+- **`graph_builder.py`:** builds graphs one capture at a time with vectorised edges; output identical, peak RAM about 0.5 GB.
+- **`CAN_DATASET` switch** and `convert_can_train_and_test.py` for the second dataset.
+- **`attack_injector.py`** for leakage-safe synthetic timing attacks.
+
 ### Added
 - Data preprocessing stage (`preprocess.py`): parses ROAD signal-translated
   CSV captures (ambient + attack), applies temporal windowing (overlapping for

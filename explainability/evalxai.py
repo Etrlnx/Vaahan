@@ -26,7 +26,7 @@ from scorer import AnomalyScorerConfig
 from report_generator import ReportGenerator, SecurityIncidentReport
 
 
-from preprocess import OUTPUT_DIR as OUTPUTS_DIR
+from preprocess import OUTPUT_DIR as OUTPUTS_DIR, DATASET, ATTACK_DIR, WINDOW_SIZE_SEC, STRIDE_SEC_ATTACK
 GRAPH_DATA_PATH = os.path.join(OUTPUTS_DIR, "graphs.pt")
 VOCAB_PATH = os.path.join(OUTPUTS_DIR, "vocab.pkl")
 CHECKPOINT_PATH = os.path.join(OUTPUTS_DIR, "best_model.pt")
@@ -100,6 +100,33 @@ def get_ground_truth_for_capture(capture_name: str) -> dict:
     return {"target_ids": [target] if target else [], "expected_features": feats}
 
 
+# Datasets other than ROAD (e.g. can-train-and-test) inject frames on existing or random IDs; the tell
+# is volume and cadence of the injected ID.
+INJECTION_FEATURES = ["msg_count", "activity_share", "mean_iat", "std_iat"]
+
+
+def window_attack_ids(attack_dir: str, vocab: dict) -> dict:
+    """{(capture, window_start): [attacked IDs]} from the Label==1 frames inside each window, for
+    datasets whose ground truth is per frame. IDs outside the vocabulary are named <UNK>, which is
+    what the model can attribute them to."""
+    import glob
+    import pandas as pd
+    truth = {}
+    for path in glob.glob(os.path.join(attack_dir, "*.csv")):
+        cap = os.path.splitext(os.path.basename(path))[0]
+        df = pd.read_csv(path, usecols=["Label", "Time", "ID"])
+        t0 = df["Time"].min()
+        att = df[df["Label"] == 1]
+        for t, i in zip(att["Time"].to_numpy() - t0, att["ID"].astype(str)):
+            name = i if i in vocab else "<UNK>"
+            last = np.floor(t / STRIDE_SEC_ATTACK) * STRIDE_SEC_ATTACK
+            for k in range(int(np.ceil(WINDOW_SIZE_SEC / STRIDE_SEC_ATTACK))):  # windows whose span holds t
+                start = float(last - k * STRIDE_SEC_ATTACK)
+                if start >= 0 and start + WINDOW_SIZE_SEC > t:
+                    truth.setdefault((cap, start), set()).add(name)
+    return {k: sorted(v) for k, v in truth.items()}
+
+
 def get_attack_family(capture_name: str) -> str:
     c = str(capture_name).lower()
     if "speedometer" in c:
@@ -123,7 +150,7 @@ from plot_interactive_subgraph import plot_interactive_subgraph
 from plot_xai_dashboard import render_unified_dashboard
 
 
-def run_xai_evaluation(show_plots: bool = False):
+def run_xai_evaluation(show_plots: bool = False, timing: bool = False):
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
@@ -155,19 +182,25 @@ def run_xai_evaluation(show_plots: bool = False):
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    detector = ZeroDayDetector(AnomalyScorerConfig())
-    detector.fit_baseline(train_graphs, vocab_size=len(vocab))
+    detector = ZeroDayDetector(AnomalyScorerConfig(beta_temporal=1.0) if timing else AnomalyScorerConfig())
+    # msg_count = 0 in normalised units, so expected-but-absent IDs register as rate deviations.
+    detector.fit_baseline(train_graphs, vocab_size=len(vocab),
+                          count_zero=float(-train_mean[0] / train_std[0]))
 
     val_loader = DataLoader(val_graphs, batch_size=1, shuffle=False)
     detector.calibrate(model, val_loader, device=DEVICE, suspicious_percentile=95.0, alert_percentile=99.0)
 
     report_gen = ReportGenerator(vocab=vocab, transition_baseline=detector.transition_baseline)
+    window_truth = window_attack_ids(ATTACK_DIR, vocab) if DATASET != "road" else {}
 
     print("\n[2/3] Evaluating Explanation Fidelity on True Attack Windows...")
     test_loader = DataLoader(test_graphs, batch_size=1, shuffle=False)
 
     # Fidelity counters kept apart for real ROAD and synthetic attacks.
-    counts = {grp: {"alerts": 0, "top1": 0, "top3": 0, "feat": 0} for grp in ("road", "synthetic")}
+    real_grp = "road" if DATASET == "road" else DATASET
+    counts = {grp: {"alerts": 0, "top1": 0, "top3": 0, "feat": 0} for grp in (real_grp, "synthetic")}
+    if DATASET != "road":  # one counter per dataset test subset (test_01 .. test_04)
+        counts = {}
 
     attack_candidates: dict[str, tuple[DetectionResult, SecurityIncidentReport]] = {}
     benign_report: Optional[SecurityIncidentReport] = None
@@ -202,11 +235,16 @@ def run_xai_evaluation(show_plots: bool = False):
                     attack_candidates[fam] = (res, rep)
 
                 if res.anomaly_score >= detector.tau_suspicious:
-                    c = counts["synthetic" if is_synthetic else "road"]
+                    grp = ("synthetic" if is_synthetic else
+                           str(res.capture_name).split("__")[0] if DATASET != "road" else real_grp)
+                    c = counts.setdefault(grp, {"alerts": 0, "top1": 0, "top3": 0, "feat": 0})
                     c["alerts"] += 1
                     gt = get_ground_truth_for_capture(res.capture_name)
                     target_ids = gt["target_ids"]
                     expected_feats = gt["expected_features"]
+                    if window_truth:
+                        target_ids = window_truth.get((res.capture_name, float(res.window_start)), [])
+                        expected_feats = INJECTION_FEATURES
 
                     report = report_gen.generate_report(
                         batch, outputs, res, model,
@@ -246,7 +284,7 @@ def run_xai_evaluation(show_plots: bool = False):
     print("\n" + "=" * 80)
     print("EXPLAINABILITY FIDELITY BENCHMARK RESULTS")
     print("=" * 80)
-    for grp, c in counts.items():
+    for grp, c in sorted(counts.items()):
         n = max(c["alerts"], 1)
         print(f"  [{grp.upper()}] Evaluated Attack Alert Windows : {c['alerts']}")
         print(f"  [{grp.upper()}] Hit Rate @ Top-1 (HR@1)        : {100.0 * c['top1'] / n:.2f}%")
@@ -298,6 +336,8 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Evaluate XAI and Generate Visual Dashboards")
     parser.add_argument("--show", action="store_true", help="Display Matplotlib GUI windows interactively on screen")
+    parser.add_argument("--timing", action="store_true",
+                        help="Enable the per-ID rate term T: score and attribution use max(E, T)")
     args = parser.parse_args()
-    run_xai_evaluation(show_plots=args.show)
+    run_xai_evaluation(show_plots=args.show, timing=args.timing)
 

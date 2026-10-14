@@ -15,7 +15,7 @@ import numpy as np
 import torch
 
 from plot_confusion_matrix import plot_confusion_matrix
-from evaluate import compute_roc_auc, compute_pr_auc
+from evaluate import compute_roc_auc, compute_pr_auc, intensity_and_episodes, alarm_events_per_hour
 from detector import ZeroDayDetector, RiskState
 from scorer import AnomalyScorer, AnomalyScorerConfig, TransitionBaseline
 
@@ -121,6 +121,71 @@ class TestDetectorContracts(unittest.TestCase):
         dev = baseline.node_rate_deviation(window(20.0))  # ID 2 now sends twice as often
         self.assertEqual(int(np.argmax(dev)), 1)
         self.assertGreater(dev[1], 5 * max(dev[0], dev[2]))
+
+
+class TestRateScaleFloor(unittest.TestCase):
+    def test_periodic_ids_with_zero_spread_stay_in_message_units(self):
+        from torch_geometric.data import Data
+
+        def window(counts):
+            x = torch.zeros((3, 9))
+            x[:, 0] = torch.tensor(counts, dtype=torch.float32)
+            g = Data(x=x, edge_index=torch.tensor([[0, 1], [1, 2]]), edge_attr=torch.ones(2))
+            g.id_idx = torch.tensor([1, 2, 3])
+            return g
+
+        baseline = TransitionBaseline(vocab_size=5)
+        baseline.fit([window([10.0, 11.0, 12.0])] * 20)  # every ID perfectly periodic: MAD 0
+        dev = baseline.node_rate_deviation(window([12.0, 11.0, 12.0]))
+        self.assertAlmostEqual(float(dev[0]), 2.0, places=4)  # two extra messages -> T = 2, not 2e6
+
+
+class TestMissingIds(unittest.TestCase):
+    def test_absent_expected_id_counts_as_zero_rate(self):
+        from torch_geometric.data import Data
+
+        def window(ids, counts):
+            x = torch.zeros((len(ids), 9))
+            x[:, 0] = torch.tensor(counts, dtype=torch.float32)
+            g = Data(x=x, edge_index=torch.tensor([list(range(len(ids) - 1)), list(range(1, len(ids)))]),
+                     edge_attr=torch.ones(len(ids) - 1))
+            g.id_idx = torch.tensor(ids)
+            return g
+
+        baseline = TransitionBaseline(vocab_size=6)
+        baseline.fit([window([1, 2, 3], [10.0, 11.0, 12.0])] * 20, count_zero=0.0)
+        self.assertEqual(baseline.missing_id_deviation(window([1, 2, 3], [10.0, 11.0, 12.0])), (0.0, None))
+        dev, idx = baseline.missing_id_deviation(window([1, 3], [10.0, 12.0]))  # ID 2 suspended
+        self.assertEqual(idx, 2)
+        self.assertAlmostEqual(dev, 11.0, places=4)  # 11 messages missing, spread floor = 1 message
+
+
+class TestIntensityAndEpisodes(unittest.TestCase):
+    def test_bins_and_episodes(self):
+        from types import SimpleNamespace as NS
+
+        def pair(cap, t, frames, score, label=1):
+            g = NS(frac_attack_messages=frames / 100.0, graph_message_count=100.0)
+            return g, NS(capture_name=cap, window_start=t, anomaly_score=score, ground_truth_label=label)
+
+        pairs = [pair("a", 0, 1, 0.0), pair("a", 1, 1, 2.0),      # episode 1: caught at t=1
+                 pair("a", 5, 50, 0.0),                            # episode 2: missed
+                 pair("b", 3, 200, 2.0), pair("b", 9, 0, 9.0, 0)]  # episode 3: caught; benign ignored
+        d = intensity_and_episodes(pairs, tau=1.0)
+        self.assertEqual((d["episodes"], d["episodes_detected"]), (3, 2))
+        self.assertEqual(d["median_latency_s"], 0.5)
+        self.assertEqual(d["intensity_recall"]["1"], {"windows": 2, "recall": 0.5})
+        self.assertEqual(d["intensity_recall"]["21-100"]["recall"], 0.0)
+        self.assertEqual(d["intensity_recall"]["101+"]["recall"], 1.0)
+
+
+class TestAlarmEvents(unittest.TestCase):
+    def test_bursts_count_once(self):
+        from types import SimpleNamespace as NS
+        rs = [NS(capture_name="a", window_start=float(t), anomaly_score=s)
+              for t, s in [(0, 2), (1, 2), (2, 2), (3, 0), (4, 2), (5, 0)]]  # 2 events in 6 s
+        rs += [NS(capture_name="b", window_start=float(t), anomaly_score=0.0) for t in range(6)]
+        self.assertAlmostEqual(alarm_events_per_hour(rs, tau=1.0), 3600.0 * 2 / 12)
 
 
 class TestSignalScaling(unittest.TestCase):

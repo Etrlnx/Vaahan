@@ -1,0 +1,84 @@
+======================================================================
+ZERO-DAY CAN INTRUSION DETECTION EVALUATION
+======================================================================
+
+[1/4] Loading graphs, vocabulary, and model weights...
+Restoring exact capture splits and feature normalizer from checkpoint metadata...
+Loaded 13648 total graphs. Vocab size: 106.
+Split: 8124 train, 2147 val, 1544 test.
+
+[2/4] Initializing and Calibrating Zero-Day Detector...
+Component scales fitted: recon=0.0190, temporal=1.4826, struct=0.2100, excess=204.5166
+Detector Calibrated on 2147 validation windows:
+  tau_suspicious (95.0th percentile) : 4.9164
+  tau_alert      (99.0th percentile) : 5.6661
+
+[3/4] Evaluating Test Set (held-out ambient + ROAD attacks + held-out synthetic episodes)...
+
+[4/4] Computing Intrusion Detection Metrics...
+
+======================================================================
+REAL ROAD PERFORMANCE (held-out ambient + real attack captures)
+======================================================================
+  Total Test Windows      : 1407 (Benign: 1071, Attack: 336)
+  True Positives          :   293  |  False Positives (FP) :    68
+  False Negatives         :    43  |  True Negatives (TN)  :  1003
+----------------------------------------------------------------------
+  Decision Threshold      : 4.9164
+  High-Risk               : 5.6661
+----------------------------------------------------------------------
+  precision               : 0.8116
+  recall                  : 0.8720
+  f1                      : 0.8407
+  accuracy                : 0.9211
+  fpr                     : 0.0635
+  roc_auc                 : 0.9665
+  pr_auc                  : 0.9073
+  false alarms / hour     : 174.9 windows, 55.2 distinct events (ambient driving)
+======================================================================
+
+SYNTHETIC TIMING-ATTACK EPISODES (reported separately; parent capture held out)
+Attack_level           | Win recall | Episodes   | Median latency
+------------------------------------------------------------------
+drift_0.01             | 75.00%     | 1/1        | 2.0s          
+drift_0.03             | 75.00%     | 1/1        | 2.0s          
+drift_0.1              | 81.82%     | 1/1        | 1.0s          
+fabrication_1          | 0.00%      | 0/1        | N/A           
+fabrication_2          | 0.00%      | 0/1        | N/A           
+fabrication_4          | 90.91%     | 1/1        | 0.0s          
+flooding_1000          | 91.67%     | 1/1        | 1.0s          
+flooding_200           | 100.00%    | 1/1        | 0.0s          
+flooding_50            | 100.00%    | 1/1        | 0.0s          
+suspension_0.5         | 81.82%     | 1/1        | 1.0s          
+suspension_0.9         | 100.00%    | 1/1        | 0.0s          
+suspension_1.0         | 90.91%     | 1/1        | 1.0s          
+Overall synthetic window recall: 72.99% (137 windows)
+
+PER-CAPTURE ZERO-DAY EVALUATION BREAKDOWN:
+Capture Name                                  | Type       | Score Mean | Alerts/Total    | Attack Hits  | Latency 
+--------------------------------------------------------------------------------------------------------------
+accelerator_attack_drive_1                    | BENIGN     | 3.0124     | 2/87            | -            | N/A     
+accelerator_attack_drive_2                    | BENIGN     | 3.7764     | 4/73            | -            | N/A     
+accelerator_attack_reverse_1                  | BENIGN     | 4.3171     | 20/87           | -            | N/A     
+accelerator_attack_reverse_2                  | BENIGN     | 3.1683     | 6/106           | -            | N/A     
+ambient_dyno_drive_radio_infotainment         | BENIGN     | 3.3049     | 19/391          | -            | N/A     
+correlated_signal_attack_1_masquerade         | ATTACK     | 4.6438     | 20/34           | 20/23        | 1.00s   
+correlated_signal_attack_2_masquerade         | ATTACK     | 4.7639     | 12/29           | 12/24        | 1.00s   
+correlated_signal_attack_3_masquerade         | ATTACK     | 3.7939     | 0/17            | 0/14         | N/A     
+max_engine_coolant_temp_attack_masquerade     | ATTACK     | 4.1707     | 3/26            | 0/7          | N/A     
+max_speedometer_attack_1_masquerade           | ATTACK     | 6.5093     | 38/89           | 25/26        | 0.00s   
+max_speedometer_attack_2_masquerade           | ATTACK     | 7.2483     | 32/60           | 32/33        | 0.00s   
+max_speedometer_attack_3_masquerade           | ATTACK     | 10.0647    | 62/87           | 62/63        | 1.00s   
+reverse_light_off_attack_1_masquerade         | ATTACK     | 5.2982     | 7/29            | 7/9          | 1.00s   
+reverse_light_off_attack_2_masquerade         | ATTACK     | 8.1263     | 25/41           | 25/25        | 0.00s   
+reverse_light_off_attack_3_masquerade         | ATTACK     | 6.1010     | 26/58           | 26/26        | 0.00s   
+reverse_light_on_attack_1_masquerade          | ATTACK     | 6.9861     | 21/55           | 21/22        | 1.00s   
+reverse_light_on_attack_2_masquerade          | ATTACK     | 8.8070     | 39/73           | 38/39        | 0.00s   
+reverse_light_on_attack_3_masquerade          | ATTACK     | 6.8283     | 25/65           | 25/25        | 0.00s   
+==============================================================================================================
+
+ATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)
+  [all real] episodes 11/13 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 0% (2) | 6-20: 0% (6) | 21-100: 50% (22) | 101+: 92% (305)
+  [Evaluation Visual] Saved Confusion Matrix to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\confusion_matrix.png
+  [Visual Explainer] Saved Interactive Scenario Explainer HTML to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\scenario_explainer.html
+ Saved Scenario Table to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\scenario_explainer_table.png

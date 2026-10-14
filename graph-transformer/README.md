@@ -67,10 +67,11 @@ The pipeline ingests signal-translated CSV captures from the **ROAD (Real Autono
   - `road/road/signal_extractions/attacks/`: Real vehicle injection and masquerade attacks.
 - **Windowing Parameters**:
   - `WINDOW_SIZE_SEC = 2.0`: Fixed temporal duration of each graph window.
-  - `STRIDE_SEC_BENIGN = 1.0`: Overlapping stride for benign windows to expand normal training volume.
-  - `STRIDE_SEC_ATTACK = 2.0`: Non-overlapping stride for attack captures to prevent train/test leakage.
+  - `STRIDE_SEC_BENIGN = STRIDE_SEC_ATTACK = 1.0`: one stride for every capture, so benign and attack windows have the same overlap. Leakage is prevented by splitting by capture, not by stride.
   - `MIN_MESSAGES_PER_WINDOW = 5`: Threshold filtering out sparse/degenerate windows.
-- **Output**: Generates serialized `WindowRecord` objects containing timestamp bounds, capture metadata, window-level labels (`0 = benign`, `1 = attack`), and raw message slices.
+- **Output**: `road_windowed.pkl` holds the window index and labels (`0 = benign`, `1 = attack`). `graph_builder.py` re-reads the raw messages one capture at a time.
+- **Datasets**: the `CAN_DATASET` environment variable selects `road` (default) or a converted can-train-and-test set (`ctt_set_01`–`04`, produced by `convert_can_train_and_test.py`). Each dataset gets its own `outputs/<dataset>/`.
+- **Synthetic attacks**: `attack_injector.py` writes fabrication, suspension, drift and flooding episodes to `outputs/synthetic/`, only from captures held out for test.
 
 ---
 
@@ -97,7 +98,9 @@ Aggregates signal dynamics and timing behavior into a fixed-length vector invari
 | `8` | `signal_range` | `signal_max - signal_min` | Dynamic signal variation range |
 
 ### Node Identity Embeddings
-To enable ID-specific relational learning beyond generic statistics, a global vocabulary (`vocab.pkl`) maps 106 unique arbitration IDs (plus index `0` for `<UNK>`) to a learned $20$-dimensional embedding.
+To enable ID-specific relational learning beyond generic statistics, a vocabulary (`vocab.pkl`) built from **benign ambient captures only** maps the arbitration IDs (105 on ROAD, plus index `0` for `<UNK>`) to a learned $20$-dimensional embedding. IDs seen only in attacks map to `<UNK>`.
+
+Graphs are built one capture at a time, with vectorised edge counting. Peak memory is about 0.5 GB.
 
 ### Edges (Temporal Adjacency)
 Edges are **directed** and constructed from consecutive messages on the bus with distinct arbitration IDs ($ID_t \to ID_{t+1}$).
@@ -154,9 +157,9 @@ $$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{node}} + \mathcal{L}_{\text{ed
 
 ### Capture-Aware Splitting
 Splits are partitioned by **capture** (not random window shuffling) to eliminate temporal data leakage between near-identical benign driving windows:
-- **Validation**: 15% of benign captures
-- **Test (Benign)**: 10% of benign captures
-- **Test (Attack)**: 100% of attack captures
+- **Seed-42 split (`best_model.pt`)**: 10 benign captures for training, 1 for validation and threshold calibration, 1 held out for test. Every attack capture goes to test.
+- **6-fold capture rotation (`--fold i --n-folds 6`)**: every benign capture is tested exactly once; produces `outputs/folds/fold_i.pt`.
+- **Synthetic attack windows** only reach test when their parent capture is held out (`is_test_graph`).
 
 ### Train-Set Feature Normalization
 Node features are standardized via Z-score parameters ($\mu_{\text{train}}, \sigma_{\text{train}}$) computed strictly on the benign training set, preventing test/attack distribution leakage.
@@ -188,6 +191,14 @@ python graph-transformer/graph_builder.py
 # 3. Train Graph Transformer + Autoencoder & evaluate separation
 python graph-transformer/train.py
 # -> Output: graph-transformer/outputs/best_model.pt
+python graph-transformer/train.py --fold 0 --n-folds 6   # repeat for folds 0-5 (capture rotation)
+
+# Optional: synthetic timing attacks (run before step 1)
+python graph-transformer/attack_injector.py
+
+# Second dataset: convert one can-train-and-test set, then run steps 1-3 with CAN_DATASET set
+python graph-transformer/convert_can_train_and_test.py set_01
+CAN_DATASET=ctt_set_01 python graph-transformer/preprocess.py
 ```
 
 ---
