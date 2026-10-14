@@ -34,7 +34,7 @@ REAL CTT_SET_02 PERFORMANCE (held-out ambient + real attack captures)
   fpr                     : 0.4115
   roc_auc                 : 0.7757
   pr_auc                  : 0.2933
-  false alarms / hour     : 338.2 (ambient driving)
+  false alarms / hour     : 338.2 windows, 233.0 distinct events (ambient driving)
 ======================================================================
 
 PER-CAPTURE ZERO-DAY EVALUATION BREAKDOWN:
@@ -88,13 +88,13 @@ test_04__standstill-4                         | ATTACK     | 24.5645    | 219/21
 
 ATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)
   [all real] episodes 48/83 (median latency 0.0s) | recall by attack frames/window -> 1: 6% (81) | 2-5: 25% (106) | 6-20: 92% (144) | 21-100: 96% (50) | 101+: 100% (188)
-  [test_01] windows 6627 (attack 167) | ROC 0.8109 | PR 0.2189 | P 0.242 | R 0.563 | F1 0.338 | FPR 0.046
+  [test_01] windows 6627 (attack 167) | ROC 0.8109 | PR 0.2189 | P 0.242 | R 0.563 | F1 0.338 | FPR 0.046 | false-alarm events/h 82.5
   [test_01] episodes 13/13 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (2) | 2-5: 3% (59) | 6-20: 73% (45) | 21-100: 80% (10) | 101+: 100% (51)
-  [test_02] windows 5248 (attack 178) | ROC 0.8659 | PR 0.5039 | P 0.034 | R 1.000 | F1 0.066 | FPR 1.000
+  [test_02] windows 5248 (attack 178) | ROC 0.8659 | PR 0.5039 | P 0.034 | R 1.000 | F1 0.066 | FPR 1.000 | false-alarm events/h 19.2
   [test_02] episodes 15/15 (median latency 0.0s) | recall by attack frames/window -> 1: - | 2-5: 100% (1) | 6-20: 100% (91) | 21-100: 100% (24) | 101+: 100% (62)
-  [test_03] windows 6070 (attack 150) | ROC 0.7889 | PR 0.2211 | P 0.215 | R 0.360 | F1 0.269 | FPR 0.033
+  [test_03] windows 6070 (attack 150) | ROC 0.7889 | PR 0.2211 | P 0.215 | R 0.360 | F1 0.269 | FPR 0.033 | false-alarm events/h 65.1
   [test_03] episodes 6/41 (median latency 0.5s) | recall by attack frames/window -> 1: 4% (77) | 2-5: 48% (42) | 6-20: - | 21-100: - | 101+: 100% (31)
-  [test_04] windows 3082 (attack 74) | ROC 0.7992 | PR 0.1431 | P 0.024 | R 1.000 | F1 0.047 | FPR 1.000
+  [test_04] windows 3082 (attack 74) | ROC 0.7992 | PR 0.1431 | P 0.024 | R 1.000 | F1 0.047 | FPR 1.000 | false-alarm events/h 28.7
   [test_04] episodes 14/14 (median latency 0.0s) | recall by attack frames/window -> 1: 100% (2) | 2-5: 100% (4) | 6-20: 100% (8) | 21-100: 100% (16) | 101+: 100% (44)
   [Evaluation Visual] Saved Confusion Matrix to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\confusion_matrix.png
   [Visual Explainer] Saved Interactive Scenario Explainer HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\scenario_explainer.html

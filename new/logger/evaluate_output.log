@@ -8,7 +8,7 @@ Loaded 13648 total graphs. Vocab size: 106.
 Split: 8124 train, 2147 val, 1544 test.
 
 [2/4] Initializing and Calibrating Zero-Day Detector...
-Component scales fitted: recon=0.0168, temporal=22798.5117, struct=0.2100, excess=204.5166
+Component scales fitted: recon=0.0168, temporal=3127.9890, struct=0.2100, excess=204.5166
 Detector Calibrated on 2147 validation windows:
   tau_suspicious (95.0th percentile) : 5.0893
   tau_alert      (99.0th percentile) : 7.1042
@@ -34,7 +34,7 @@ REAL ROAD PERFORMANCE (held-out ambient + real attack captures)
   fpr                     : 0.0504
   roc_auc                 : 0.9672
   pr_auc                  : 0.9081
-  false alarms / hour     : 128.9 (ambient driving)
+  false alarms / hour     : 128.9 windows, 64.5 distinct events (ambient driving)
 ======================================================================
 
 SYNTHETIC TIMING-ATTACK EPISODES (reported separately; parent capture held out)

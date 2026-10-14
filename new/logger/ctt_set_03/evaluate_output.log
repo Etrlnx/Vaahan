@@ -8,7 +8,7 @@ Loaded 19855 total graphs. Vocab size: 99.
 Split: 3737 train, 382 val, 15736 test.
 
 [2/4] Initializing and Calibrating Zero-Day Detector...
-Component scales fitted: recon=0.0213, temporal=51293.3936, struct=0.2508, excess=188.7409
+Component scales fitted: recon=0.0213, temporal=32.5353, struct=0.2508, excess=188.7409
 Detector Calibrated on 382 validation windows:
   tau_suspicious (95.0th percentile) : 6.6584
   tau_alert      (99.0th percentile) : 6.9015
@@ -34,7 +34,7 @@ REAL CTT_SET_03 PERFORMANCE (held-out ambient + real attack captures)
   fpr                     : 0.5381
   roc_auc                 : 0.6869
   pr_auc                  : 0.3819
-  false alarms / hour     : 0.0 (ambient driving)
+  false alarms / hour     : 0.0 windows, 0.0 distinct events (ambient driving)
 ======================================================================
 
 PER-CAPTURE ZERO-DAY EVALUATION BREAKDOWN:
@@ -95,13 +95,13 @@ test_04__systematic-2                         | ATTACK     | 28.2341    | 390/39
 
 ATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)
   [all real] episodes 73/84 (median latency 0.0s) | recall by attack frames/window -> 1: 33% (9) | 2-5: 17% (195) | 6-20: 44% (213) | 21-100: 45% (717) | 101+: 100% (1182)
-  [test_01] windows 3278 (attack 252) | ROC 0.9802 | PR 0.9037 | P 0.926 | R 0.798 | F1 0.857 | FPR 0.005
+  [test_01] windows 3278 (attack 252) | ROC 0.9802 | PR 0.9037 | P 0.926 | R 0.798 | F1 0.857 | FPR 0.005 | false-alarm events/h 11.9
   [test_01] episodes 13/16 (median latency 0.0s) | recall by attack frames/window -> 1: - | 2-5: 0% (4) | 6-20: 28% (61) | 21-100: 0% (3) | 101+: 100% (184)
-  [test_02] windows 4303 (attack 336) | ROC 0.7902 | PR 0.3417 | P 0.078 | R 0.997 | F1 0.144 | FPR 1.000
+  [test_02] windows 4303 (attack 336) | ROC 0.7902 | PR 0.3417 | P 0.078 | R 0.997 | F1 0.144 | FPR 1.000 | false-alarm events/h 29.9
   [test_02] episodes 22/22 (median latency 0.0s) | recall by attack frames/window -> 1: 100% (1) | 2-5: 100% (2) | 6-20: 100% (1) | 21-100: 100% (11) | 101+: 100% (321)
-  [test_03] windows 3675 (attack 726) | ROC 0.7691 | PR 0.4873 | P 0.646 | R 0.131 | F1 0.218 | FPR 0.018
+  [test_03] windows 3675 (attack 726) | ROC 0.7691 | PR 0.4873 | P 0.646 | R 0.131 | F1 0.218 | FPR 0.018 | false-alarm events/h 20.8
   [test_03] episodes 11/19 (median latency 1.0s) | recall by attack frames/window -> 1: 14% (7) | 2-5: 16% (187) | 6-20: 1% (77) | 21-100: 3% (404) | 101+: 100% (51)
-  [test_04] windows 4188 (attack 1002) | ROC 0.7165 | PR 0.6201 | P 0.239 | R 1.000 | F1 0.386 | FPR 1.000
+  [test_04] windows 4188 (attack 1002) | ROC 0.7165 | PR 0.6201 | P 0.239 | R 1.000 | F1 0.386 | FPR 1.000 | false-alarm events/h 44.1
   [test_04] episodes 27/27 (median latency 0.0s) | recall by attack frames/window -> 1: 100% (1) | 2-5: 100% (2) | 6-20: 100% (74) | 21-100: 100% (299) | 101+: 100% (626)
   [Evaluation Visual] Saved Confusion Matrix to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_03\xai_visuals\confusion_matrix.png
   [Visual Explainer] Saved Interactive Scenario Explainer HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_03\xai_visuals\scenario_explainer.html

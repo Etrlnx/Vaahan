@@ -187,6 +187,24 @@ def print_intensity(tag: str, d: dict):
           f"recall by attack frames/window -> {cells}")
 
 
+def alarm_events_per_hour(results: list, tau: float, stride: float = 1.0) -> float:
+    """Distinct alarm events per hour of benign driving: alarmed windows of one capture that are at
+    most one stride apart form one event (overlapping windows otherwise count one burst many times).
+    Each window advances `stride` seconds, so len(results) * stride is the driving time covered."""
+    by_cap = {}
+    for r in results:
+        by_cap.setdefault(r.capture_name, []).append(r)
+    events = 0
+    for rs in by_cap.values():
+        last = None
+        for r in sorted(rs, key=lambda x: x.window_start):
+            if r.anomaly_score >= tau:
+                if last is None or r.window_start - last > stride + 1e-9:
+                    events += 1
+                last = r.window_start
+    return 3600.0 * events / max(len(results) * stride, 1e-9)
+
+
 def summarize_synthetic(results: list, tau: float) -> dict:
     """Per attack type / intensity: window recall and episode detection (one episode per capture)."""
     groups = {}
@@ -294,6 +312,7 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
     # 1 s stride -> each ambient window is one second of driving.
     metrics["false_alarm_windows_per_hour"] = (
         3600.0 * sum(r.anomaly_score >= tau for r in benign_ambient) / max(len(benign_ambient), 1))
+    metrics["false_alarm_events_per_hour"] = alarm_events_per_hour(benign_ambient, tau)
     synthetic = summarize_synthetic(results, tau)
     syn_windows = [r for r in results if synthetic_parent(r.capture_name) is not None]
     metrics["synthetic_window_recall"] = (
@@ -311,7 +330,8 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
     print("-" * 70)
     for k in ("precision", "recall", "f1", "accuracy", "fpr", "roc_auc", "pr_auc"):
         print(f"  {k:<24}: {metrics[k]:.4f}")
-    print(f"  {'false alarms / hour':<24}: {metrics['false_alarm_windows_per_hour']:.1f} (ambient driving)")
+    print(f"  {'false alarms / hour':<24}: {metrics['false_alarm_windows_per_hour']:.1f} windows, "
+          f"{metrics['false_alarm_events_per_hour']:.1f} distinct events (ambient driving)")
     print("=" * 70)
 
     if synthetic:
@@ -365,11 +385,14 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
         g_scores = np.array([r.anomaly_score for r in rs], dtype=np.float64)
         g_labels = np.array([r.ground_truth_label for r in rs], dtype=np.int64)
         metrics["per_subset"][grp] = _binary_metrics(g_scores, g_labels, tau)
+        metrics["per_subset"][grp]["false_alarm_events_per_hour"] = alarm_events_per_hour(
+            [r for r in rs if r.ground_truth_label == 0], tau)
         metrics["per_subset"][grp]["intensity"] = intensity_and_episodes(
             [(g, r) for g, r in real_pairs if str(r.capture_name).startswith(grp + "__")], tau)
         m = metrics["per_subset"][grp]
         print(f"  [{grp}] windows {len(rs)} (attack {int(g_labels.sum())}) | ROC {m['roc_auc']:.4f} | PR {m['pr_auc']:.4f} | "
-              f"P {m['precision']:.3f} | R {m['recall']:.3f} | F1 {m['f1']:.3f} | FPR {m['fpr']:.3f}")
+              f"P {m['precision']:.3f} | R {m['recall']:.3f} | F1 {m['f1']:.3f} | FPR {m['fpr']:.3f} | "
+              f"false-alarm events/h {m['false_alarm_events_per_hour']:.1f}")
         print_intensity(grp, m["intensity"])
 
     metrics["synthetic"] = synthetic
@@ -426,7 +449,7 @@ def run_fold_evaluation(n_folds: int, scorer_config: AnomalyScorerConfig = None)
         per_fold.append(run_evaluation(scorer_config=cfg, show_plot=False, checkpoint_path=fold_checkpoint_path(fold),
                                        save_visuals=False, verbose=False))
     keys = ["roc_auc", "pr_auc", "precision", "recall", "f1", "accuracy", "fpr",
-            "false_alarm_windows_per_hour", "synthetic_window_recall"]
+            "false_alarm_windows_per_hour", "false_alarm_events_per_hour", "synthetic_window_recall"]
     summary = {k: {"mean": float(np.mean([m[k] for m in per_fold])), "std": float(np.std([m[k] for m in per_fold]))}
                for k in keys}
     pooled_fp = sum(m["fp"] for m in per_fold)

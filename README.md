@@ -451,6 +451,7 @@ Using the following metrics:
 | Recall | 85.71% | 85.71% ± 5.34% |
 | F1 | 84.96% | 72.89% ± 14.81% |
 | FPR | 5.04% | 7.08% ± 4.99% (pooled 9.42%) |
+| False-alarm events / hour (ambient) | 64.5 | 56.3 ± 34.6 (alerting windows: 221.8 ± 206.3) |
 
 Synthetic window recall, pooled over the 6 folds (low → high intensity):
 

@@ -15,7 +15,7 @@ import numpy as np
 import torch
 
 from plot_confusion_matrix import plot_confusion_matrix
-from evaluate import compute_roc_auc, compute_pr_auc, intensity_and_episodes
+from evaluate import compute_roc_auc, compute_pr_auc, intensity_and_episodes, alarm_events_per_hour
 from detector import ZeroDayDetector, RiskState
 from scorer import AnomalyScorer, AnomalyScorerConfig, TransitionBaseline
 
@@ -157,6 +157,15 @@ class TestIntensityAndEpisodes(unittest.TestCase):
         self.assertEqual(d["intensity_recall"]["1"], {"windows": 2, "recall": 0.5})
         self.assertEqual(d["intensity_recall"]["21-100"]["recall"], 0.0)
         self.assertEqual(d["intensity_recall"]["101+"]["recall"], 1.0)
+
+
+class TestAlarmEvents(unittest.TestCase):
+    def test_bursts_count_once(self):
+        from types import SimpleNamespace as NS
+        rs = [NS(capture_name="a", window_start=float(t), anomaly_score=s)
+              for t, s in [(0, 2), (1, 2), (2, 2), (3, 0), (4, 2), (5, 0)]]  # 2 events in 6 s
+        rs += [NS(capture_name="b", window_start=float(t), anomaly_score=0.0) for t in range(6)]
+        self.assertAlmostEqual(alarm_events_per_hour(rs, tau=1.0), 3600.0 * 2 / 12)
 
 
 class TestSignalScaling(unittest.TestCase):
