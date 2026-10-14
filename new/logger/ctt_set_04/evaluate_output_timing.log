@@ -93,10 +93,17 @@ test_04__fuzzing-2                            | ATTACK     | 158866750637.6958 |
 test_04__triple-1                             | ATTACK     | 658881545.6238 | 2/875           | 0/49         | N/A     
 test_04__triple-2                             | ATTACK     | 95320059987.7398 | 10/329          | 8/8          | 0.00s   
 ==============================================================================================================
+
+ATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)
+  [all real] episodes 53/106 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (76) | 2-5: 2% (94) | 6-20: 58% (127) | 21-100: 50% (622) | 101+: 85% (1377)
   [test_01] windows 4188 (attack 1002) | ROC 0.9949 | PR 0.9867 | P 0.931 | R 0.986 | F1 0.958 | FPR 0.023
+  [test_01] episodes 27/27 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 100% (2) | 6-20: 100% (74) | 21-100: 100% (299) | 101+: 98% (626)
   [test_02] windows 8694 (attack 617) | ROC 0.5474 | PR 0.1877 | P 0.696 | R 0.104 | F1 0.181 | FPR 0.003
+  [test_02] episodes 2/48 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (74) | 2-5: 0% (90) | 6-20: 0% (52) | 21-100: 1% (308) | 101+: 67% (93)
   [test_03] windows 4303 (attack 336) | ROC 0.9727 | PR 0.9038 | P 0.621 | R 0.902 | F1 0.735 | FPR 0.047
+  [test_03] episodes 21/22 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 0% (2) | 6-20: 0% (1) | 21-100: 82% (11) | 101+: 92% (321)
   [test_04] windows 3989 (attack 341) | ROC 0.7832 | PR 0.6546 | P 0.907 | R 0.575 | F1 0.704 | FPR 0.005
+  [test_04] episodes 3/9 (median latency 0.0s) | recall by attack frames/window -> 1: - | 2-5: - | 6-20: - | 21-100: 25% (4) | 101+: 58% (337)
   [Evaluation Visual] Saved Confusion Matrix to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_04\xai_visuals\confusion_matrix.png
   [Visual Explainer] Saved Interactive Scenario Explainer HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_04\xai_visuals\scenario_explainer.html
  Saved Scenario Table to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_04\xai_visuals\scenario_explainer_table.png

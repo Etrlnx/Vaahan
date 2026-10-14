@@ -15,7 +15,7 @@ import numpy as np
 import torch
 
 from plot_confusion_matrix import plot_confusion_matrix
-from evaluate import compute_roc_auc, compute_pr_auc
+from evaluate import compute_roc_auc, compute_pr_auc, intensity_and_episodes
 from detector import ZeroDayDetector, RiskState
 from scorer import AnomalyScorer, AnomalyScorerConfig, TransitionBaseline
 
@@ -121,6 +121,25 @@ class TestDetectorContracts(unittest.TestCase):
         dev = baseline.node_rate_deviation(window(20.0))  # ID 2 now sends twice as often
         self.assertEqual(int(np.argmax(dev)), 1)
         self.assertGreater(dev[1], 5 * max(dev[0], dev[2]))
+
+
+class TestIntensityAndEpisodes(unittest.TestCase):
+    def test_bins_and_episodes(self):
+        from types import SimpleNamespace as NS
+
+        def pair(cap, t, frames, score, label=1):
+            g = NS(frac_attack_messages=frames / 100.0, graph_message_count=100.0)
+            return g, NS(capture_name=cap, window_start=t, anomaly_score=score, ground_truth_label=label)
+
+        pairs = [pair("a", 0, 1, 0.0), pair("a", 1, 1, 2.0),      # episode 1: caught at t=1
+                 pair("a", 5, 50, 0.0),                            # episode 2: missed
+                 pair("b", 3, 200, 2.0), pair("b", 9, 0, 9.0, 0)]  # episode 3: caught; benign ignored
+        d = intensity_and_episodes(pairs, tau=1.0)
+        self.assertEqual((d["episodes"], d["episodes_detected"]), (3, 2))
+        self.assertEqual(d["median_latency_s"], 0.5)
+        self.assertEqual(d["intensity_recall"]["1"], {"windows": 2, "recall": 0.5})
+        self.assertEqual(d["intensity_recall"]["21-100"]["recall"], 0.0)
+        self.assertEqual(d["intensity_recall"]["101+"]["recall"], 1.0)
 
 
 class TestSignalScaling(unittest.TestCase):

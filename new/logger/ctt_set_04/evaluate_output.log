@@ -1,5 +1,3 @@
-D:\git_repos\capstone\.venv\Lib\site-packages\torch\jit\_script.py:1485: FutureWarning: `torch.jit.script` is not supported in Python 3.14+ and may break. Please switch to `torch.compile` or `torch.export`.
-  warnings.warn(
 ======================================================================
 ZERO-DAY CAN INTRUSION DETECTION EVALUATION
 ======================================================================
@@ -10,7 +8,7 @@ Loaded 27092 total graphs. Vocab size: 55.
 Split: 4686 train, 784 val, 21622 test.
 
 [2/4] Initializing and Calibrating Zero-Day Detector...
-Component scales fitted: recon=0.0298, temporal=0.0082, struct=0.1859, excess=160.2639
+Component scales fitted: recon=0.0298, temporal=0.0000, struct=0.1859, excess=160.2639
 Detector Calibrated on 784 validation windows:
   tau_suspicious (95.0th percentile) : 4.8769
   tau_alert      (99.0th percentile) : 5.6182
@@ -95,10 +93,17 @@ test_04__fuzzing-2                            | ATTACK     | 13.7841    | 581/58
 test_04__triple-1                             | ATTACK     | 14.0093    | 875/875         | 49/49        | 0.00s   
 test_04__triple-2                             | ATTACK     | 13.5522    | 329/329         | 8/8          | 0.00s   
 ==============================================================================================================
+
+ATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)
+  [all real] episodes 105/106 (median latency 0.0s) | recall by attack frames/window -> 1: 97% (76) | 2-5: 97% (94) | 6-20: 47% (127) | 21-100: 99% (622) | 101+: 100% (1377)
   [test_01] windows 4188 (attack 1002) | ROC 0.9795 | PR 0.9681 | P 0.893 | R 0.928 | F1 0.910 | FPR 0.035
+  [test_01] episodes 26/27 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 0% (2) | 6-20: 9% (74) | 21-100: 99% (299) | 101+: 100% (626)
   [test_02] windows 8694 (attack 617) | ROC 0.5626 | PR 0.2514 | P 0.071 | R 1.000 | F1 0.133 | FPR 1.000
+  [test_02] episodes 48/48 (median latency 0.0s) | recall by attack frames/window -> 1: 100% (74) | 2-5: 100% (90) | 6-20: 100% (52) | 21-100: 100% (308) | 101+: 100% (93)
   [test_03] windows 4303 (attack 336) | ROC 0.9913 | PR 0.9723 | P 0.629 | R 0.979 | F1 0.766 | FPR 0.049
+  [test_03] episodes 22/22 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 50% (2) | 6-20: 100% (1) | 21-100: 64% (11) | 101+: 100% (321)
   [test_04] windows 3989 (attack 341) | ROC 0.9967 | PR 0.9824 | P 0.085 | R 1.000 | F1 0.158 | FPR 1.000
+  [test_04] episodes 9/9 (median latency 0.0s) | recall by attack frames/window -> 1: - | 2-5: - | 6-20: - | 21-100: 100% (4) | 101+: 100% (337)
   [Evaluation Visual] Saved Confusion Matrix to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_04\xai_visuals\confusion_matrix.png
   [Visual Explainer] Saved Interactive Scenario Explainer HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_04\xai_visuals\scenario_explainer.html
  Saved Scenario Table to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_04\xai_visuals\scenario_explainer_table.png
