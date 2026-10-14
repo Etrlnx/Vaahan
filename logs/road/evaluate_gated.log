@@ -1,0 +1,85 @@
+======================================================================
+ZERO-DAY CAN INTRUSION DETECTION EVALUATION
+======================================================================
+
+[1/4] Loading graphs, vocabulary, and model weights...
+Restoring exact capture splits and feature normalizer from checkpoint metadata...
+Loaded 13648 total graphs. Vocab size: 106.
+Split: 8124 train, 2147 val, 1544 test.
+
+[2/4] Initializing and Calibrating Zero-Day Detector...
+Component scales fitted: recon=0.0168, temporal=1.4826, struct=0.2100, excess=204.5166
+Detector Calibrated on 2147 validation windows:
+  tau_suspicious (95.0th percentile) : 5.0893
+  tau_alert      (99.0th percentile) : 7.1042
+
+[3/4] Evaluating Test Set (held-out ambient + ROAD attacks + held-out synthetic episodes)...
+Gated per-drive normalisation (window 60, gate 5.089): tau_suspicious 2.2106, tau_alert 4.6193
+
+[4/4] Computing Intrusion Detection Metrics...
+
+======================================================================
+REAL ROAD PERFORMANCE (held-out ambient + real attack captures)
+======================================================================
+  Total Test Windows      : 1407 (Benign: 1071, Attack: 336)
+  True Positives          :   265  |  False Positives (FP) :    31
+  False Negatives         :    71  |  True Negatives (TN)  :  1040
+----------------------------------------------------------------------
+  Decision Threshold      : 2.2106
+  High-Risk               : 4.6193
+----------------------------------------------------------------------
+  precision               : 0.8953
+  recall                  : 0.7887
+  f1                      : 0.8386
+  accuracy                : 0.9275
+  fpr                     : 0.0289
+  roc_auc                 : 0.9482
+  pr_auc                  : 0.8909
+  false alarms / hour     : 55.2 windows, 46.0 distinct events (ambient driving)
+======================================================================
+
+SYNTHETIC TIMING-ATTACK EPISODES (reported separately; parent capture held out)
+Attack_level           | Win recall | Episodes   | Median latency
+------------------------------------------------------------------
+drift_0.01             | 75.00%     | 1/1        | 2.0s          
+drift_0.03             | 75.00%     | 1/1        | 2.0s          
+drift_0.1              | 81.82%     | 1/1        | 1.0s          
+fabrication_1          | 0.00%      | 0/1        | N/A           
+fabrication_2          | 0.00%      | 0/1        | N/A           
+fabrication_4          | 90.91%     | 1/1        | 0.0s          
+flooding_1000          | 91.67%     | 1/1        | 1.0s          
+flooding_200           | 100.00%    | 1/1        | 0.0s          
+flooding_50            | 100.00%    | 1/1        | 0.0s          
+suspension_0.5         | 72.73%     | 1/1        | 1.0s          
+suspension_0.9         | 90.91%     | 1/1        | 0.0s          
+suspension_1.0         | 81.82%     | 1/1        | 1.0s          
+Overall synthetic window recall: 70.80% (137 windows)
+
+PER-CAPTURE ZERO-DAY EVALUATION BREAKDOWN:
+Capture Name                                  | Type       | Score Mean | Alerts/Total    | Attack Hits  | Latency 
+--------------------------------------------------------------------------------------------------------------
+accelerator_attack_drive_1                    | BENIGN     | -0.0910    | 0/87            | -            | N/A     
+accelerator_attack_drive_2                    | BENIGN     | 1.0183     | 4/73            | -            | N/A     
+accelerator_attack_reverse_1                  | BENIGN     | 0.8306     | 12/87           | -            | N/A     
+accelerator_attack_reverse_2                  | BENIGN     | 0.0837     | 0/106           | -            | N/A     
+ambient_dyno_drive_radio_infotainment         | BENIGN     | 0.1281     | 6/391           | -            | N/A     
+correlated_signal_attack_1_masquerade         | ATTACK     | 1.1740     | 0/34            | 0/23         | N/A     
+correlated_signal_attack_2_masquerade         | ATTACK     | 1.1350     | 5/29            | 5/24         | 2.00s   
+correlated_signal_attack_3_masquerade         | ATTACK     | 0.3661     | 0/17            | 0/14         | N/A     
+max_engine_coolant_temp_attack_masquerade     | ATTACK     | 0.8885     | 3/26            | 0/7          | N/A     
+max_speedometer_attack_1_masquerade           | ATTACK     | 2.7421     | 30/89           | 25/26        | 0.00s   
+max_speedometer_attack_2_masquerade           | ATTACK     | 4.5593     | 32/60           | 32/33        | 0.00s   
+max_speedometer_attack_3_masquerade           | ATTACK     | 7.0876     | 62/87           | 62/63        | 1.00s   
+reverse_light_off_attack_1_masquerade         | ATTACK     | 2.5414     | 7/29            | 7/9          | 1.00s   
+reverse_light_off_attack_2_masquerade         | ATTACK     | 5.0837     | 25/41           | 25/25        | 0.00s   
+reverse_light_off_attack_3_masquerade         | ATTACK     | 3.1960     | 25/58           | 25/26        | 0.00s   
+reverse_light_on_attack_1_masquerade          | ATTACK     | 3.9417     | 21/55           | 21/22        | 1.00s   
+reverse_light_on_attack_2_masquerade          | ATTACK     | 5.5733     | 39/73           | 38/39        | 0.00s   
+reverse_light_on_attack_3_masquerade          | ATTACK     | 3.6045     | 25/65           | 25/25        | 0.00s   
+==============================================================================================================
+
+ATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)
+  [all real] episodes 10/13 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 0% (2) | 6-20: 0% (6) | 21-100: 45% (22) | 101+: 84% (305)
+  [Evaluation Visual] Saved Confusion Matrix to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\confusion_matrix.png
+  [Visual Explainer] Saved Interactive Scenario Explainer HTML to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\scenario_explainer.html
+ Saved Scenario Table to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\scenario_explainer_table.png
