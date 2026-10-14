@@ -364,13 +364,14 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
     return metrics
 
 
-def run_fold_evaluation(n_folds: int) -> dict:
+def run_fold_evaluation(n_folds: int, scorer_config: AnomalyScorerConfig = None) -> dict:
     """Evaluate every capture-rotation fold; each ambient capture is tested exactly once."""
     import json
     per_fold = []
     for fold in range(n_folds):
         print(f"\n########## FOLD {fold + 1}/{n_folds} ##########")
-        per_fold.append(run_evaluation(show_plot=False, checkpoint_path=fold_checkpoint_path(fold),
+        cfg = AnomalyScorerConfig(**scorer_config.__dict__) if scorer_config else None
+        per_fold.append(run_evaluation(scorer_config=cfg, show_plot=False, checkpoint_path=fold_checkpoint_path(fold),
                                        save_visuals=False, verbose=False))
     keys = ["roc_auc", "pr_auc", "precision", "recall", "f1", "accuracy", "fpr",
             "false_alarm_windows_per_hour", "synthetic_window_recall"]
@@ -414,8 +415,11 @@ if __name__ == "__main__":
         help="Disable interactive Matplotlib GUI window (saves PNG only)"
     )
     parser.add_argument("--folds", type=int, default=None, help="Evaluate all capture-rotation folds")
+    parser.add_argument("--timing", action="store_true",
+                        help="Enable the per-ID rate term T, fused as max(E, T) (helps injection/retiming attacks)")
     args = parser.parse_args()
+    config = AnomalyScorerConfig(beta_temporal=1.0) if args.timing else None
     if args.folds:
-        run_fold_evaluation(args.folds)
+        run_fold_evaluation(args.folds, config)
     else:
-        run_evaluation(show_plot=not args.no_plot)
+        run_evaluation(scorer_config=config, show_plot=not args.no_plot)
