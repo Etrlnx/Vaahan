@@ -12,3 +12,5 @@ __pycache__/
 index.json
 comments.py
 knowledge-graph/
+# Second dataset (can-train-and-test, DTU) - local only for now
+the second/

@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
+from preprocess import OUTPUT_DIR
 GRAPH_DATA_PATH = os.path.join(OUTPUT_DIR, "graphs.pt")
 VOCAB_PATH = os.path.join(OUTPUT_DIR, "vocab.pkl")
 CHECKPOINT_PATH = os.path.join(OUTPUT_DIR, "best_model.pt")
@@ -20,7 +20,7 @@ BATCH_SIZE = 8
 NUM_EPOCHS = 30
 LEARNING_RATE = 5e-4
 VAL_FRACTION = 0.15
-CALIB_TAIL = 0.2        # last 20% of every train capture is held out for validation/calibration
+CALIB_TAIL = 0.0        # >0 moves the last fraction of each train capture into validation (tried 0.2: lower fold means)
 SEED = 42
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

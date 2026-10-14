@@ -9,7 +9,7 @@ from preprocess import WindowRecord
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
+from preprocess import OUTPUT_DIR
 WINDOWED_DATA_PATH = os.path.join(OUTPUT_DIR, "road_windowed.pkl")
 GRAPH_OUTPUT_PATH = os.path.join(OUTPUT_DIR, "graphs.pt")
 VOCAB_OUTPUT_PATH = os.path.join(OUTPUT_DIR, "vocab.pkl")
