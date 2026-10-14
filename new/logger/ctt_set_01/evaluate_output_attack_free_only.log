@@ -1,0 +1,97 @@
+D:\git_repos\capstone\.venv\Lib\site-packages\torch\jit\_script.py:1485: FutureWarning: `torch.jit.script` is not supported in Python 3.14+ and may break. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+======================================================================
+ZERO-DAY CAN INTRUSION DETECTION EVALUATION
+======================================================================
+
+[1/4] Loading graphs, vocabulary, and model weights...
+Restoring exact capture splits and feature normalizer from checkpoint metadata...
+Loaded 21168 total graphs. Vocab size: 52.
+Split: 1671 train, 338 val, 19159 test.
+
+[2/4] Initializing and Calibrating Zero-Day Detector...
+Component scales fitted: recon=0.0404, temporal=0.1206, struct=0.0875, excess=48.1066
+Detector Calibrated on 338 validation windows:
+  tau_suspicious (95.0th percentile) : 12.9527
+  tau_alert      (99.0th percentile) : 14.9035
+
+[3/4] Evaluating Test Set (held-out ambient + ROAD attacks + held-out synthetic episodes)...
+
+[4/4] Computing Intrusion Detection Metrics...
+
+======================================================================
+REAL ROAD PERFORMANCE (held-out ambient + ROAD attack captures)
+======================================================================
+  Total Test Windows      : 19159 (Benign: 17889, Attack: 1270)
+  True Positives          :   949  |  False Positives (FP) :  9103
+  False Negatives         :   321  |  True Negatives (TN)  :  8786
+----------------------------------------------------------------------
+  Decision Threshold      : 12.9527
+  High-Risk               : 14.9035
+----------------------------------------------------------------------
+  precision               : 0.0944
+  recall                  : 0.7472
+  f1                      : 0.1676
+  accuracy                : 0.5081
+  fpr                     : 0.5089
+  roc_auc                 : 0.6362
+  pr_auc                  : 0.1634
+  false alarms / hour     : 213.7 (ambient driving)
+======================================================================
+
+PER-CAPTURE ZERO-DAY EVALUATION BREAKDOWN:
+Capture Name                                  | Type       | Score Mean | Alerts/Total    | Attack Hits  | Latency 
+--------------------------------------------------------------------------------------------------------------
+ambient_attack-free-2_part1                   | BENIGN     | 6.4550     | 13/219          | -            | N/A     
+test_01__DoS-3                                | ATTACK     | 47.3100    | 25/94           | 21/21        | 0.00s   
+test_01__DoS-4                                | ATTACK     | 18.1064    | 56/612          | 30/32        | 8.00s   
+test_01__force-neutral-3                      | ATTACK     | 7.4886     | 39/624          | 9/9          | 0.00s   
+test_01__force-neutral-4                      | ATTACK     | 6.5221     | 39/582          | 5/5          | 0.00s   
+test_01__rpm-3                                | ATTACK     | 8.2180     | 37/558          | 13/13        | 0.00s   
+test_01__rpm-4                                | ATTACK     | 6.4052     | 30/570          | 4/6          | 1.00s   
+test_01__standstill-3                         | ATTACK     | 7.1515     | 36/435          | 19/19        | 0.00s   
+test_01__standstill-4                         | ATTACK     | 6.1513     | 15/430          | 0/7          | N/A     
+test_02__DoS-3                                | ATTACK     | 266.2458   | 367/367         | 129/129      | 0.00s   
+test_02__DoS-4                                | ATTACK     | 136.3565   | 266/266         | 6/6          | 0.00s   
+test_02__force-neutral-3                      | ATTACK     | 157.1689   | 175/175         | 5/5          | 0.00s   
+test_02__force-neutral-4                      | ATTACK     | 147.1297   | 640/640         | 7/7          | 0.00s   
+test_02__rpm-3                                | ATTACK     | 130.8695   | 247/247         | 15/15        | 0.00s   
+test_02__rpm-4                                | ATTACK     | 151.9230   | 251/252         | 27/27        | 0.00s   
+test_02__standstill-3                         | ATTACK     | 130.9087   | 247/247         | 29/29        | 0.00s   
+test_02__standstill-4                         | ATTACK     | 148.2855   | 251/252         | 10/10        | 0.00s   
+test_03__double-3                             | ATTACK     | 6.4083     | 38/624          | 8/8          | 0.00s   
+test_03__double-4                             | ATTACK     | 6.5736     | 38/582          | 4/5          | 1.00s   
+test_03__fuzzing-3                            | ATTACK     | 22.6029    | 90/393          | 78/92        | 0.00s   
+test_03__fuzzing-4                            | ATTACK     | 6.8175     | 14/283          | 0/39         | N/A     
+test_03__interval-3                           | ATTACK     | 12.5526    | 313/541         | 308/433      | 2.00s   
+test_03__interval-4                           | ATTACK     | 6.3438     | 35/612          | 8/15         | 1.00s   
+test_03__speed-3                              | ATTACK     | 10.2127    | 29/435          | 13/13        | 0.00s   
+test_03__speed-4                              | ATTACK     | 7.9762     | 22/430          | 7/7          | 0.00s   
+test_03__systematic-3                         | ATTACK     | 7.5171     | 30/541          | 8/71         | 17.00s  
+test_03__systematic-4                         | ATTACK     | 6.1373     | 17/393          | 3/63         | 6.00s   
+test_03__triple-3                             | ATTACK     | 6.7604     | 37/558          | 12/12        | 0.00s   
+test_03__triple-4                             | ATTACK     | 6.3703     | 28/570          | 4/5          | 1.00s   
+test_04__double-3                             | ATTACK     | 97.8777    | 555/555         | 10/10        | 0.00s   
+test_04__double-4                             | ATTACK     | 146.1038   | 652/652         | 6/6          | 0.00s   
+test_04__fuzzing-3                            | ATTACK     | 189.0060   | 247/247         | 9/9          | 0.00s   
+test_04__fuzzing-4                            | ATTACK     | 219.2025   | 311/311         | 22/22        | 0.00s   
+test_04__interval-3                           | ATTACK     | 91.7140    | 446/446         | 12/12        | 0.00s   
+test_04__interval-4                           | ATTACK     | 149.8255   | 431/431         | 4/4          | 0.00s   
+test_04__speed-3                              | ATTACK     | 154.3200   | 1322/1322       | 11/11        | 0.00s   
+test_04__speed-4                              | ATTACK     | 92.1735    | 949/949         | 8/8          | 0.00s   
+test_04__systematic-3                         | ATTACK     | 95.3322    | 254/254         | 60/60        | 0.00s   
+test_04__systematic-4                         | ATTACK     | 101.2142   | 165/165         | 13/13        | 0.00s   
+test_04__triple-3                             | ATTACK     | 112.0430   | 998/998         | 5/5          | 0.00s   
+test_04__triple-4                             | ATTACK     | 92.1382    | 297/297         | 7/7          | 0.00s   
+==============================================================================================================
+  [test_01] windows 3905 (attack 112) | ROC 0.9711 | PR 0.8952 | P 0.365 | R 0.902 | F1 0.519 | FPR 0.046
+  [test_02] windows 2446 (attack 228) | ROC 0.7943 | PR 0.3945 | P 0.093 | R 1.000 | F1 0.171 | FPR 0.999
+  [test_03] windows 5962 (attack 763) | ROC 0.9144 | PR 0.6748 | P 0.656 | R 0.594 | F1 0.623 | FPR 0.046
+  [test_04] windows 6627 (attack 167) | ROC 0.6258 | PR 0.0715 | P 0.025 | R 1.000 | F1 0.049 | FPR 1.000
+  [Evaluation Visual] Saved Confusion Matrix to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_01\xai_visuals\confusion_matrix.png
+  [Visual Explainer] Saved Interactive Scenario Explainer HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_01\xai_visuals\scenario_explainer.html
+ Saved Scenario Table to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_01\xai_visuals\scenario_explainer_table.png
+
+real	1m3.204s
+user	0m0.000s
+sys	0m0.000s

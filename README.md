@@ -205,6 +205,7 @@ capstone/
 │   ├── graph_builder.py       # Dynamic graph construction (9D node features, benign-only ID vocab, directed edges)
 │   ├── attack_injector.py     # Synthetic timing attacks -> outputs/synthetic/ (+ metadata.json)
 │   ├── convert_can_train_and_test.py  # Raw frames (hex payload) -> ROAD CSV layout, one set at a time
+│   │                                  # graph_builder.py windows + builds graphs per capture (low memory)
 │   ├── model.py               # Coupled GraphTransformerAutoencoder (TransformerConv + MLP/edge decoders)
 │   ├── train.py               # Benign-only training, capture split / 6-fold rotation, leakage-safe test assignment
 │   ├── road/                  # Local ROAD dataset directory (signal-translated CSVs)
@@ -259,9 +260,9 @@ python graph-transformer/attack_injector.py
 
 # Step 1: Preprocess raw ROAD dataset into temporal window records (2.0 s windows, 1.0 s stride)
 python graph-transformer/preprocess.py
-# -> Emits outputs/road_windowed.pkl
+# -> Emits outputs/road_windowed.pkl (window index + labels; raw messages are re-read by graph_builder.py)
 
-# Step 2: Build dynamic PyTorch Geometric graphs and global ID vocabulary
+# Step 2: Build dynamic PyTorch Geometric graphs and global ID vocabulary (one capture at a time)
 python graph-transformer/graph_builder.py
 # -> Emits outputs/graphs.pt and outputs/vocab.pkl
 
@@ -296,7 +297,9 @@ python graph-transformer/train.py && python attack-detection/evaluate.py --no-pl
 
 How the converter maps the data:
 - **Payload bytes become signals:** `Signal_k_of_ID` is payload byte k.
-- **Training uses only the attack-free drives,** each cut into 4 time parts.
+- **Training uses benign driving from `train_01` only:**
+  - the attack-free drives, each cut into 4 time parts;
+  - stretches of the labelled attack drives that stay at least 2 s away from every attack frame and last at least 30 s. This gives 3–10× more benign data.
 - **The dataset's own `test_01`–`test_04` files are the test set.**
 
 ## 13. Graph Construction
@@ -451,6 +454,22 @@ Known limits:
 - **Suspension is weak.** The score only looks at message orderings that are present, so missing messages barely register.
 
 Full detail is in `knowledge-graph/knowledge-graph.md` §5.
+
+### Second dataset: can-train-and-test (4 real vehicles)
+
+Each set is a separate run with its own vocabulary, baseline and model, using the dataset's own test subsets. The table shows known-vehicle subsets (single split, seed 42):
+
+| Set | Training windows | test_01 ROC / FPR / P / R (known attacks) | test_03 ROC / FPR / P / R (unknown attacks) |
+|---|---|---|---|
+| set_01 | 5,416 | 0.973 / 4.4% / 38.0% / 90.2% | 0.810 / 4.7% / 41.7% / 22.7% |
+| set_02 | 5,824 | 0.773 / 4.7% / 20.3% / 46.1% | 0.572 / 6.2% / 8.4% / 22.7% |
+| set_03 | 3,737 | 0.980 / 0.5% / 92.6% / 79.8% | 0.769 / 1.8% / 64.6% / 13.1% |
+| set_04 | 4,686 | 0.980 / 3.5% / 89.3% / 92.8% | 0.991 / 4.9% / 62.9% / 97.9% |
+
+What this shows:
+- **More benign training data helps.** Adding the attack-free stretches of the labelled training drives cut the mean known-vehicle FPR from 12.2% to 3.3% (test_01) and from 12.3% to 4.4% (test_03).
+- **Timing-only attacks are missed.** Unknown `interval` attacks, which only change an ID's message period, are mostly missed once the transition baseline is well trained. This is the same timing gap seen on ROAD.
+- **Unknown-vehicle subsets (`test_02`, `test_04`) alarm on nearly every window.** The baseline is specific to one vehicle by design.
 
 ## 18. Future Work
 

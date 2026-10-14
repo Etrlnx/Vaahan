@@ -1,0 +1,56 @@
+ambient  attack-free-1: 889,331 frames, 445s -> 4 parts
+ambient  attack-free-2: 573,956 frames, 287s -> 4 parts
+ambient  train/accessory-1: 1 benign segments, 265s of 265s
+ambient  train/accessory-2: 1 benign segments, 154s of 154s
+ambient  train/double-1: 2 benign segments, 532s of 545s
+ambient  train/double-2: 2 benign segments, 234s of 254s
+ambient  train/fuzzing-1: 1 benign segments, 427s of 561s
+ambient  train/fuzzing-2: 2 benign segments, 514s of 580s
+ambient  train/interval-1: 0 benign segments, 0s of 311s
+ambient  train/interval-2: 2 benign segments, 809s of 828s
+ambient  train/speed-1: 2 benign segments, 1300s of 1311s
+ambient  train/speed-2: 2 benign segments, 1338s of 1368s
+ambient  train/systematic-1: 2 benign segments, 208s of 252s
+ambient  train/systematic-2: 2 benign segments, 200s of 227s
+ambient  train/triple-1: 2 benign segments, 823s of 874s
+ambient  train/triple-2: 2 benign segments, 318s of 329s
+attack   test_01/double-3: 1,106,909 frames, 0.1% attack frames
+attack   test_01/double-4: 1,300,435 frames, 0.0% attack frames
+attack   test_01/fuzzing-3: 495,332 frames, 1.2% attack frames
+attack   test_01/fuzzing-4: 619,269 frames, 0.0% attack frames
+attack   test_01/interval-3: 891,053 frames, 0.0% attack frames
+attack   test_01/interval-4: 857,658 frames, 0.0% attack frames
+attack   test_01/speed-3: 2,625,443 frames, 0.1% attack frames
+attack   test_01/speed-4: 1,898,360 frames, 0.0% attack frames
+attack   test_01/systematic-3: 507,374 frames, 0.0% attack frames
+attack   test_01/systematic-4: 330,614 frames, 0.3% attack frames
+attack   test_01/triple-3: 1,993,660 frames, 0.0% attack frames
+attack   test_01/triple-4: 594,448 frames, 0.2% attack frames
+attack   test_02/double-3: 699,508 frames, 0.3% attack frames
+attack   test_02/double-4: 611,726 frames, 0.2% attack frames
+attack   test_02/fuzzing-3: 510,835 frames, 0.2% attack frames
+attack   test_02/fuzzing-4: 629,562 frames, 0.2% attack frames
+attack   test_02/interval-3: 393,679 frames, 0.2% attack frames
+attack   test_02/interval-4: 907,454 frames, 0.0% attack frames
+attack   test_02/speed-3: 649,177 frames, 0.1% attack frames
+attack   test_02/speed-4: 486,777 frames, 0.1% attack frames
+attack   test_02/systematic-3: 1,012,913 frames, 1.0% attack frames
+attack   test_02/systematic-4: 1,235,881 frames, 0.2% attack frames
+attack   test_02/triple-3: 697,350 frames, 0.0% attack frames
+attack   test_02/triple-4: 610,565 frames, 0.0% attack frames
+attack   test_03/DoS-3: 971,181 frames, 1.4% attack frames
+attack   test_03/DoS-4: 521,593 frames, 2.9% attack frames
+attack   test_03/force-neutral-3: 4,210,018 frames, 0.0% attack frames
+attack   test_03/force-neutral-4: 2,657,027 frames, 0.0% attack frames
+attack   test_03/rpm-3: 1,254,259 frames, 0.0% attack frames
+attack   test_03/rpm-4: 1,052,123 frames, 0.0% attack frames
+attack   test_03/standstill-3: 686,802 frames, 0.0% attack frames
+attack   test_03/standstill-4: 797,053 frames, 0.0% attack frames
+attack   test_04/DoS-3: 291,582 frames, 1.6% attack frames
+attack   test_04/DoS-4: 653,469 frames, 1.5% attack frames
+attack   test_04/force-neutral-3: 479,368 frames, 0.3% attack frames
+attack   test_04/force-neutral-4: 870,399 frames, 0.0% attack frames
+attack   test_04/rpm-3: 689,308 frames, 0.1% attack frames
+attack   test_04/rpm-4: 642,822 frames, 0.1% attack frames
+attack   test_04/standstill-3: 810,295 frames, 0.1% attack frames
+attack   test_04/standstill-4: 352,661 frames, 0.0% attack frames
