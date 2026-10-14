@@ -281,6 +281,7 @@ python attack-detection/evaluate.py --folds 6
 # Step 5: Run the XAI fidelity benchmark and generate visual dashboards
 python explainability/evalxai.py          # saves PNGs + HTML to outputs/xai_visuals/
 python explainability/evalxai.py --show   # same + opens interactive Matplotlib windows
+python explainability/evalxai.py --timing # rate term on: score and attribution use max(E, T)
 ```
 
 **Second dataset (can-train-and-test).** Every script reads the `CAN_DATASET` environment variable:
@@ -495,6 +496,18 @@ What this shows:
 - **Minimum detectable intensity:** with the rate term, about 6 injected frames per 2 s window (roughly 0.2% of the window's traffic) gives 74% window recall.
 - **Below that, detection fails for any window-level detector.** For example, `standstill-4` has 52 attack frames in 430 s. Catching these needs evidence accumulated across windows (planned).
 - **ROAD (default):** 91% recall for windows with 101+ attack frames, 50% at 21–100, and 11/13 attack episodes caught with a median latency of 0 s.
+
+**Explanation fidelity on can-train-and-test.** The ground truth is the IDs of the attack-labelled frames inside each window; injected IDs outside the vocabulary count as `<UNK>`. With `--timing`, attribution ranks IDs by max(E, T) per node, so a retimed ID is blamed for its own rate change instead of its neighbours' shifted transitions. Top-1 hit rate (alerting attack windows):
+
+| Set | test_01 default | test_01 `--timing` | test_03 default | test_03 `--timing` |
+|---|---|---|---|---|
+| set_01 | 100% (101) | 99.1% (109) | 28.3% (173) | **97.4%** (614) |
+| set_02 | 63.6% (77) | 89.4% (94) | 91.2% (34) | 88.9% (54) |
+| set_03 | 80.6% (201) | 97.3% (184) | 56.8% (95) | **98.3%** (466) |
+| set_04 | 97.1% (930) | 97.1% (839) | 75.1% (329) | 96.7% (299) |
+
+- **ROAD with `--timing`:** attribution sharpens (top-1 90.3% → 96.2%, top-3 94.1% → 98.1%), but on fewer alerts (260 instead of 288), because detection is weaker in that mode.
+- **Unknown-vehicle subsets** (`test_02`, `test_04`) are not quoted: almost every ID there is `<UNK>`, so naming `<UNK>` counts as a hit.
 - **Unknown-vehicle subsets (`test_02`, `test_04`) alarm on nearly every window.** The baseline is specific to one vehicle by design.
 
 ## 18. Future Work

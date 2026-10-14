@@ -124,9 +124,15 @@ class ZeroDayDetector:
         else:
             risk = RiskState.NORMAL
 
-        # Rank nodes by the structural excess that drives the score; fall back to
-        # reconstruction residuals when no transition baseline is available.
+        # Rank nodes by the evidence that drives the score: structural excess, or with the rate term
+        # on, max(E, T) per node in the same scaled units as the fused score (a retimed ID is blamed
+        # for its own rate, not its neighbours' shifted transitions). Fall back to reconstruction
+        # residuals when no transition baseline is available.
         node_scores = np.asarray(score_dict["node_excess"], dtype=np.float64)
+        cfg = self.scorer_config
+        if cfg.beta_temporal > 0 and cfg.excess_scale and cfg.temporal_scale:
+            node_scores = np.maximum(cfg.delta_excess * node_scores / cfg.excess_scale,
+                                     cfg.beta_temporal * np.asarray(score_dict["node_rate"]) / cfg.temporal_scale)
         if self.transition_baseline is None or not np.any(node_scores):
             node_scores = score_dict["node_residuals"].cpu().numpy()
         top_k = min(3, len(node_scores))

@@ -233,6 +233,8 @@ class AnomalyScorer:
         g_error = transition_baseline.compute_structural_penalty(batch) if transition_baseline else 0.0
         node_excess = (transition_baseline.node_excess_surprise(batch) if transition_baseline
                        else np.zeros(batch.x.shape[0]))
+        node_rate = (transition_baseline.node_rate_deviation(batch) if transition_baseline
+                     else np.zeros(batch.x.shape[0]))
         e_error = float(node_excess.max()) if len(node_excess) else 0.0
 
         def scaled(value, scale):
@@ -254,4 +256,5 @@ class AnomalyScorer:
             "e_error": e_error,
             "node_residuals": node_residuals,
             "node_excess": node_excess,
+            "node_rate": node_rate,
         }

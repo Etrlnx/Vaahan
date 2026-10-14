@@ -1,0 +1,494 @@
+================================================================================
+EXPLAINABLE AI (XAI) GROUND-TRUTH FIDELITY BENCHMARK
+================================================================================
+
+[1/3] Loading model, vocabulary, and test graphs...
+Restoring exact capture splits and feature normalizer from checkpoint metadata...
+Component scales fitted: recon=0.0157, temporal=1.1645, struct=0.1697, excess=114.7337
+Detector Calibrated on 1538 validation windows:
+  tau_suspicious (95.0th percentile) : 7.1971
+  tau_alert      (99.0th percentile) : 7.7569
+
+[2/3] Evaluating Explanation Fidelity on True Attack Windows...
+
+================================================================================
+EXPLAINABILITY FIDELITY BENCHMARK RESULTS
+================================================================================
+  [TEST_01] Evaluated Attack Alert Windows : 77
+  [TEST_01] Hit Rate @ Top-1 (HR@1)        : 63.64%
+  [TEST_01] Hit Rate @ Top-3 (HR@3)        : 66.23%
+  [TEST_01] Feature Grounding Fidelity     : 84.42%
+  [TEST_02] Evaluated Attack Alert Windows : 178
+  [TEST_02] Hit Rate @ Top-1 (HR@1)        : 100.00%
+  [TEST_02] Hit Rate @ Top-3 (HR@3)        : 100.00%
+  [TEST_02] Feature Grounding Fidelity     : 95.51%
+  [TEST_03] Evaluated Attack Alert Windows : 34
+  [TEST_03] Hit Rate @ Top-1 (HR@1)        : 91.18%
+  [TEST_03] Hit Rate @ Top-3 (HR@3)        : 91.18%
+  [TEST_03] Feature Grounding Fidelity     : 100.00%
+  [TEST_04] Evaluated Attack Alert Windows : 74
+  [TEST_04] Hit Rate @ Top-1 (HR@1)        : 100.00%
+  [TEST_04] Hit Rate @ Top-3 (HR@3)        : 100.00%
+  [TEST_04] Feature Grounding Fidelity     : 100.00%
+================================================================================
+
+[3/3] Generating Visual Explanations & Security Incident Reports...
+
+--- Incident 1 [HIGH_RISK] (test_01__double-3 @ 165.0s) ---
+================================================================================
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-71E6EE10
+================================================================================
+Capture: test_01__double-3 | Timestamp: 165.00s
+Anomaly Score: 25.0870 (Decision Tau: 7.1971, Alert Tau: 7.7569)
+--------------------------------------------------------------------------------
+COMPONENT ANOMALY BREAKDOWN:
+  - Reconstruction Residual (R_error): 0.2010
+  - Temporal Dynamics Jitter (T_error): 1467.3729
+  - Structural Sequence Penalty (G_error): 2.6967
+  - Per-ID Transition Excess   (E_error): 2510.4292
+--------------------------------------------------------------------------------
+PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
+  1. CAN ID 201 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 30.6%
+     -> Key Deviating Dimensions:
+        * activity_share  [Bus Utilization Dominance Share]: residual=5.3407 (56.7%)
+        * msg_count       [Message Volume / Frequency]: residual=3.3591 (35.6%)
+        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=0.3919 (4.2%)
+  2. CAN ID 1001 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 26.3%
+     -> Key Deviating Dimensions:
+        * activity_share  [Bus Utilization Dominance Share]: residual=8.5056 (44.8%)
+        * msg_count       [Message Volume / Frequency]: residual=4.1502 (21.9%)
+        * signal_min      [Decoded Signal Minimum Bound]: residual=3.5295 (18.6%)
+  3. CAN ID 401 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 4.6%
+     -> Key Deviating Dimensions:
+        * signal_min      [Decoded Signal Minimum Bound]: residual=2.9796 (72.9%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=0.3392 (8.3%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.3007 (7.4%)
+--------------------------------------------------------------------------------
+STRUCTURAL SEQUENCING ANOMALIES:
+  * Transition 201 -> 1001 (Count: 3, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 409 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 461 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1001 -> 201 (Count: 67, NLL: 5.92)
+  * Transition 201 -> 721 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 493 -> 201 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 495 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 491 (Count: 16, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 1005 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 417 (Count: 5, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 481 (Count: 5, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 459 (Count: 14, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 381 (Count: 2, NLL: 6.41)
+  * Transition 495 -> 201 (Count: 6, NLL: 7.67)
+  * Transition 201 -> 413 (Count: 13, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 499 (Count: 4, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 493 (Count: 6, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 501 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 485 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 401 -> 201 (Count: 3, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 455 (Count: 3, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 842 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 383 (Count: 3, NLL: 5.86)
+  * Transition 201 -> 1217 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 298 (Count: 1, NLL: 5.92)
+  * Transition 201 -> 707 (Count: 3, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 489 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 820 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+--------------------------------------------------------------------------------
+TRANSFORMER ATTENTION FOCUS:
+  * 1005     ---> 201      (Attention: 0.1738, 6.60x uniform)
+  * 1005     ---> 1001     (Attention: 0.1538, 6.00x uniform)
+  * 501      ---> 193      (Attention: 0.3240, 5.51x uniform)
+  * 1005     ---> 417      (Attention: 0.2853, 5.13x uniform)
+================================================================================
+RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (201) + ESCALATE_ALERT
+================================================================================
+  [XAI Visual] Saved Radar Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_01_test_01__double-3_radar_chart.png
+  [XAI Visual] Saved ID Attribution Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_01_test_01__double-3_id_attribution.png
+findfont: Failed to find font weight semibold for DejaVu Sans, now using 700.
+  [XAI Visual] Saved Subgraph Network PNG to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_01_test_01__double-3_subgraph.png
+  [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_01_test_01__double-3_subgraph_interactive.html
+  [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_01_test_01__double-3_dashboard.png
+
+--- Incident 2 [HIGH_RISK] (test_01__double-4 @ 296.0s) ---
+================================================================================
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-0D8A1540
+================================================================================
+Capture: test_01__double-4 | Timestamp: 296.00s
+Anomaly Score: 22.8681 (Decision Tau: 7.1971, Alert Tau: 7.7569)
+--------------------------------------------------------------------------------
+COMPONENT ANOMALY BREAKDOWN:
+  - Reconstruction Residual (R_error): 0.1886
+  - Temporal Dynamics Jitter (T_error): 1470.1582
+  - Structural Sequence Penalty (G_error): 2.4736
+  - Per-ID Transition Excess   (E_error): 2278.3986
+--------------------------------------------------------------------------------
+PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
+  1. CAN ID 1001 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 35.7%
+     -> Key Deviating Dimensions:
+        * activity_share  [Bus Utilization Dominance Share]: residual=3.6659 (47.7%)
+        * msg_count       [Message Volume / Frequency]: residual=1.9838 (25.8%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=1.4398 (18.7%)
+  2. CAN ID 501 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 23.7%
+     -> Key Deviating Dimensions:
+        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=2.9815 (60.6%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.5738 (11.7%)
+        * msg_count       [Message Volume / Frequency]: residual=0.4634 (9.4%)
+  3. CAN ID 409 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 4.5%
+     -> Key Deviating Dimensions:
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.0793 (47.0%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.0672 (39.9%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0129 (7.7%)
+--------------------------------------------------------------------------------
+STRUCTURAL SEQUENCING ANOMALIES:
+  * Transition 1217 -> 1001 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1001 -> 1233 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> 1001 (Count: 27, NLL: 6.13)
+  * Transition 193 -> 1001 (Count: 5, NLL: 9.42) [RARE TRANSITION]
+  * Transition 1001 -> 197 (Count: 6, NLL: 7.12)
+  * Transition 1021 -> 1001 (Count: 4, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1001 -> 201 (Count: 9, NLL: 5.92)
+  * Transition 451 -> 1001 (Count: 8, NLL: 16.12) [RARE TRANSITION]
+  * Transition 485 -> 1001 (Count: 4, NLL: 7.46)
+  * Transition 383 -> 1001 (Count: 1, NLL: 5.79)
+  * Transition 1001 -> 842 (Count: 1, NLL: 5.91)
+  * Transition 495 -> 1001 (Count: 8, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1001 -> 489 (Count: 3, NLL: 7.79)
+  * Transition 459 -> 1001 (Count: 13, NLL: 6.22)
+  * Transition 201 -> 1001 (Count: 3, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1001 -> 401 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 820 -> 1001 (Count: 5, NLL: 6.19)
+  * Transition 401 -> 1001 (Count: 4, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1001 -> 493 (Count: 3, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1001 -> 417 (Count: 4, NLL: 16.12) [RARE TRANSITION]
+  * Transition 499 -> 1001 (Count: 5, NLL: 6.21)
+  * Transition 489 -> 1001 (Count: 6, NLL: 6.94)
+  * Transition 961 -> 1001 (Count: 2, NLL: 6.18)
+  * Transition 1001 -> 977 (Count: 2, NLL: 6.32)
+  * Transition 388 -> 1001 (Count: 2, NLL: 9.28) [RARE TRANSITION]
+  * Transition 1009 -> 1001 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1001 -> 820 (Count: 1, NLL: 7.83)
+  * Transition 481 -> 1001 (Count: 1, NLL: 6.30)
+  * Transition 707 -> 1001 (Count: 3, NLL: 16.12) [RARE TRANSITION]
+  * Transition 491 -> 1001 (Count: 11, NLL: 6.14)
+  * Transition 249 -> 1001 (Count: 4, NLL: 6.31)
+  * Transition 199 -> 1001 (Count: 3, NLL: 6.36)
+  * Transition 1005 -> 1001 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 413 -> 1001 (Count: 3, NLL: 6.12)
+  * Transition 409 -> 1001 (Count: 3, NLL: 6.34)
+  * Transition 431 -> 1001 (Count: 2, NLL: 6.12)
+  * Transition 501 -> 1001 (Count: 5, NLL: 6.22)
+  * Transition 1322 -> 1001 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 417 -> 1001 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1001 -> 451 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 761 -> 1001 (Count: 1, NLL: 8.72)
+  * Transition 1019 -> 1001 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 1001 (Count: 1, NLL: 8.95)
+  * Transition 1001 -> 381 (Count: 1, NLL: 9.36) [RARE TRANSITION]
+  * Transition 1001 -> 455 (Count: 1, NLL: 7.71)
+  * Transition 493 -> 1001 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1001 -> 495 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 497 -> 1001 (Count: 1, NLL: 6.14)
+  * Transition 455 -> 1001 (Count: 1, NLL: 9.40) [RARE TRANSITION]
+  * Transition 1241 -> 1001 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 393 -> 1001 (Count: 2, NLL: 6.50)
+  * Transition 969 -> 1001 (Count: 1, NLL: 6.09)
+  * Transition 1280 -> 1001 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1001 -> 1907 (Count: 1, NLL: 8.77)
+  * Transition 1905 -> 1001 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 461 -> 1001 (Count: 1, NLL: 9.28) [RARE TRANSITION]
+  * Transition 1001 -> 485 (Count: 1, NLL: 6.87)
+  * Transition 1910 -> 1001 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+--------------------------------------------------------------------------------
+TRANSFORMER ATTENTION FOCUS:
+  * 1005     ---> 1001     (Attention: 0.1456, 6.41x uniform)
+  * 1905     ---> 201      (Attention: 0.2620, 5.76x uniform)
+  * 241      ---> 1001     (Attention: 0.1202, 5.29x uniform)
+  * 249      ---> 393      (Attention: 0.2532, 5.06x uniform)
+================================================================================
+RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (1001) + ESCALATE_ALERT
+================================================================================
+  [XAI Visual] Saved Radar Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_02_test_01__double-4_radar_chart.png
+  [XAI Visual] Saved ID Attribution Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_02_test_01__double-4_id_attribution.png
+  [XAI Visual] Saved Subgraph Network PNG to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_02_test_01__double-4_subgraph.png
+  [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_02_test_01__double-4_subgraph_interactive.html
+  [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_02_test_01__double-4_dashboard.png
+
+--- Incident 3 [HIGH_RISK] (test_01__fuzzing-3 @ 157.0s) ---
+================================================================================
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-3524AA53
+================================================================================
+Capture: test_01__fuzzing-3 | Timestamp: 157.00s
+Anomaly Score: 275.0281 (Decision Tau: 7.1971, Alert Tau: 7.7569)
+--------------------------------------------------------------------------------
+COMPONENT ANOMALY BREAKDOWN:
+  - Reconstruction Residual (R_error): 16.1703
+  - Temporal Dynamics Jitter (T_error): 30042.2223
+  - Structural Sequence Penalty (G_error): 5.7952
+  - Per-ID Transition Excess   (E_error): 1950.4997
+--------------------------------------------------------------------------------
+PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
+  1. CAN ID 241 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 3.7%
+     -> Key Deviating Dimensions:
+        * signal_mean     [Decoded Signal Mean Value]: residual=68.2880 (54.0%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=15.1198 (12.0%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=14.8650 (11.8%)
+  2. CAN ID 491 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 2.9%
+     -> Key Deviating Dimensions:
+        * signal_mean     [Decoded Signal Mean Value]: residual=81.1413 (52.3%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=29.4033 (18.9%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=17.7889 (11.5%)
+  3. CAN ID 409 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 2.2%
+     -> Key Deviating Dimensions:
+        * signal_min      [Decoded Signal Minimum Bound]: residual=73.5410 (51.7%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=49.1110 (34.5%)
+        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=8.8156 (6.2%)
+--------------------------------------------------------------------------------
+STRUCTURAL SEQUENCING ANOMALIES:
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> 969 (Count: 1, NLL: 5.32)
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> 1009 (Count: 1, NLL: 5.42)
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> 761 (Count: 1, NLL: 5.92)
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> 1225 (Count: 1, NLL: 7.99)
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> <UNK> (Count: 1, NLL: 16.12) [RARE TRANSITION]
+--------------------------------------------------------------------------------
+TRANSFORMER ATTENTION FOCUS:
+  * <UNK>    ---> 199      (Attention: 0.2419, 28.54x uniform)
+  * <UNK>    ---> 193      (Attention: 0.1719, 24.75x uniform)
+  * <UNK>    ---> 193      (Attention: 0.1620, 23.33x uniform)
+  * <UNK>    ---> 241      (Attention: 0.1309, 22.13x uniform)
+================================================================================
+RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (241) + ESCALATE_ALERT
+================================================================================
+  [XAI Visual] Saved Radar Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_03_test_01__fuzzing-3_radar_chart.png
+  [XAI Visual] Saved ID Attribution Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_03_test_01__fuzzing-3_id_attribution.png
+  [XAI Visual] Saved Subgraph Network PNG to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_03_test_01__fuzzing-3_subgraph.png
+  [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_03_test_01__fuzzing-3_subgraph_interactive.html
+  [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_03_test_01__fuzzing-3_dashboard.png
+
+--- Incident 4 [HIGH_RISK] (test_01__fuzzing-4 @ 62.0s) ---
+================================================================================
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-651A6C84
+================================================================================
+Capture: test_01__fuzzing-4 | Timestamp: 62.00s
+Anomaly Score: 91.5447 (Decision Tau: 7.1971, Alert Tau: 7.7569)
+--------------------------------------------------------------------------------
+COMPONENT ANOMALY BREAKDOWN:
+  - Reconstruction Residual (R_error): 5.5230
+  - Temporal Dynamics Jitter (T_error): 645.5465
+  - Structural Sequence Penalty (G_error): 2.1582
+  - Per-ID Transition Excess   (E_error): 391.8733
+--------------------------------------------------------------------------------
+PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
+  1. CAN ID 401 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 16.2%
+     -> Key Deviating Dimensions:
+        * signal_min      [Decoded Signal Minimum Bound]: residual=2.6443 (60.2%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.7331 (16.7%)
+        * signal_range    [Dynamic Signal Span Range]: residual=0.3479 (7.9%)
+  2. CAN ID 201 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 10.1%
+     -> Key Deviating Dimensions:
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.4124 (47.6%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.2246 (25.9%)
+        * msg_count       [Message Volume / Frequency]: residual=0.1695 (19.6%)
+  3. CAN ID 493 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 9.9%
+     -> Key Deviating Dimensions:
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.5362 (48.9%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.2714 (24.8%)
+        * msg_count       [Message Volume / Frequency]: residual=0.2184 (19.9%)
+--------------------------------------------------------------------------------
+STRUCTURAL SEQUENCING ANOMALIES:
+  * Transition 401 -> 298 (Count: 3, NLL: 6.38)
+--------------------------------------------------------------------------------
+TRANSFORMER ATTENTION FOCUS:
+  * 1910     ---> 491      (Attention: 0.3186, 6.05x uniform)
+  * 977      ---> 193      (Attention: 0.2734, 6.02x uniform)
+  * 1905     ---> 241      (Attention: 0.4536, 5.90x uniform)
+  * 961      ---> 409      (Attention: 0.3387, 5.08x uniform)
+================================================================================
+RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (401) + ESCALATE_ALERT
+================================================================================
+  [XAI Visual] Saved Radar Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_04_test_01__fuzzing-4_radar_chart.png
+  [XAI Visual] Saved ID Attribution Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_04_test_01__fuzzing-4_id_attribution.png
+  [XAI Visual] Saved Subgraph Network PNG to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_04_test_01__fuzzing-4_subgraph.png
+  [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_04_test_01__fuzzing-4_subgraph_interactive.html
+  [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_04_test_01__fuzzing-4_dashboard.png
+
+--- Incident 5 [NORMAL] (ambient_attack-free-2_part2 @ 0.0s) ---
+================================================================================
+SECURITY INCIDENT REPORT [NORMAL] — Incident #INC-3906E670
+================================================================================
+Capture: ambient_attack-free-2_part2 | Timestamp: 0.00s
+Anomaly Score: 4.5277 (Decision Tau: 7.1971, Alert Tau: 7.7569)
+--------------------------------------------------------------------------------
+COMPONENT ANOMALY BREAKDOWN:
+  - Reconstruction Residual (R_error): 0.2311
+  - Temporal Dynamics Jitter (T_error): 3.1283
+  - Structural Sequence Penalty (G_error): 1.9100
+  - Per-ID Transition Excess   (E_error): 96.4653
+--------------------------------------------------------------------------------
+PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
+  1. CAN ID 431 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 12.2%
+     -> Key Deviating Dimensions:
+        * signal_range    [Dynamic Signal Span Range]: residual=0.1763 (26.2%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=0.1508 (22.4%)
+        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=0.1362 (20.2%)
+  2. CAN ID 409 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 11.9%
+     -> Key Deviating Dimensions:
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0602 (36.9%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.0565 (34.6%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.0238 (14.6%)
+  3. CAN ID 393 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 9.9%
+     -> Key Deviating Dimensions:
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.2049 (73.2%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.0333 (11.9%)
+        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=0.0140 (5.0%)
+--------------------------------------------------------------------------------
+STRUCTURAL SEQUENCING ANOMALIES:
+  * Transition 491 -> 431 (Count: 15, NLL: 5.15)
+--------------------------------------------------------------------------------
+TRANSFORMER ATTENTION FOCUS:
+  * 1910     ---> 241      (Attention: 0.3236, 6.47x uniform)
+  * 381      ---> 201      (Attention: 0.1728, 5.36x uniform)
+  * 1322     ---> 193      (Attention: 0.4146, 4.97x uniform)
+  * 1225     ---> 459      (Attention: 0.3236, 4.53x uniform)
+================================================================================
+RECOMMENDED GATEWAY POLICY ACTION: ALLOW_FORWARDING
+================================================================================
+  [XAI Visual] Saved Radar Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_05_benign_baseline_ambient_attack-free-2_part2_radar_chart.png
+  [XAI Visual] Saved ID Attribution Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_05_benign_baseline_ambient_attack-free-2_part2_id_attribution.png
+  [XAI Visual] Saved Subgraph Network PNG to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_05_benign_baseline_ambient_attack-free-2_part2_subgraph.png
+  [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_05_benign_baseline_ambient_attack-free-2_part2_subgraph_interactive.html
+  [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals\incident_05_benign_baseline_ambient_attack-free-2_part2_dashboard.png
+
+Saved structured JSON report to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\sample_security_report.json
+Saved visual XAI dashboards to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_02\xai_visuals
