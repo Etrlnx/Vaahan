@@ -215,6 +215,11 @@ capstone/
 │   ├── test_xai.py            # XAI component unit tests
 │   ├── test_injector.py       # Injector behaviour, fold disjointness, synthetic leakage rule
 │   └── test_converter.py      # Payload bytes, hex IDs, labels, short/empty DLC
+├── new/                       # VS Code notebooks, one per pipeline step (thin runners over the modules) + run logs
+│   ├── graph2/                # 01_preprocess, 02_graph_builder, 03_train
+│   ├── attack2/               # 01_evaluate
+│   ├── explainability2/       # 01_evalxai
+│   └── logger/                # Logs of every run, per dataset (ctt_set_01..04/)
 ├── the second/                # can-train-and-test dataset + DATASET_INFO.md (gitignored, local only)
 ├── requirements.txt           # Core Python dependencies
 ├── CHANGELOG.md               # Project-level milestone history
@@ -250,6 +255,8 @@ pip install -r requirements.txt
 ```
 
 ## 12. Usage
+
+**Notebooks:** `new/` has one VS Code notebook per step. Each notebook only sets `CAN_DATASET` and calls the modules below, so it always runs the same code as the scripts.
 
 The full pipeline runs in sequence from the repository root:
 
@@ -483,7 +490,8 @@ With the optional rate term (`--timing`), on known-vehicle subsets:
 What this shows:
 - **More benign training data helps.** Adding the attack-free stretches of the labelled training drives cut the mean known-vehicle FPR from 12.2% to 3.3% (test_01) and from 12.3% to 4.4% (test_03).
 - **Timing-only attacks need the rate term.** Without it, unknown `interval` attacks (which only change an ID's period) are mostly missed. With `--timing`, mean test_03 ROC-AUC rises from 0.786 to 0.893 and recall from 39% to 67%. Mean test_01 ROC-AUC dips slightly, from 0.926 to 0.918.
-- **The rate term is not universal.** It hurts ROAD's rate-preserving masquerades, so the right score depends on the attack model.
+- **The rate term is not universal.** It hurts ROAD's rate-preserving masquerades, so the right score depends on the attack model. A label-free selector (how much T raises the benign threshold) chose wrongly on 2 of 5 datasets, so this stays a threat-model choice.
+- **Accumulating evidence across windows did not help (yet).** A per-capture CUSUM raised FPR from about 5% to 20–70%: benign test drives run slightly hot for long stretches compared with the single validation drive. It needs per-drive score normalisation first.
 - **set_02 is weak because of its attacks, not the model.** Apart from DoS, its attacks average 0.03–0.07 attack frames per window. For example, `standstill-3` has 6 spoofed frames in 372 s, so each attack window holds one valid-looking frame among about 3,000. Its DoS files are fully caught.
 
 **Detection versus attack intensity.** The model never trains on attacks, so rare attack types are not a training-data problem. What matters is how much an attack disturbs a window. `evaluate.py` reports window recall by injected attack frames per 2 s window, plus episode detection: an episode is a run of consecutive attack windows, and it is caught if any of its windows alarms. Pooled over the 4 can-train-and-test sets (known vehicle):
