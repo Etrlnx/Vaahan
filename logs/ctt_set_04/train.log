@@ -1,0 +1,99 @@
+Loading graphs and vocab...
+Loaded 27092 graphs, vocab size 55
+Split captures: 27 train ambient, 5 val ambient, 4 test ambient, 48 attack captures.
+Split graphs: 4686 train (ambient), 784 val (ambient), 21622 test total.
+Train-set feature stats: mean=[63.68953323364258, 0.26674985885620117, 0.0008769033593125641, 2.0191309452056885] | std=[58.80435562133789, 0.44446542859077454, 0.012295596301555634, 1.2578192949295044]
+Training on cpu...
+Epoch   1 | train_loss=688.5459 | val_loss=38.1641
+Epoch   2 | train_loss=153.5571 | val_loss=20.9939
+Epoch   3 | train_loss=104.8077 | val_loss=17.0591
+Epoch   4 | train_loss=76.6497 | val_loss=13.6303
+Epoch   5 | train_loss=60.5213 | val_loss=9.7864
+Epoch   6 | train_loss=46.9266 | val_loss=10.4006
+Epoch   7 | train_loss=36.6062 | val_loss=6.2694
+Epoch   8 | train_loss=27.5936 | val_loss=5.4740
+Epoch   9 | train_loss=20.5438 | val_loss=4.4767
+Epoch  10 | train_loss=14.5912 | val_loss=3.5450
+Epoch  11 | train_loss=10.4092 | val_loss=3.0693
+Epoch  12 | train_loss=7.0490 | val_loss=2.5650
+Epoch  13 | train_loss=4.7284 | val_loss=2.3261
+Epoch  14 | train_loss=3.3778 | val_loss=2.1247
+Epoch  15 | train_loss=2.4767 | val_loss=1.9201
+Epoch  16 | train_loss=2.0700 | val_loss=1.8593
+Epoch  17 | train_loss=1.8902 | val_loss=1.7691
+Epoch  18 | train_loss=1.7715 | val_loss=1.6946
+Epoch  19 | train_loss=1.7051 | val_loss=1.6608
+Epoch  20 | train_loss=1.6347 | val_loss=1.6026
+Epoch  21 | train_loss=1.5389 | val_loss=1.4422
+Epoch  22 | train_loss=1.3844 | val_loss=1.2826
+Epoch  23 | train_loss=1.2585 | val_loss=1.1737
+Epoch  24 | train_loss=1.1645 | val_loss=1.0621
+Epoch  25 | train_loss=1.0786 | val_loss=0.9283
+Epoch  26 | train_loss=0.9700 | val_loss=0.8481
+Epoch  27 | train_loss=0.9111 | val_loss=0.8110
+Epoch  28 | train_loss=0.8734 | val_loss=0.7773
+Epoch  29 | train_loss=0.8389 | val_loss=0.7524
+Epoch  30 | train_loss=0.8096 | val_loss=0.7264
+
+Evaluating on test set (held-out benign + all attack windows)...
+
+Per-capture reconstruction breakdown:
+  ambient_train-rpm-accessory-3_seg2           : mean=0.3336, std=0.0509, n_benign=52, n_attack=0
+  ambient_train-speed-3_seg2                   : mean=0.2610, std=0.0365, n_benign=311, n_attack=0
+  ambient_train-speed-accessory-3_seg1         : mean=0.3539, std=0.0400, n_benign=46, n_attack=0
+  ambient_train-standstill-4_seg1              : mean=0.2813, std=0.0677, n_benign=39, n_attack=0
+  test_01__interval-1                          : mean=0.3721, std=0.0363, n_benign=15, n_attack=460
+  test_01__interval-2                          : mean=0.2823, std=0.0391, n_benign=7, n_attack=273
+  test_01__rpm-1                               : mean=0.2830, std=0.0686, n_benign=275, n_attack=25
+  test_01__rpm-2                               : mean=0.2547, std=0.0287, n_benign=303, n_attack=50
+  test_01__rpm-accessory-1                     : mean=0.3520, std=0.0740, n_benign=73, n_attack=7
+  test_01__rpm-accessory-2                     : mean=0.3494, std=0.0423, n_benign=62, n_attack=24
+  test_01__speed-1                             : mean=0.2855, std=0.0792, n_benign=409, n_attack=53
+  test_01__speed-2                             : mean=0.2684, std=0.0376, n_benign=429, n_attack=14
+  test_01__speed-accessory-1                   : mean=0.3786, std=0.0418, n_benign=142, n_attack=20
+  test_01__speed-accessory-2                   : mean=0.3561, std=0.0738, n_benign=101, n_attack=2
+  test_01__standstill-1                        : mean=0.2900, std=0.0656, n_benign=159, n_attack=26
+  test_01__standstill-2                        : mean=0.2733, std=0.0372, n_benign=542, n_attack=10
+  test_01__systematic-1                        : mean=0.3479, std=0.3813, n_benign=304, n_attack=13
+  test_01__systematic-2                        : mean=0.3805, std=0.4435, n_benign=365, n_attack=25
+  test_02__interval-1                          : mean=0.6444, std=0.1890, n_benign=7, n_attack=304
+  test_02__interval-2                          : mean=0.6555, std=0.1389, n_benign=811, n_attack=17
+  test_02__rpm-1                               : mean=0.6573, std=0.1533, n_benign=1647, n_attack=7
+  test_02__rpm-2                               : mean=0.6626, std=0.0922, n_benign=977, n_attack=12
+  test_02__rpm-accessory-1                     : mean=0.6998, std=0.0494, n_benign=234, n_attack=31
+  test_02__rpm-accessory-2                     : mean=0.6889, std=0.0490, n_benign=125, n_attack=29
+  test_02__speed-1                             : mean=0.6592, std=0.1047, n_benign=1303, n_attack=8
+  test_02__speed-2                             : mean=0.6498, std=0.1100, n_benign=1341, n_attack=28
+  test_02__speed-accessory-1                   : mean=0.6997, std=0.0494, n_benign=238, n_attack=27
+  test_02__speed-accessory-2                   : mean=0.6895, std=0.0495, n_benign=134, n_attack=20
+  test_02__standstill-1                        : mean=0.6694, std=0.4749, n_benign=587, n_attack=19
+  test_02__standstill-2                        : mean=0.6481, std=0.0462, n_benign=260, n_attack=48
+  test_02__systematic-1                        : mean=0.9401, std=0.6288, n_benign=211, n_attack=42
+  test_02__systematic-2                        : mean=0.8278, std=0.4528, n_benign=202, n_attack=25
+  test_03__DoS-1                               : mean=0.3836, std=0.5965, n_benign=379, n_attack=13
+  test_03__DoS-2                               : mean=0.5367, std=1.0781, n_benign=404, n_attack=35
+  test_03__double-1                            : mean=0.2715, std=0.0464, n_benign=737, n_attack=28
+  test_03__double-2                            : mean=0.2778, std=0.0580, n_benign=418, n_attack=11
+  test_03__force-neutral-1                     : mean=0.2687, std=0.0276, n_benign=303, n_attack=23
+  test_03__force-neutral-2                     : mean=0.2856, std=0.2522, n_benign=289, n_attack=6
+  test_03__fuzzing-1                           : mean=0.4730, std=0.5817, n_benign=355, n_attack=37
+  test_03__fuzzing-2                           : mean=0.5501, std=0.6713, n_benign=460, n_attack=71
+  test_03__triple-1                            : mean=0.3229, std=0.0950, n_benign=219, n_attack=86
+  test_03__triple-2                            : mean=0.2795, std=0.0546, n_benign=403, n_attack=26
+  test_04__DoS-1                               : mean=0.9777, std=0.9970, n_benign=171, n_attack=20
+  test_04__DoS-2                               : mean=1.3316, std=1.6974, n_benign=165, n_attack=29
+  test_04__double-1                            : mean=0.6683, std=0.1850, n_benign=534, n_attack=12
+  test_04__double-2                            : mean=0.6621, std=0.0622, n_benign=211, n_attack=18
+  test_04__force-neutral-1                     : mean=0.6500, std=0.0598, n_benign=239, n_attack=16
+  test_04__force-neutral-2                     : mean=0.6416, std=0.0489, n_benign=227, n_attack=0
+  test_04__fuzzing-1                           : mean=1.0351, std=0.7248, n_benign=437, n_attack=125
+  test_04__fuzzing-2                           : mean=0.8049, std=0.4441, n_benign=517, n_attack=64
+  test_04__triple-1                            : mean=0.6562, std=0.0590, n_benign=826, n_attack=49
+  test_04__triple-2                            : mean=0.6372, std=0.0505, n_benign=321, n_attack=8
+
+Aggregate Evaluation Summary:
+  Benign reconstruction error : mean=0.5091, std=0.2264, n=19326
+  Attack reconstruction error : mean=0.9269, std=1.0213, n=2296
+  Reconstruction ROC-AUC      : 0.5790
+
+-> Attack windows show HIGHER reconstruction error on average.
