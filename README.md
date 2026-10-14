@@ -365,9 +365,9 @@ Anomaly detection is formulated as an **unsupervised one-class reconstruction ta
 - **Window Score**: each component is divided by its benign-validation MAD and fused as
   $$S = 1.0 \cdot E/\sigma_E + 0.25 \cdot R/\sigma_R$$
   where $E$ is the largest per-node *transition excess*: the count-weighted $-\log P(\text{id}_v \mid \text{id}_u)$ summed over a node's edges, minus that ID's benign median. The mean-transition term ($G$) carries weight 0; the ablation in `knowledge-graph/knowledge-graph.md` §5.4 shows why.
-- **Optional rate term ($T$, `evaluate.py --timing`)**: the largest per-ID deviation of message count or mean inter-arrival time from that ID's own benign median, in MAD units. When enabled, the score uses $\max(E/\sigma_E,\ T/\sigma_T)$ instead of $E/\sigma_E$. It is off by default:
+- **Optional rate term ($T$, `evaluate.py --timing`)**: the largest per-ID deviation of message count from that ID's own benign median, in MAD units (floored at one message). Expected IDs (present in at least 99% of benign windows) that are missing from a window count as a count of 0, which catches suspended ECUs. When enabled, the score uses $\max(E/\sigma_E,\ T/\sigma_T)$ instead of $E/\sigma_E$. It is off by default:
   - it lifts injection and retiming attacks on can-train-and-test (§17);
-  - but on ROAD masquerades, where the attacker keeps the real ECU's rate, it lowers fold ROC-AUC from 0.967 to 0.858.
+  - but on ROAD masquerades, where the attacker keeps the real ECU's rate, it lowers fold ROC-AUC from 0.967 to 0.783. On ROAD's synthetic suspension attacks it raises window recall from 21–40% to 44–74%.
 
 **Status: Implemented.** `ZeroDayDetector` in [`attack-detection/detector.py`](attack-detection/detector.py) calibrates $\tau_{\text{suspicious}} = 5.0893$ (95th pct) and $\tau_{\text{alert}} = 7.1042$ (99th pct) on benign validation windows (seed-42 split), yielding **0.9672 ROC-AUC**, **0.9081 PR-AUC** and **85.7% recall at 5.0% FPR** on the held-out test set. Correlated-signal (27/61) and coolant (0/7) windows remain the weak spot.
 
@@ -483,14 +483,14 @@ With the optional rate term (`--timing`), on known-vehicle subsets:
 
 | Set | test_01 ROC / FPR / P / R | test_03 ROC / FPR / P / R |
 |---|---|---|
-| set_01 | 0.983 / 4.4% / 39.4% / 97.3% | 0.923 / 4.6% / 71.8% / 80.5% |
-| set_02 | 0.811 / 4.6% / 24.2% / 56.3% | 0.789 / 3.3% / 21.5% / 36.0% |
-| set_03 | 0.937 / 6.0% / 50.1% / 73.0% | 0.902 / 4.8% / 76.5% / 64.2% |
-| set_04 | 0.940 / 1.4% / 94.8% / 83.7% | 0.959 / 4.4% / 63.1% / 89.0% |
+| set_01 | 0.995 / 4.0% / 41.8% / 98.2% | 0.875 / 5.2% / 67.4% / 72.9% |
+| set_02 | 0.847 / 3.8% / 25.9% / 51.5% | 0.697 / 3.7% / 23.8% / 45.3% |
+| set_03 | 0.975 / 0.9% / 87.9% / 81.0% | 0.931 / 2.2% / 88.4% / 69.4% |
+| set_04 | 0.997 / 2.3% / 93.3% / 99.9% | 0.987 / 4.8% / 63.2% / 97.6% |
 
 What this shows:
 - **More benign training data helps.** Adding the attack-free stretches of the labelled training drives cut the mean known-vehicle FPR from 12.2% to 3.3% (test_01) and from 12.3% to 4.4% (test_03).
-- **Timing-only attacks need the rate term.** Without it, unknown `interval` attacks (which only change an ID's period) are mostly missed. With `--timing`, mean test_03 ROC-AUC rises from 0.786 to 0.893 and recall from 39% to 67%. Mean test_01 ROC-AUC dips slightly, from 0.926 to 0.918.
+- **Timing-only attacks need the rate term.** Without it, unknown `interval` attacks (which only change an ID's period) are mostly missed. With `--timing`, mean test_03 ROC-AUC rises from 0.786 to 0.873 and recall from 39% to 71%. Mean test_01 ROC-AUC rises from 0.926 to 0.953, and FPR falls from 3.3% to 2.7%.
 - **The rate term is not universal.** It hurts ROAD's rate-preserving masquerades, so the right score depends on the attack model. A label-free selector (how much T raises the benign threshold) chose wrongly on 2 of 5 datasets, so this stays a threat-model choice.
 - **Accumulating evidence across windows did not help (yet).** A per-capture CUSUM raised FPR from about 5% to 20–70%: benign test drives run slightly hot for long stretches compared with the single validation drive. It needs per-drive score normalisation first.
 - **set_02 is weak because of its attacks, not the model.** Apart from DoS, its attacks average 0.03–0.07 attack frames per window. For example, `standstill-3` has 6 spoofed frames in 372 s, so each attack window holds one valid-looking frame among about 3,000. Its DoS files are fully caught.
@@ -500,9 +500,9 @@ What this shows:
 | Attack frames per window | 1 | 2–5 | 6–20 | 21–100 | 101+ | Episodes caught (test_01 / test_03) |
 |---|---|---|---|---|---|---|
 | Default (E) | 2% | 10% | 10% | 42% | 100% | 57/67 / 49/95 |
-| `--timing` (max(E,T)) | 4% | 8% | 74% | 85% | 94% | 64/67 / 55/95 |
+| `--timing` (max(E,T)) | 4% | 22% | 83% | 94% | 95% | 62/67 / 59/95 |
 
-- **Minimum detectable intensity:** with the rate term, about 6 injected frames per 2 s window (roughly 0.2% of the window's traffic) gives 74% window recall.
+- **Minimum detectable intensity:** with the rate term, about 6 injected frames per 2 s window (roughly 0.2% of the window's traffic) gives 83% window recall.
 - **Below that, detection fails for any window-level detector.** For example, `standstill-4` has 52 attack frames in 430 s. Catching these needs evidence accumulated across windows (planned).
 - **ROAD (default):** 91% recall for windows with 101+ attack frames, 50% at 21–100, and 11/13 attack episodes caught with a median latency of 0 s.
 

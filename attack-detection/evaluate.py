@@ -275,7 +275,9 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
 
     print("\n[2/4] Initializing and Calibrating Zero-Day Detector...")
     detector = ZeroDayDetector(scorer_config or AnomalyScorerConfig())
-    detector.fit_baseline(train_graphs, vocab_size=len(vocab))
+    # msg_count = 0 in normalised units, so expected-but-absent IDs register as rate deviations.
+    detector.fit_baseline(train_graphs, vocab_size=len(vocab),
+                          count_zero=float(-train_mean[0] / train_std[0]))
 
     val_loader = DataLoader(val_graphs, batch_size=1, shuffle=False)
     detector.calibrate(

@@ -38,7 +38,9 @@ class AnomalyScorerConfig:
 
 
 class TransitionBaseline:
-    RATE_FEATURES = [0, 1]  # msg_count, mean_iat (node feature columns)
+    # msg_count only: it is the rate itself (halving a period doubles it). mean_iat was dropped: with a
+    # single message it falls back to the window length, giving benign T values of ~2e4.
+    RATE_FEATURES = [0]
 
     def __init__(self, vocab_size: int = 106):
         self.vocab_size = vocab_size
@@ -46,7 +48,11 @@ class TransitionBaseline:
         self.transition_probs = np.zeros((vocab_size, vocab_size), dtype=np.float64)
         self.fitted = False
 
-    def fit(self, benign_graphs: list):
+    EXPECTED_PRESENCE = 0.99  # IDs present in at least this share of benign windows are "expected"
+
+    def fit(self, benign_graphs: list, count_zero: Optional[float] = None):
+        """count_zero: msg_count = 0 in the graphs' normalised units ((0 - mean) / std). When given,
+        expected IDs that are absent from a window count as rate deviations (suspension)."""
         if not benign_graphs:
             raise ValueError("benign_graphs is empty; cannot fit transition baseline.")
         for g in benign_graphs:
@@ -78,7 +84,7 @@ class TransitionBaseline:
             if i < self.vocab_size:
                 self.id_surprise_median[i] = np.median(vals)
 
-        # Per-ID benign rate profile: median and robust spread of msg_count and mean_iat. Spreads are
+        # Per-ID benign rate profile: median and robust spread of the rate features. Spreads are
         # floored at the median spread across IDs so near-constant IDs do not explode.
         feats = {}
         for g in benign_graphs:
@@ -106,6 +112,14 @@ class TransitionBaseline:
         floor = np.maximum(np.nan_to_num(np.nanmedian(spread, axis=0)), np.asarray(steps))
         self.rate_scale = np.where(np.isnan(spread), floor, np.maximum(spread, floor))
 
+        presence = np.zeros(self.vocab_size)
+        for g in benign_graphs:
+            presence[np.unique(np.minimum(g.id_idx.cpu().numpy(), self.vocab_size - 1))] += 1
+        presence /= len(benign_graphs)
+        presence[0] = 0.0  # <UNK> is never expected
+        self.expected_ids = np.flatnonzero(presence >= self.EXPECTED_PRESENCE)
+        self.count_zero = count_zero
+
     def node_surprise(self, g) -> np.ndarray:
         """Count-weighted transition NLL summed over every edge touching each node."""
         n = g.id_idx.shape[0]
@@ -126,8 +140,8 @@ class TransitionBaseline:
         return self.node_surprise(g) - self.id_surprise_median[ids]
 
     def node_rate_deviation(self, g) -> np.ndarray:
-        """Per-node max |feature - ID median| / ID spread over msg_count and mean_iat: how far each
-        ID's message rate is from its own benign rate. Unseen IDs (<UNK>) are left to E."""
+        """Per-node |msg_count - ID median| / ID spread: how far each ID's message rate is from its own
+        benign rate. Unseen IDs (<UNK>) are left to E."""
         if not self.fitted:
             return np.zeros(g.id_idx.shape[0], dtype=np.float64)
         ids = np.minimum(g.id_idx.cpu().numpy(), self.vocab_size - 1)
@@ -135,6 +149,19 @@ class TransitionBaseline:
         dev = np.abs(x - self.rate_median[ids]) / self.rate_scale[ids]
         dev[ids == 0] = 0.0
         return dev.max(axis=1)
+
+    def missing_id_deviation(self, g) -> tuple:
+        """Largest rate deviation among expected IDs absent from the window, treating their count as 0
+        (a fully suspended ECU has no node, so node_rate_deviation cannot see it). Returns
+        (deviation, vocab index of that ID or None)."""
+        if not self.fitted or getattr(self, "count_zero", None) is None or len(self.expected_ids) == 0:
+            return 0.0, None
+        missing = np.setdiff1d(self.expected_ids, g.id_idx.cpu().numpy())
+        if len(missing) == 0:
+            return 0.0, None
+        dev = np.abs(self.count_zero - self.rate_median[missing, 0]) / self.rate_scale[missing, 0]
+        i = int(np.argmax(dev))
+        return float(dev[i]), int(missing[i])
 
     def compute_structural_penalty(self, g) -> float:
         if not self.fitted or g.edge_index.shape[1] == 0:
@@ -182,7 +209,8 @@ class AnomalyScorer:
         """T: largest per-ID rate deviation in the window (see TransitionBaseline.node_rate_deviation)."""
         if transition_baseline is None or batch.x.shape[0] == 0:
             return 0.0
-        return float(transition_baseline.node_rate_deviation(batch).max())
+        node_t = float(transition_baseline.node_rate_deviation(batch).max())
+        return max(node_t, transition_baseline.missing_id_deviation(batch)[0])
 
     def fit_component_scales(self, model, val_loader, device, transition_baseline: Optional[TransitionBaseline] = None):
         model.eval()

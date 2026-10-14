@@ -183,7 +183,9 @@ def run_xai_evaluation(show_plots: bool = False, timing: bool = False):
     model.eval()
 
     detector = ZeroDayDetector(AnomalyScorerConfig(beta_temporal=1.0) if timing else AnomalyScorerConfig())
-    detector.fit_baseline(train_graphs, vocab_size=len(vocab))
+    # msg_count = 0 in normalised units, so expected-but-absent IDs register as rate deviations.
+    detector.fit_baseline(train_graphs, vocab_size=len(vocab),
+                          count_zero=float(-train_mean[0] / train_std[0]))
 
     val_loader = DataLoader(val_graphs, batch_size=1, shuffle=False)
     detector.calibrate(model, val_loader, device=DEVICE, suspicious_percentile=95.0, alert_percentile=99.0)

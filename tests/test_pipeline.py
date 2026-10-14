@@ -140,6 +140,26 @@ class TestRateScaleFloor(unittest.TestCase):
         self.assertAlmostEqual(float(dev[0]), 2.0, places=4)  # two extra messages -> T = 2, not 2e6
 
 
+class TestMissingIds(unittest.TestCase):
+    def test_absent_expected_id_counts_as_zero_rate(self):
+        from torch_geometric.data import Data
+
+        def window(ids, counts):
+            x = torch.zeros((len(ids), 9))
+            x[:, 0] = torch.tensor(counts, dtype=torch.float32)
+            g = Data(x=x, edge_index=torch.tensor([list(range(len(ids) - 1)), list(range(1, len(ids)))]),
+                     edge_attr=torch.ones(len(ids) - 1))
+            g.id_idx = torch.tensor(ids)
+            return g
+
+        baseline = TransitionBaseline(vocab_size=6)
+        baseline.fit([window([1, 2, 3], [10.0, 11.0, 12.0])] * 20, count_zero=0.0)
+        self.assertEqual(baseline.missing_id_deviation(window([1, 2, 3], [10.0, 11.0, 12.0])), (0.0, None))
+        dev, idx = baseline.missing_id_deviation(window([1, 3], [10.0, 12.0]))  # ID 2 suspended
+        self.assertEqual(idx, 2)
+        self.assertAlmostEqual(dev, 11.0, places=4)  # 11 messages missing, spread floor = 1 message
+
+
 class TestIntensityAndEpisodes(unittest.TestCase):
     def test_bins_and_episodes(self):
         from types import SimpleNamespace as NS

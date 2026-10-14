@@ -37,11 +37,11 @@ class ZeroDayDetector:
         self.tau_alert: float = 1.00
         self.is_calibrated: bool = False
 
-    def fit_baseline(self, benign_train_graphs: list, vocab_size: int = 106):
+    def fit_baseline(self, benign_train_graphs: list, vocab_size: int = 106, count_zero: Optional[float] = None):
         if not benign_train_graphs:
             raise ValueError("benign_train_graphs is empty; cannot fit transition baseline.")
         self.transition_baseline = TransitionBaseline(vocab_size=vocab_size)
-        self.transition_baseline.fit(benign_train_graphs)
+        self.transition_baseline.fit(benign_train_graphs, count_zero=count_zero)
 
     def calibrate(
         self,
