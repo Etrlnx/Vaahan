@@ -4,7 +4,7 @@ EXPLAINABLE AI (XAI) GROUND-TRUTH FIDELITY BENCHMARK
 
 [1/3] Loading model, vocabulary, and test graphs...
 Restoring exact capture splits and feature normalizer from checkpoint metadata...
-Component scales fitted: recon=0.0168, temporal=3127.9890, struct=0.2100, excess=204.5166
+Component scales fitted: recon=0.0168, temporal=1.4826, struct=0.2100, excess=204.5166
 Detector Calibrated on 2147 validation windows:
   tau_suspicious (95.0th percentile) : 5.0893
   tau_alert      (99.0th percentile) : 7.1042
@@ -28,14 +28,14 @@ EXPLAINABILITY FIDELITY BENCHMARK RESULTS
 
 --- Incident 1 [HIGH_RISK] (max_speedometer_attack_1_masquerade @ 49.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-9ACAB18E
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-2341D3B2
 ================================================================================
 Capture: max_speedometer_attack_1_masquerade | Timestamp: 49.00s
 Anomaly Score: 14.5989 (Decision Tau: 5.0893, Alert Tau: 7.1042)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 0.1486
-  - Temporal Dynamics Jitter (T_error): 19973.7090
+  - Temporal Dynamics Jitter (T_error): 40.0001
   - Structural Sequence Penalty (G_error): 3.0290
   - Per-ID Transition Excess   (E_error): 2533.6438
 --------------------------------------------------------------------------------
@@ -108,14 +108,14 @@ findfont: Failed to find font weight semibold for DejaVu Sans, now using 700.
 
 --- Incident 2 [HIGH_RISK] (reverse_light_off_attack_1_masquerade @ 17.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-977F2235
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-925C6BC2
 ================================================================================
 Capture: reverse_light_off_attack_1_masquerade | Timestamp: 17.00s
 Anomaly Score: 14.8426 (Decision Tau: 5.0893, Alert Tau: 7.1042)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 0.1233
-  - Temporal Dynamics Jitter (T_error): 2120.8400
+  - Temporal Dynamics Jitter (T_error): 2.0000
   - Structural Sequence Penalty (G_error): 2.9392
   - Per-ID Transition Excess   (E_error): 2660.6234
 --------------------------------------------------------------------------------
@@ -186,14 +186,14 @@ RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (208) + ESCALATE_ALERT
 
 --- Incident 3 [HIGH_RISK] (reverse_light_on_attack_2_masquerade @ 35.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-DFC77477
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-0A89684D
 ================================================================================
 Capture: reverse_light_on_attack_2_masquerade | Timestamp: 35.00s
 Anomaly Score: 15.5936 (Decision Tau: 5.0893, Alert Tau: 7.1042)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 0.1111
-  - Temporal Dynamics Jitter (T_error): 19969.9955
+  - Temporal Dynamics Jitter (T_error): 2.0000
   - Structural Sequence Penalty (G_error): 2.8362
   - Per-ID Transition Excess   (E_error): 2851.2075
 --------------------------------------------------------------------------------
@@ -256,14 +256,14 @@ RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (208) + ESCALATE_ALERT
 
 --- Incident 4 [SUSPICIOUS] (correlated_signal_attack_2_masquerade @ 8.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [SUSPICIOUS] — Incident #INC-BA86C212
+SECURITY INCIDENT REPORT [SUSPICIOUS] — Incident #INC-D558CCC5
 ================================================================================
 Capture: correlated_signal_attack_2_masquerade | Timestamp: 8.00s
 Anomaly Score: 6.6034 (Decision Tau: 5.0893, Alert Tau: 7.1042)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 0.1362
-  - Temporal Dynamics Jitter (T_error): 466.3917
+  - Temporal Dynamics Jitter (T_error): 1.0000
   - Structural Sequence Penalty (G_error): 2.2221
   - Per-ID Transition Excess   (E_error): 936.0404
 --------------------------------------------------------------------------------
@@ -309,14 +309,14 @@ RECOMMENDED GATEWAY POLICY ACTION: HEIGHTENED_MONITORING + LOG_TELEMETRY
 
 --- Incident 5 [NORMAL] (ambient_dyno_drive_radio_infotainment @ 0.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [NORMAL] — Incident #INC-BC1546BE
+SECURITY INCIDENT REPORT [NORMAL] — Incident #INC-E2A2EF0B
 ================================================================================
 Capture: ambient_dyno_drive_radio_infotainment | Timestamp: 0.00s
 Anomaly Score: 3.0874 (Decision Tau: 5.0893, Alert Tau: 7.1042)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 0.1005
-  - Temporal Dynamics Jitter (T_error): 19973.9095
+  - Temporal Dynamics Jitter (T_error): 1.0000
   - Structural Sequence Penalty (G_error): 2.1638
   - Per-ID Transition Excess   (E_error): 325.7622
 --------------------------------------------------------------------------------

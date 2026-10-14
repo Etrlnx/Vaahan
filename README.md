@@ -510,12 +510,12 @@ What this shows:
 
 | Set | test_01 default | test_01 `--timing` | test_03 default | test_03 `--timing` |
 |---|---|---|---|---|
-| set_01 | 100% (101) | 99.1% (109) | 28.3% (173) | **97.4%** (614) |
-| set_02 | 63.6% (77) | 89.4% (94) | 91.2% (34) | 88.9% (54) |
-| set_03 | 80.6% (201) | 97.3% (184) | 56.8% (95) | **98.3%** (466) |
-| set_04 | 97.1% (930) | 97.1% (839) | 75.1% (329) | 96.7% (299) |
+| set_01 | 100% (101) | 100% (110) | 28.3% (173) | **89.2%** (556) |
+| set_02 | 63.6% (77) | 84.9% (86) | 91.2% (34) | 98.5% (68) |
+| set_03 | 80.6% (201) | 81.4% (204) | 56.8% (95) | **94.1%** (504) |
+| set_04 | 97.1% (930) | 98.5% (1,001) | 75.1% (329) | 92.7% (328) |
 
-- **ROAD with `--timing`:** attribution sharpens (top-1 90.3% → 96.2%, top-3 94.1% → 98.1%), but on fewer alerts (260 instead of 288), because detection is weaker in that mode.
+- **ROAD with `--timing`:** synthetic attacks reach 100% top-1, including suspension, because an expected ID that falls silent is named first. Real masquerades are barely detected in this mode (38 alerts instead of 288), which is why ROAD runs with T off.
 - **Unknown-vehicle subsets** (`test_02`, `test_04`) are not quoted: almost every ID there is `<UNK>`, so naming `<UNK>` counts as a hit.
 - **Unknown-vehicle subsets (`test_02`, `test_04`) alarm on nearly every window.** The baseline is specific to one vehicle by design.
 

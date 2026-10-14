@@ -4,42 +4,42 @@ EXPLAINABLE AI (XAI) GROUND-TRUTH FIDELITY BENCHMARK
 
 [1/3] Loading model, vocabulary, and test graphs...
 Restoring exact capture splits and feature normalizer from checkpoint metadata...
-Component scales fitted: recon=0.0231, temporal=0.9338, struct=0.0784, excess=48.8024
+Component scales fitted: recon=0.0231, temporal=0.0000, struct=0.0784, excess=48.8024
 Detector Calibrated on 842 validation windows:
-  tau_suspicious (95.0th percentile) : 12.0816
-  tau_alert      (99.0th percentile) : 529.0974
+  tau_suspicious (95.0th percentile) : 229364.5534
+  tau_alert      (99.0th percentile) : 3214651.0299
 
 [2/3] Evaluating Explanation Fidelity on True Attack Windows...
 
 ================================================================================
 EXPLAINABILITY FIDELITY BENCHMARK RESULTS
 ================================================================================
-  [TEST_01] Evaluated Attack Alert Windows : 109
-  [TEST_01] Hit Rate @ Top-1 (HR@1)        : 99.08%
+  [TEST_01] Evaluated Attack Alert Windows : 110
+  [TEST_01] Hit Rate @ Top-1 (HR@1)        : 100.00%
   [TEST_01] Hit Rate @ Top-3 (HR@3)        : 100.00%
   [TEST_01] Feature Grounding Fidelity     : 100.00%
   [TEST_02] Evaluated Attack Alert Windows : 228
   [TEST_02] Hit Rate @ Top-1 (HR@1)        : 0.00%
-  [TEST_02] Hit Rate @ Top-3 (HR@3)        : 64.04%
-  [TEST_02] Feature Grounding Fidelity     : 91.67%
-  [TEST_03] Evaluated Attack Alert Windows : 614
-  [TEST_03] Hit Rate @ Top-1 (HR@1)        : 97.39%
-  [TEST_03] Hit Rate @ Top-3 (HR@3)        : 97.88%
-  [TEST_03] Feature Grounding Fidelity     : 98.70%
+  [TEST_02] Hit Rate @ Top-3 (HR@3)        : 0.00%
+  [TEST_02] Feature Grounding Fidelity     : 100.00%
+  [TEST_03] Evaluated Attack Alert Windows : 556
+  [TEST_03] Hit Rate @ Top-1 (HR@1)        : 89.21%
+  [TEST_03] Hit Rate @ Top-3 (HR@3)        : 91.55%
+  [TEST_03] Feature Grounding Fidelity     : 98.38%
   [TEST_04] Evaluated Attack Alert Windows : 167
-  [TEST_04] Hit Rate @ Top-1 (HR@1)        : 48.50%
-  [TEST_04] Hit Rate @ Top-3 (HR@3)        : 96.41%
-  [TEST_04] Feature Grounding Fidelity     : 92.22%
+  [TEST_04] Hit Rate @ Top-1 (HR@1)        : 27.54%
+  [TEST_04] Hit Rate @ Top-3 (HR@3)        : 29.34%
+  [TEST_04] Feature Grounding Fidelity     : 99.40%
 ================================================================================
 
 [3/3] Generating Visual Explanations & Security Incident Reports...
 
 --- Incident 1 [HIGH_RISK] (test_01__DoS-3 @ 23.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-F3048BC1
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-DF5752F6
 ================================================================================
 Capture: test_01__DoS-3 | Timestamp: 23.00s
-Anomaly Score: 2909.3251 (Decision Tau: 12.0816, Alert Tau: 529.0974)
+Anomaly Score: 302421837.4275 (Decision Tau: 229364.5534, Alert Tau: 3214651.0299)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 4.8320
@@ -49,23 +49,23 @@ COMPONENT ANOMALY BREAKDOWN:
 --------------------------------------------------------------------------------
 PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
   1. CAN ID 193 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 93.8%
+     -> Share of Window Transition Excess: 99.5%
      -> Key Deviating Dimensions:
         * msg_count       [Message Volume / Frequency]: residual=1322.9166 (67.7%)
         * activity_share  [Bus Utilization Dominance Share]: residual=611.0652 (31.2%)
         * signal_mean     [Decoded Signal Mean Value]: residual=20.8291 (1.1%)
   2. CAN ID 485 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 0.8%
+     -> Share of Window Transition Excess: 0.0%
      -> Key Deviating Dimensions:
         * activity_share  [Bus Utilization Dominance Share]: residual=5.1774 (93.1%)
         * signal_std      [Decoded Signal Standard Deviation]: residual=0.1640 (3.0%)
         * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=0.1111 (2.0%)
-  3. CAN ID 461 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 0.5%
+  3. CAN ID 197 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 0.0%
      -> Key Deviating Dimensions:
-        * activity_share  [Bus Utilization Dominance Share]: residual=1.1626 (87.7%)
-        * signal_mean     [Decoded Signal Mean Value]: residual=0.0545 (4.1%)
-        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0341 (2.6%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=5.6974 (93.0%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.2826 (4.6%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.0822 (1.3%)
 --------------------------------------------------------------------------------
 STRUCTURAL SEQUENCING ANOMALIES:
   * Transition 193 -> 961 (Count: 5, NLL: 6.20)
@@ -128,10 +128,10 @@ findfont: Failed to find font weight semibold for DejaVu Sans, now using 700.
 
 --- Incident 2 [HIGH_RISK] (test_01__DoS-4 @ 110.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-56858BE0
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-74063793
 ================================================================================
 Capture: test_01__DoS-4 | Timestamp: 110.00s
-Anomaly Score: 2895.6281 (Decision Tau: 12.0816, Alert Tau: 529.0974)
+Anomaly Score: 300948274.9914 (Decision Tau: 229364.5534, Alert Tau: 3214651.0299)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 4.8528
@@ -141,23 +141,23 @@ COMPONENT ANOMALY BREAKDOWN:
 --------------------------------------------------------------------------------
 PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
   1. CAN ID 193 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 94.1%
+     -> Share of Window Transition Excess: 99.6%
      -> Key Deviating Dimensions:
         * msg_count       [Message Volume / Frequency]: residual=1330.1703 (68.0%)
         * activity_share  [Bus Utilization Dominance Share]: residual=622.0003 (31.8%)
         * signal_std      [Decoded Signal Standard Deviation]: residual=2.8861 (0.1%)
-  2. CAN ID 485 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 0.8%
+  2. CAN ID 499 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 0.1%
+     -> Key Deviating Dimensions:
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.1616 (23.6%)
+        * signal_range    [Dynamic Signal Span Range]: residual=0.1448 (21.1%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=0.1385 (20.2%)
+  3. CAN ID 485 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 0.0%
      -> Key Deviating Dimensions:
         * activity_share  [Bus Utilization Dominance Share]: residual=3.3386 (89.3%)
         * msg_count       [Message Volume / Frequency]: residual=0.2133 (5.7%)
         * signal_std      [Decoded Signal Standard Deviation]: residual=0.1236 (3.3%)
-  3. CAN ID 197 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 0.5%
-     -> Key Deviating Dimensions:
-        * activity_share  [Bus Utilization Dominance Share]: residual=6.8404 (94.2%)
-        * signal_std      [Decoded Signal Standard Deviation]: residual=0.3363 (4.6%)
-        * signal_mean     [Decoded Signal Mean Value]: residual=0.0624 (0.9%)
 --------------------------------------------------------------------------------
 STRUCTURAL SEQUENCING ANOMALIES:
   * Transition 193 -> 388 (Count: 24, NLL: 16.12) [RARE TRANSITION]
@@ -219,10 +219,10 @@ RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (193) + ESCALATE_ALERT
 
 --- Incident 3 [HIGH_RISK] (test_01__force-neutral-3 @ 221.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-8C88B9AF
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-F996DCEC
 ================================================================================
 Capture: test_01__force-neutral-3 | Timestamp: 221.00s
-Anomaly Score: 708.9312 (Decision Tau: 12.0816, Alert Tau: 529.0974)
+Anomaly Score: 74358581.4741 (Decision Tau: 229364.5534, Alert Tau: 3214651.0299)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 0.5960
@@ -232,23 +232,23 @@ COMPONENT ANOMALY BREAKDOWN:
 --------------------------------------------------------------------------------
 PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
   1. CAN ID 501 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 86.9%
+     -> Share of Window Transition Excess: 99.3%
      -> Key Deviating Dimensions:
         * activity_share  [Bus Utilization Dominance Share]: residual=73.7477 (53.6%)
         * msg_count       [Message Volume / Frequency]: residual=55.8147 (40.5%)
         * signal_mean     [Decoded Signal Mean Value]: residual=3.0829 (2.2%)
-  2. CAN ID 249 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 2.5%
+  2. CAN ID 499 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 0.2%
      -> Key Deviating Dimensions:
-        * activity_share  [Bus Utilization Dominance Share]: residual=1.7212 (89.8%)
-        * msg_count       [Message Volume / Frequency]: residual=0.1501 (7.8%)
-        * signal_mean     [Decoded Signal Mean Value]: residual=0.0298 (1.6%)
-  3. CAN ID 409 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 2.1%
+        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=0.1531 (74.6%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0148 (7.2%)
+        * msg_count       [Message Volume / Frequency]: residual=0.0143 (7.0%)
+  3. CAN ID 842 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 0.1%
      -> Key Deviating Dimensions:
-        * activity_share  [Bus Utilization Dominance Share]: residual=0.3733 (72.5%)
-        * signal_mean     [Decoded Signal Mean Value]: residual=0.1297 (25.2%)
-        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=0.0048 (0.9%)
+        * signal_min      [Decoded Signal Minimum Bound]: residual=0.1517 (39.5%)
+        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=0.1249 (32.5%)
+        * mean_iat        [Mean Inter-Arrival Time (Transmission Cadence)]: residual=0.0252 (6.6%)
 --------------------------------------------------------------------------------
 STRUCTURAL SEQUENCING ANOMALIES:
   * Transition 501 -> 249 (Count: 75, NLL: 12.97) [RARE TRANSITION]
@@ -289,38 +289,38 @@ RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (501) + ESCALATE_ALERT
   [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_01\xai_visuals\incident_03_test_01__force-neutral-3_subgraph_interactive.html
   [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\ctt_set_01\xai_visuals\incident_03_test_01__force-neutral-3_dashboard.png
 
---- Incident 4 [SUSPICIOUS] (test_01__force-neutral-4 @ 244.0s) ---
+--- Incident 4 [HIGH_RISK] (test_01__force-neutral-4 @ 244.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [SUSPICIOUS] — Incident #INC-59C46863
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-67AEEED0
 ================================================================================
 Capture: test_01__force-neutral-4 | Timestamp: 244.00s
-Anomaly Score: 495.6308 (Decision Tau: 12.0816, Alert Tau: 529.0974)
+Anomaly Score: 18362945.1406 (Decision Tau: 229364.5534, Alert Tau: 3214651.0299)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 0.2784
-  - Temporal Dynamics Jitter (T_error): 460.0262
+  - Temporal Dynamics Jitter (T_error): 162.0015
   - Structural Sequence Penalty (G_error): 2.2193
   - Per-ID Transition Excess   (E_error): 1641.9441
 --------------------------------------------------------------------------------
 PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
   1. CAN ID 501 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 87.8%
+     -> Share of Window Transition Excess: 97.0%
      -> Key Deviating Dimensions:
         * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=3.2389 (43.7%)
         * signal_mean     [Decoded Signal Mean Value]: residual=1.5794 (21.3%)
         * activity_share  [Bus Utilization Dominance Share]: residual=1.4900 (20.1%)
-  2. CAN ID 249 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 1.4%
+  2. CAN ID 499 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 1.2%
      -> Key Deviating Dimensions:
-        * signal_std      [Decoded Signal Standard Deviation]: residual=0.1840 (46.4%)
-        * activity_share  [Bus Utilization Dominance Share]: residual=0.1271 (32.0%)
-        * signal_mean     [Decoded Signal Mean Value]: residual=0.0491 (12.4%)
-  3. CAN ID 409 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 0.8%
+        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=0.5338 (93.3%)
+        * signal_range    [Dynamic Signal Span Range]: residual=0.0183 (3.2%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=0.0100 (1.8%)
+  3. CAN ID 197 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 0.6%
      -> Key Deviating Dimensions:
-        * signal_mean     [Decoded Signal Mean Value]: residual=0.1656 (91.1%)
-        * msg_count       [Message Volume / Frequency]: residual=0.0091 (5.0%)
-        * signal_min      [Decoded Signal Minimum Bound]: residual=0.0029 (1.6%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.1850 (54.2%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.1088 (31.9%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.0305 (8.9%)
 --------------------------------------------------------------------------------
 STRUCTURAL SEQUENCING ANOMALIES:
   * Transition 501 -> 249 (Count: 27, NLL: 12.97) [RARE TRANSITION]
@@ -341,7 +341,7 @@ TRANSFORMER ATTENTION FOCUS:
   * 1919     ---> 193      (Attention: 0.1962, 5.49x uniform)
   * 481      ---> 241      (Attention: 0.1997, 5.19x uniform)
 ================================================================================
-RECOMMENDED GATEWAY POLICY ACTION: HEIGHTENED_MONITORING + LOG_TELEMETRY
+RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (501) + ESCALATE_ALERT
 ================================================================================
   [XAI Visual] Saved Radar Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_01\xai_visuals\incident_04_test_01__force-neutral-4_radar_chart.png
   [XAI Visual] Saved ID Attribution Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_01\xai_visuals\incident_04_test_01__force-neutral-4_id_attribution.png
@@ -351,39 +351,43 @@ RECOMMENDED GATEWAY POLICY ACTION: HEIGHTENED_MONITORING + LOG_TELEMETRY
 
 --- Incident 5 [NORMAL] (ambient_train-accessory-1_seg1 @ 0.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [NORMAL] — Incident #INC-63209EBD
+SECURITY INCIDENT REPORT [NORMAL] — Incident #INC-AEF509D2
 ================================================================================
 Capture: ambient_train-accessory-1_seg1 | Timestamp: 0.00s
-Anomaly Score: 6.2316 (Decision Tau: 12.0816, Alert Tau: 529.0974)
+Anomaly Score: 113353.9615 (Decision Tau: 229364.5534, Alert Tau: 3214651.0299)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 0.2234
-  - Temporal Dynamics Jitter (T_error): 3.5623
+  - Temporal Dynamics Jitter (T_error): 1.0000
   - Structural Sequence Penalty (G_error): 1.7669
   - Per-ID Transition Excess   (E_error): 52.2017
 --------------------------------------------------------------------------------
 PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
-  1. CAN ID 298 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 9.9%
+  1. CAN ID 842 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 25.0%
      -> Key Deviating Dimensions:
-        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=0.3520 (58.9%)
-        * signal_mean     [Decoded Signal Mean Value]: residual=0.1408 (23.6%)
-        * mean_iat        [Mean Inter-Arrival Time (Transmission Cadence)]: residual=0.0788 (13.2%)
-  2. CAN ID 1265 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 6.0%
+        * signal_range    [Dynamic Signal Span Range]: residual=0.1304 (21.9%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.1302 (21.8%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.1207 (20.2%)
+  2. CAN ID 761 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 25.0%
      -> Key Deviating Dimensions:
-        * signal_mean     [Decoded Signal Mean Value]: residual=0.2922 (52.9%)
-        * mean_iat        [Mean Inter-Arrival Time (Transmission Cadence)]: residual=0.1982 (35.9%)
-        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=0.0351 (6.4%)
-  3. CAN ID 1906 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 5.7%
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.1260 (46.6%)
+        * signal_range    [Dynamic Signal Span Range]: residual=0.0614 (22.7%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0373 (13.8%)
+  3. CAN ID 840 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 25.0%
      -> Key Deviating Dimensions:
-        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0280 (23.6%)
-        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=0.0264 (22.3%)
-        * signal_range    [Dynamic Signal Span Range]: residual=0.0179 (15.2%)
+        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=0.0404 (39.4%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0247 (24.1%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=0.0131 (12.8%)
 --------------------------------------------------------------------------------
 STRUCTURAL SEQUENCING ANOMALIES:
-  * Transition 193 -> 298 (Count: 2, NLL: 5.93)
+  * Transition 501 -> 842 (Count: 1, NLL: 5.21)
+  * Transition 969 -> 842 (Count: 1, NLL: 5.61)
+  * Transition 409 -> 842 (Count: 2, NLL: 5.56)
+  * Transition 249 -> 842 (Count: 1, NLL: 5.85)
+  * Transition 401 -> 842 (Count: 1, NLL: 5.52)
 --------------------------------------------------------------------------------
 TRANSFORMER ATTENTION FOCUS:
   * 761      ---> 201      (Attention: 0.2251, 5.18x uniform)

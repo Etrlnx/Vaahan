@@ -121,6 +121,29 @@ class ReportGenerator:
                 ],
             })
 
+        if detection_result.missing_id_index is not None:
+            # A suspended ECU has no node: name the silent ID first, with its message deficit as evidence.
+            inv = {v: k for k, v in self.vocab.items()}
+            missing_id = str(inv.get(detection_result.missing_id_index, detection_result.missing_id_index))
+            present = sum(max(float(s), 0.0) for s in (detection_result.node_scores or []))
+            share = 100.0 * detection_result.missing_id_score / max(detection_result.missing_id_score + present, 1e-9)
+            top_ids_payload.insert(0, {
+                "arbitration_id": missing_id,
+                "vocab_index": detection_result.missing_id_index,
+                "functional_description": lookup_functional_hint(missing_id),
+                "anomaly_contribution_pct": round(share, 2),
+                "total_node_residual": 0.0,
+                "status": "missing",
+                "top_deviating_features": [{
+                    "feature": "msg_count",
+                    "description": "Expected in nearly every benign window but silent here (possible suspension)",
+                    "observed_value": 0.0,
+                    "residual": round(detection_result.missing_id_score, 4),
+                    "feature_contribution_pct": 100.0,
+                }],
+            })
+            top_ids_payload = top_ids_payload[:3]
+
         attended_edges = self.attention_analyzer.compute_edge_importance(
             batch, model, top_k=4
         )

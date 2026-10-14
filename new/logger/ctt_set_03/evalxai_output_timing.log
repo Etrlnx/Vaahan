@@ -4,31 +4,31 @@ EXPLAINABLE AI (XAI) GROUND-TRUTH FIDELITY BENCHMARK
 
 [1/3] Loading model, vocabulary, and test graphs...
 Restoring exact capture splits and feature normalizer from checkpoint metadata...
-Component scales fitted: recon=0.0213, temporal=32.5353, struct=0.2508, excess=188.7409
+Component scales fitted: recon=0.0213, temporal=2.9652, struct=0.2508, excess=188.7409
 Detector Calibrated on 382 validation windows:
-  tau_suspicious (95.0th percentile) : 30.1101
-  tau_alert      (99.0th percentile) : 107.9562
+  tau_suspicious (95.0th percentile) : 6.7328
+  tau_alert      (99.0th percentile) : 33.6587
 
 [2/3] Evaluating Explanation Fidelity on True Attack Windows...
 
 ================================================================================
 EXPLAINABILITY FIDELITY BENCHMARK RESULTS
 ================================================================================
-  [TEST_01] Evaluated Attack Alert Windows : 184
-  [TEST_01] Hit Rate @ Top-1 (HR@1)        : 97.28%
-  [TEST_01] Hit Rate @ Top-3 (HR@3)        : 97.83%
-  [TEST_01] Feature Grounding Fidelity     : 96.20%
+  [TEST_01] Evaluated Attack Alert Windows : 204
+  [TEST_01] Hit Rate @ Top-1 (HR@1)        : 81.37%
+  [TEST_01] Hit Rate @ Top-3 (HR@3)        : 91.18%
+  [TEST_01] Feature Grounding Fidelity     : 95.10%
   [TEST_02] Evaluated Attack Alert Windows : 336
-  [TEST_02] Hit Rate @ Top-1 (HR@1)        : 31.85%
-  [TEST_02] Hit Rate @ Top-3 (HR@3)        : 91.96%
+  [TEST_02] Hit Rate @ Top-1 (HR@1)        : 62.20%
+  [TEST_02] Hit Rate @ Top-3 (HR@3)        : 83.33%
   [TEST_02] Feature Grounding Fidelity     : 100.00%
-  [TEST_03] Evaluated Attack Alert Windows : 466
-  [TEST_03] Hit Rate @ Top-1 (HR@1)        : 98.28%
-  [TEST_03] Hit Rate @ Top-3 (HR@3)        : 98.50%
-  [TEST_03] Feature Grounding Fidelity     : 100.00%
+  [TEST_03] Evaluated Attack Alert Windows : 504
+  [TEST_03] Hit Rate @ Top-1 (HR@1)        : 94.05%
+  [TEST_03] Hit Rate @ Top-3 (HR@3)        : 96.83%
+  [TEST_03] Feature Grounding Fidelity     : 97.42%
   [TEST_04] Evaluated Attack Alert Windows : 1002
-  [TEST_04] Hit Rate @ Top-1 (HR@1)        : 2.99%
-  [TEST_04] Hit Rate @ Top-3 (HR@3)        : 6.39%
+  [TEST_04] Hit Rate @ Top-1 (HR@1)        : 4.19%
+  [TEST_04] Hit Rate @ Top-3 (HR@3)        : 4.99%
   [TEST_04] Feature Grounding Fidelity     : 100.00%
 ================================================================================
 
@@ -36,20 +36,20 @@ EXPLAINABILITY FIDELITY BENCHMARK RESULTS
 
 --- Incident 1 [HIGH_RISK] (test_01__DoS-1 @ 22.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-BDBAFEB0
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-1DF853CF
 ================================================================================
 Capture: test_01__DoS-1 | Timestamp: 22.00s
-Anomaly Score: 217.9625 (Decision Tau: 30.1101, Alert Tau: 107.9562)
+Anomaly Score: 217.9625 (Decision Tau: 6.7328, Alert Tau: 33.6587)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 3.2524
-  - Temporal Dynamics Jitter (T_error): 7.7505
+  - Temporal Dynamics Jitter (T_error): 1.0000
   - Structural Sequence Penalty (G_error): 6.1483
   - Per-ID Transition Excess   (E_error): 33924.4886
 --------------------------------------------------------------------------------
 PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
   1. CAN ID <UNK> (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 57.9%
+     -> Share of Window Transition Excess: 58.0%
      -> Key Deviating Dimensions:
         * msg_count       [Message Volume / Frequency]: residual=1156.0980 (50.8%)
         * activity_share  [Bus Utilization Dominance Share]: residual=999.9386 (44.0%)
@@ -170,145 +170,144 @@ findfont: Failed to find font weight semibold for DejaVu Sans, now using 700.
   [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_03\xai_visuals\incident_01_test_01__DoS-1_subgraph_interactive.html
   [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\ctt_set_03\xai_visuals\incident_01_test_01__DoS-1_dashboard.png
 
---- Incident 2 [HIGH_RISK] (test_01__DoS-2 @ 77.0s) ---
+--- Incident 2 [HIGH_RISK] (test_01__DoS-2 @ 92.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-CD8C43C9
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-CD20246E
 ================================================================================
-Capture: test_01__DoS-2 | Timestamp: 77.00s
-Anomaly Score: 148.0190 (Decision Tau: 30.1101, Alert Tau: 107.9562)
+Capture: test_01__DoS-2 | Timestamp: 92.00s
+Anomaly Score: 901.8103 (Decision Tau: 6.7328, Alert Tau: 33.6587)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
-  - Reconstruction Residual (R_error): 3.8823
-  - Temporal Dynamics Jitter (T_error): 2495.0042
-  - Structural Sequence Penalty (G_error): 4.1064
-  - Per-ID Transition Excess   (E_error): 19326.1503
+  - Reconstruction Residual (R_error): 3.8754
+  - Temporal Dynamics Jitter (T_error): 2539.0044
+  - Structural Sequence Penalty (G_error): 4.4576
+  - Per-ID Transition Excess   (E_error): 19248.4286
 --------------------------------------------------------------------------------
 PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
   1. CAN ID 170 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 52.9%
+     -> Share of Window Transition Excess: 91.9%
      -> Key Deviating Dimensions:
-        * msg_count       [Message Volume / Frequency]: residual=1334.4321 (50.2%)
-        * activity_share  [Bus Utilization Dominance Share]: residual=1152.0989 (43.4%)
-        * signal_min      [Decoded Signal Minimum Bound]: residual=57.8633 (2.2%)
-  2. CAN ID 320 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 17.4%
+        * msg_count       [Message Volume / Frequency]: residual=1384.0952 (50.6%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=1180.8445 (43.1%)
+        * signal_min      [Decoded Signal Minimum Bound]: residual=60.3171 (2.2%)
+  2. CAN ID 493 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 0.6%
      -> Key Deviating Dimensions:
-        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=10.6680 (63.2%)
-        * activity_share  [Bus Utilization Dominance Share]: residual=3.4944 (20.7%)
-        * msg_count       [Message Volume / Frequency]: residual=1.4209 (8.4%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=5.0833 (81.2%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.7403 (11.8%)
+        * msg_count       [Message Volume / Frequency]: residual=0.2790 (4.5%)
   3. CAN ID 398 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 2.6%
+     -> Share of Window Transition Excess: 0.5%
      -> Key Deviating Dimensions:
-        * activity_share  [Bus Utilization Dominance Share]: residual=0.9726 (52.4%)
-        * signal_mean     [Decoded Signal Mean Value]: residual=0.3907 (21.0%)
-        * signal_std      [Decoded Signal Standard Deviation]: residual=0.2950 (15.9%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=4.0208 (93.2%)
+        * msg_count       [Message Volume / Frequency]: residual=0.1404 (3.3%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.0824 (1.9%)
 --------------------------------------------------------------------------------
 STRUCTURAL SEQUENCING ANOMALIES:
-  * Transition 170 -> 840 (Count: 16, NLL: 5.26)
-  * Transition 190 -> 170 (Count: 34, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 417 (Count: 23, NLL: 16.12) [RARE TRANSITION]
-  * Transition 426 -> 170 (Count: 17, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 398 (Count: 41, NLL: 16.12) [RARE TRANSITION]
-  * Transition 493 -> 170 (Count: 36, NLL: 12.60) [RARE TRANSITION]
-  * Transition 170 -> 452 (Count: 23, NLL: 16.12) [RARE TRANSITION]
-  * Transition 500 -> 170 (Count: 16, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 842 (Count: 10, NLL: 5.38)
-  * Transition 647 -> 170 (Count: 20, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 309 (Count: 17, NLL: 6.19)
-  * Transition 170 -> 510 (Count: 8, NLL: 5.47)
-  * Transition 393 -> 170 (Count: 28, NLL: 5.06)
-  * Transition 170 -> 413 (Count: 28, NLL: 5.95)
-  * Transition 170 -> 311 (Count: 16, NLL: 5.72)
-  * Transition 211 -> 170 (Count: 26, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 419 (Count: 5, NLL: 16.12) [RARE TRANSITION]
+  * Transition 211 -> 170 (Count: 34, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 398 (Count: 38, NLL: 16.12) [RARE TRANSITION]
+  * Transition 417 -> 170 (Count: 22, NLL: 16.12) [RARE TRANSITION]
   * Transition 442 -> 170 (Count: 19, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 451 (Count: 19, NLL: 16.12) [RARE TRANSITION]
-  * Transition 479 -> 170 (Count: 17, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 500 (Count: 16, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 1020 (Count: 3, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 313 (Count: 18, NLL: 5.98)
-  * Transition 170 -> 386 (Count: 20, NLL: 6.05)
-  * Transition 170 -> 810 (Count: 16, NLL: 6.25)
-  * Transition 417 -> 170 (Count: 18, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 201 (Count: 36, NLL: 16.12) [RARE TRANSITION]
-  * Transition 453 -> 170 (Count: 15, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 844 (Count: 8, NLL: 5.18)
-  * Transition 170 -> 289 (Count: 5, NLL: 7.21)
-  * Transition 170 -> 866 (Count: 6, NLL: 5.47)
-  * Transition 170 -> 393 (Count: 49, NLL: 5.55)
-  * Transition 170 -> 497 (Count: 17, NLL: 6.22)
-  * Transition 201 -> 170 (Count: 24, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 451 (Count: 27, NLL: 16.12) [RARE TRANSITION]
+  * Transition 500 -> 170 (Count: 14, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 647 (Count: 12, NLL: 16.12) [RARE TRANSITION]
+  * Transition 647 -> 170 (Count: 42, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 309 (Count: 14, NLL: 6.19)
+  * Transition 170 -> 510 (Count: 21, NLL: 5.47)
+  * Transition 190 -> 170 (Count: 31, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 866 (Count: 18, NLL: 5.47)
+  * Transition 170 -> 393 (Count: 65, NLL: 5.55)
+  * Transition 422 -> 170 (Count: 17, NLL: 5.90)
+  * Transition 170 -> 431 (Count: 16, NLL: 6.55)
+  * Transition 426 -> 170 (Count: 15, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 1009 (Count: 5, NLL: 7.25)
+  * Transition 170 -> 453 (Count: 12, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 1017 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1020 -> 170 (Count: 2, NLL: 10.30) [RARE TRANSITION]
+  * Transition 170 -> 313 (Count: 17, NLL: 5.98)
+  * Transition 398 -> 170 (Count: 31, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 422 (Count: 9, NLL: 5.76)
+  * Transition 170 -> 386 (Count: 6, NLL: 6.05)
+  * Transition 170 -> 810 (Count: 17, NLL: 6.25)
+  * Transition 493 -> 170 (Count: 55, NLL: 12.60) [RARE TRANSITION]
+  * Transition 170 -> 417 (Count: 19, NLL: 16.12) [RARE TRANSITION]
+  * Transition 419 -> 170 (Count: 15, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 426 (Count: 10, NLL: 16.12) [RARE TRANSITION]
+  * Transition 452 -> 170 (Count: 16, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 842 (Count: 6, NLL: 5.38)
+  * Transition 170 -> 493 (Count: 34, NLL: 16.12) [RARE TRANSITION]
+  * Transition 393 -> 170 (Count: 25, NLL: 5.06)
+  * Transition 170 -> 413 (Count: 24, NLL: 5.95)
+  * Transition 170 -> 497 (Count: 16, NLL: 6.22)
   * Transition 170 -> 442 (Count: 19, NLL: 16.12) [RARE TRANSITION]
-  * Transition 707 -> 170 (Count: 14, NLL: 16.12) [RARE TRANSITION]
+  * Transition 453 -> 170 (Count: 11, NLL: 16.12) [RARE TRANSITION]
   * Transition 170 -> 961 (Count: 5, NLL: 16.12) [RARE TRANSITION]
-  * Transition 985 -> 170 (Count: 4, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 969 (Count: 14, NLL: 6.22)
-  * Transition 398 -> 170 (Count: 34, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 493 (Count: 31, NLL: 16.12) [RARE TRANSITION]
-  * Transition 431 -> 170 (Count: 16, NLL: 5.21)
-  * Transition 170 -> 501 (Count: 16, NLL: 6.25)
-  * Transition 170 -> 761 (Count: 7, NLL: 5.54)
-  * Transition 170 -> 426 (Count: 11, NLL: 16.12) [RARE TRANSITION]
-  * Transition 422 -> 170 (Count: 12, NLL: 5.90)
-  * Transition 170 -> 431 (Count: 12, NLL: 6.55)
-  * Transition 170 -> 211 (Count: 20, NLL: 16.12) [RARE TRANSITION]
-  * Transition 419 -> 170 (Count: 13, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 479 (Count: 13, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 463 (Count: 5, NLL: 6.22)
-  * Transition 170 -> 1105 (Count: 11, NLL: 6.25)
-  * Transition 977 -> 170 (Count: 6, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 1001 (Count: 4, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 208 (Count: 6, NLL: 6.17)
-  * Transition 170 -> 298 (Count: 4, NLL: 6.04)
-  * Transition 170 -> 1005 (Count: 8, NLL: 7.30)
+  * Transition 979 -> 170 (Count: 4, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 985 (Count: 5, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 170 (Count: 19, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 532 (Count: 9, NLL: 5.26)
+  * Transition 170 -> 419 (Count: 9, NLL: 16.12) [RARE TRANSITION]
   * Transition 451 -> 170 (Count: 15, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 508 (Count: 8, NLL: 5.45)
-  * Transition 170 -> 381 (Count: 6, NLL: 5.98)
-  * Transition 170 -> 532 (Count: 6, NLL: 5.26)
-  * Transition 170 -> 422 (Count: 11, NLL: 5.76)
+  * Transition 170 -> 311 (Count: 10, NLL: 5.72)
+  * Transition 170 -> 463 (Count: 3, NLL: 6.22)
+  * Transition 479 -> 170 (Count: 16, NLL: 16.12) [RARE TRANSITION]
+  * Transition 707 -> 170 (Count: 10, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 508 (Count: 10, NLL: 5.45)
+  * Transition 170 -> 381 (Count: 11, NLL: 5.98)
+  * Transition 170 -> 211 (Count: 14, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 479 (Count: 17, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 201 (Count: 35, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 1105 (Count: 11, NLL: 6.25)
+  * Transition 985 -> 170 (Count: 5, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 1001 (Count: 4, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 501 (Count: 16, NLL: 6.25)
+  * Transition 170 -> 298 (Count: 4, NLL: 6.04)
+  * Transition 170 -> 844 (Count: 5, NLL: 5.18)
+  * Transition 431 -> 170 (Count: 14, NLL: 5.21)
+  * Transition 170 -> 1005 (Count: 1, NLL: 7.30)
+  * Transition 170 -> 500 (Count: 12, NLL: 16.12) [RARE TRANSITION]
   * Transition 170 -> 1928 (Count: 2, NLL: 8.27)
-  * Transition 170 -> 1009 (Count: 3, NLL: 7.25)
-  * Transition 170 -> 977 (Count: 5, NLL: 16.12) [RARE TRANSITION]
-  * Transition 979 -> 170 (Count: 5, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 1017 (Count: 3, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 320 (Count: 2, NLL: 8.08)
-  * Transition 170 -> 352 (Count: 11, NLL: 5.95)
-  * Transition 170 -> 647 (Count: 14, NLL: 16.12) [RARE TRANSITION]
-  * Transition 1267 -> 170 (Count: 1, NLL: 15.82) [RARE TRANSITION]
-  * Transition 170 -> 1417 (Count: 1, NLL: 16.12) [RARE TRANSITION]
-  * Transition 1906 -> 170 (Count: 2, NLL: 15.82) [RARE TRANSITION]
-  * Transition 170 -> 1221 (Count: 2, NLL: 7.63)
-  * Transition 170 -> 1257 (Count: 1, NLL: 7.98)
-  * Transition 170 -> 1920 (Count: 2, NLL: 8.46)
-  * Transition 170 -> 328 (Count: 1, NLL: 8.14)
-  * Transition 170 -> 1300 (Count: 2, NLL: 8.80)
-  * Transition 170 -> 1919 (Count: 1, NLL: 9.56) [RARE TRANSITION]
-  * Transition 170 -> 1323 (Count: 1, NLL: 8.49)
-  * Transition 452 -> 170 (Count: 13, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 453 (Count: 13, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 707 (Count: 7, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 985 (Count: 4, NLL: 16.12) [RARE TRANSITION]
+  * Transition 977 -> 170 (Count: 4, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1017 -> 170 (Count: 1, NLL: 16.12) [RARE TRANSITION]
   * Transition 170 -> 1019 (Count: 1, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 979 (Count: 3, NLL: 16.12) [RARE TRANSITION]
-  * Transition 1001 -> 170 (Count: 2, NLL: 8.32)
-  * Transition 1019 -> 170 (Count: 2, NLL: 16.12) [RARE TRANSITION]
-  * Transition 1223 -> 170 (Count: 2, NLL: 5.00)
-  * Transition 170 -> 564 (Count: 3, NLL: 6.49)
-  * Transition 170 -> 1233 (Count: 1, NLL: 16.12) [RARE TRANSITION]
-  * Transition 961 -> 170 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1223 -> 170 (Count: 1, NLL: 5.00)
+  * Transition 170 -> 969 (Count: 8, NLL: 6.22)
+  * Transition 170 -> 208 (Count: 13, NLL: 6.17)
+  * Transition 170 -> 320 (Count: 2, NLL: 8.08)
+  * Transition 170 -> 1280 (Count: 1, NLL: 8.31)
+  * Transition 170 -> 1233 (Count: 4, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1906 -> 170 (Count: 2, NLL: 15.82) [RARE TRANSITION]
+  * Transition 170 -> 1257 (Count: 1, NLL: 7.98)
+  * Transition 170 -> 328 (Count: 2, NLL: 8.14)
+  * Transition 170 -> 1300 (Count: 2, NLL: 8.80)
+  * Transition 170 -> 1323 (Count: 2, NLL: 8.49)
+  * Transition 170 -> 1225 (Count: 2, NLL: 8.77)
+  * Transition 961 -> 170 (Count: 6, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 564 (Count: 2, NLL: 6.49)
+  * Transition 170 -> 352 (Count: 9, NLL: 5.95)
+  * Transition 170 -> 840 (Count: 5, NLL: 5.26)
+  * Transition 170 -> 452 (Count: 10, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 707 (Count: 5, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 979 (Count: 4, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1001 -> 170 (Count: 10, NLL: 8.32)
+  * Transition 1019 -> 170 (Count: 5, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 1020 (Count: 5, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 289 (Count: 3, NLL: 7.21)
+  * Transition 170 -> 977 (Count: 5, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 1221 (Count: 2, NLL: 7.63)
+  * Transition 170 -> 761 (Count: 5, NLL: 5.54)
   * Transition 170 -> 288 (Count: 1, NLL: 9.89) [RARE TRANSITION]
-  * Transition 170 -> 304 (Count: 1, NLL: 8.26)
-  * Transition 170 -> 1265 (Count: 1, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 1225 (Count: 1, NLL: 8.77)
-  * Transition 1217 -> 170 (Count: 1, NLL: 16.12) [RARE TRANSITION]
-  * Transition 170 -> 1223 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 170 -> 1907 (Count: 1, NLL: 8.64)
+  * Transition 170 -> 1920 (Count: 1, NLL: 8.46)
+  * Transition 170 -> 1249 (Count: 1, NLL: 9.02)
+  * Transition 170 -> 1919 (Count: 1, NLL: 9.56) [RARE TRANSITION]
   * Transition 1417 -> 170 (Count: 1, NLL: 7.81)
 --------------------------------------------------------------------------------
 TRANSFORMER ATTENTION FOCUS:
-  * 249      ---> 170      (Attention: 0.1875, 16.69x uniform)
-  * 1217     ---> 170      (Attention: 0.1334, 11.87x uniform)
-  * 288      ---> 170      (Attention: 0.1314, 11.70x uniform)
-  * 320      ---> 170      (Attention: 0.1243, 11.06x uniform)
+  * 241      ---> 170      (Attention: 0.1873, 16.67x uniform)
+  * 1323     ---> 170      (Attention: 0.1358, 12.09x uniform)
+  * 288      ---> 170      (Attention: 0.0923, 8.21x uniform)
+  * 208      ---> 170      (Attention: 0.0850, 7.56x uniform)
 ================================================================================
 RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (170) + ESCALATE_ALERT
 ================================================================================
@@ -318,133 +317,141 @@ RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (170) + ESCALATE_ALERT
   [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_03\xai_visuals\incident_02_test_01__DoS-2_subgraph_interactive.html
   [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\ctt_set_03\xai_visuals\incident_02_test_01__DoS-2_dashboard.png
 
---- Incident 3 [HIGH_RISK] (test_01__double-1 @ 261.0s) ---
+--- Incident 3 [HIGH_RISK] (test_01__double-1 @ 262.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-6BC43CC6
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-2E862059
 ================================================================================
-Capture: test_01__double-1 | Timestamp: 261.00s
-Anomaly Score: 137.3794 (Decision Tau: 30.1101, Alert Tau: 107.9562)
+Capture: test_01__double-1 | Timestamp: 262.00s
+Anomaly Score: 181.7938 (Decision Tau: 6.7328, Alert Tau: 33.6587)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
-  - Reconstruction Residual (R_error): 0.2689
-  - Temporal Dynamics Jitter (T_error): 4366.8589
-  - Structural Sequence Penalty (G_error): 3.7386
-  - Per-ID Transition Excess   (E_error): 8054.8636
+  - Reconstruction Residual (R_error): 0.2598
+  - Temporal Dynamics Jitter (T_error): 530.0009
+  - Structural Sequence Penalty (G_error): 3.7337
+  - Per-ID Transition Excess   (E_error): 8076.3362
 --------------------------------------------------------------------------------
 PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
-  1. CAN ID 309 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 53.5%
+  1. CAN ID 840 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 45.0%
      -> Key Deviating Dimensions:
-        * activity_share  [Bus Utilization Dominance Share]: residual=33.0094 (47.9%)
-        * msg_count       [Message Volume / Frequency]: residual=27.6915 (40.2%)
-        * signal_std      [Decoded Signal Standard Deviation]: residual=2.5559 (3.7%)
-  2. CAN ID 840 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 30.7%
+        * activity_share  [Bus Utilization Dominance Share]: residual=26.1853 (46.5%)
+        * msg_count       [Message Volume / Frequency]: residual=24.2203 (43.0%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=3.2035 (5.7%)
+  2. CAN ID 309 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 45.0%
      -> Key Deviating Dimensions:
-        * activity_share  [Bus Utilization Dominance Share]: residual=26.6090 (47.2%)
-        * msg_count       [Message Volume / Frequency]: residual=24.4391 (43.3%)
-        * signal_mean     [Decoded Signal Mean Value]: residual=3.6516 (6.5%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=34.1671 (48.6%)
+        * msg_count       [Message Volume / Frequency]: residual=28.3908 (40.4%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=2.3947 (3.4%)
   3. CAN ID 193 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 1.9%
+     -> Share of Window Transition Excess: 1.1%
      -> Key Deviating Dimensions:
-        * signal_std      [Decoded Signal Standard Deviation]: residual=0.8584 (62.4%)
-        * activity_share  [Bus Utilization Dominance Share]: residual=0.2389 (17.4%)
-        * signal_mean     [Decoded Signal Mean Value]: residual=0.1797 (13.1%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.7646 (56.9%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.3355 (25.0%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.1794 (13.4%)
 --------------------------------------------------------------------------------
 STRUCTURAL SEQUENCING ANOMALIES:
-  * Transition 309 -> 840 (Count: 174, NLL: 5.69)
-  * Transition 452 -> 309 (Count: 16, NLL: 7.06)
-  * Transition 309 -> 453 (Count: 18, NLL: 5.32)
-  * Transition 309 -> 1233 (Count: 1, NLL: 6.76)
-  * Transition 1105 -> 309 (Count: 9, NLL: 16.12) [RARE TRANSITION]
-  * Transition 455 -> 309 (Count: 9, NLL: 6.63)
-  * Transition 313 -> 309 (Count: 10, NLL: 16.12) [RARE TRANSITION]
-  * Transition 453 -> 309 (Count: 6, NLL: 7.12)
-  * Transition 309 -> 493 (Count: 7, NLL: 5.21)
-  * Transition 199 -> 309 (Count: 11, NLL: 8.78)
-  * Transition 309 -> 249 (Count: 9, NLL: 6.70)
-  * Transition 810 -> 309 (Count: 5, NLL: 16.12) [RARE TRANSITION]
-  * Transition 431 -> 309 (Count: 7, NLL: 5.95)
-  * Transition 1323 -> 309 (Count: 1, NLL: 15.82) [RARE TRANSITION]
-  * Transition 479 -> 309 (Count: 6, NLL: 6.53)
-  * Transition 309 -> 500 (Count: 6, NLL: 5.36)
-  * Transition 485 -> 309 (Count: 21, NLL: 6.14)
-  * Transition 197 -> 309 (Count: 13, NLL: 5.65)
-  * Transition 193 -> 309 (Count: 13, NLL: 5.66)
-  * Transition 309 -> 479 (Count: 6, NLL: 5.39)
-  * Transition 352 -> 309 (Count: 7, NLL: 16.12) [RARE TRANSITION]
-  * Transition 454 -> 309 (Count: 7, NLL: 6.47)
-  * Transition 309 -> 842 (Count: 1, NLL: 5.79)
-  * Transition 499 -> 309 (Count: 13, NLL: 16.12) [RARE TRANSITION]
-  * Transition 398 -> 309 (Count: 7, NLL: 6.23)
-  * Transition 481 -> 309 (Count: 10, NLL: 16.12) [RARE TRANSITION]
-  * Transition 489 -> 309 (Count: 6, NLL: 5.83)
-  * Transition 844 -> 309 (Count: 27, NLL: 5.52)
-  * Transition 451 -> 309 (Count: 10, NLL: 6.98)
-  * Transition 309 -> 452 (Count: 6, NLL: 5.22)
-  * Transition 309 -> 241 (Count: 20, NLL: 9.14)
-  * Transition 493 -> 309 (Count: 17, NLL: 5.07)
-  * Transition 309 -> 562 (Count: 6, NLL: 5.10)
-  * Transition 208 -> 309 (Count: 1, NLL: 16.12) [RARE TRANSITION]
-  * Transition 442 -> 309 (Count: 4, NLL: 6.51)
-  * Transition 460 -> 309 (Count: 7, NLL: 5.04)
-  * Transition 311 -> 309 (Count: 1, NLL: 16.12) [RARE TRANSITION]
-  * Transition 309 -> 1009 (Count: 2, NLL: 16.12) [RARE TRANSITION]
-  * Transition 309 -> 532 (Count: 2, NLL: 7.75)
-  * Transition 309 -> 961 (Count: 5, NLL: 9.14)
-  * Transition 211 -> 309 (Count: 7, NLL: 6.00)
-  * Transition 389 -> 309 (Count: 3, NLL: 7.00)
-  * Transition 309 -> 455 (Count: 4, NLL: 5.47)
-  * Transition 309 -> 313 (Count: 5, NLL: 16.12) [RARE TRANSITION]
-  * Transition 209 -> 309 (Count: 11, NLL: 5.77)
-  * Transition 422 -> 309 (Count: 6, NLL: 6.34)
-  * Transition 309 -> 431 (Count: 6, NLL: 5.01)
-  * Transition 500 -> 309 (Count: 4, NLL: 5.86)
-  * Transition 190 -> 309 (Count: 9, NLL: 6.11)
-  * Transition 707 -> 309 (Count: 4, NLL: 6.42)
-  * Transition 309 -> 761 (Count: 3, NLL: 6.65)
-  * Transition 309 -> 289 (Count: 2, NLL: 16.12) [RARE TRANSITION]
-  * Transition 309 -> 1417 (Count: 1, NLL: 6.47)
-  * Transition 1225 -> 309 (Count: 1, NLL: 16.12) [RARE TRANSITION]
-  * Transition 201 -> 309 (Count: 6, NLL: 5.82)
-  * Transition 417 -> 309 (Count: 6, NLL: 6.06)
-  * Transition 309 -> 311 (Count: 3, NLL: 16.12) [RARE TRANSITION]
-  * Transition 969 -> 309 (Count: 2, NLL: 16.12) [RARE TRANSITION]
-  * Transition 426 -> 309 (Count: 5, NLL: 6.04)
-  * Transition 170 -> 309 (Count: 6, NLL: 6.19)
-  * Transition 532 -> 309 (Count: 1, NLL: 9.14)
-  * Transition 1257 -> 309 (Count: 1, NLL: 15.82) [RARE TRANSITION]
-  * Transition 1249 -> 309 (Count: 1, NLL: 15.82) [RARE TRANSITION]
-  * Transition 419 -> 309 (Count: 3, NLL: 6.68)
-  * Transition 1328 -> 309 (Count: 1, NLL: 15.82) [RARE TRANSITION]
-  * Transition 309 -> 497 (Count: 3, NLL: 6.72)
-  * Transition 309 -> 508 (Count: 2, NLL: 5.29)
-  * Transition 564 -> 309 (Count: 2, NLL: 16.12) [RARE TRANSITION]
-  * Transition 309 -> 707 (Count: 3, NLL: 7.60)
-  * Transition 413 -> 309 (Count: 2, NLL: 5.30)
-  * Transition 985 -> 309 (Count: 2, NLL: 7.19)
-  * Transition 309 -> 1001 (Count: 1, NLL: 7.43)
-  * Transition 289 -> 309 (Count: 2, NLL: 16.12) [RARE TRANSITION]
-  * Transition 1009 -> 309 (Count: 2, NLL: 16.12) [RARE TRANSITION]
-  * Transition 309 -> 969 (Count: 1, NLL: 16.12) [RARE TRANSITION]
-  * Transition 393 -> 309 (Count: 3, NLL: 5.69)
-  * Transition 309 -> 298 (Count: 1, NLL: 16.12) [RARE TRANSITION]
-  * Transition 510 -> 309 (Count: 1, NLL: 6.21)
-  * Transition 309 -> 866 (Count: 1, NLL: 5.60)
-  * Transition 386 -> 309 (Count: 1, NLL: 6.21)
-  * Transition 977 -> 309 (Count: 1, NLL: 6.88)
-  * Transition 304 -> 309 (Count: 1, NLL: 15.82) [RARE TRANSITION]
-  * Transition 961 -> 309 (Count: 1, NLL: 6.50)
-  * Transition 309 -> 977 (Count: 1, NLL: 8.22)
-  * Transition 309 -> 352 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 309 -> 840 (Count: 175, NLL: 5.69)
+  * Transition 211 -> 840 (Count: 6, NLL: 5.95)
+  * Transition 840 -> 419 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 209 -> 840 (Count: 8, NLL: 16.12) [RARE TRANSITION]
+  * Transition 249 -> 840 (Count: 25, NLL: 5.29)
+  * Transition 840 -> 1920 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 563 -> 840 (Count: 1, NLL: 15.13) [RARE TRANSITION]
+  * Transition 462 -> 840 (Count: 8, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 193 (Count: 60, NLL: 16.12) [RARE TRANSITION]
+  * Transition 489 -> 840 (Count: 12, NLL: 16.12) [RARE TRANSITION]
+  * Transition 197 -> 840 (Count: 9, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 209 (Count: 12, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1322 -> 840 (Count: 1, NLL: 5.04)
+  * Transition 840 -> 485 (Count: 17, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 510 (Count: 16, NLL: 16.12) [RARE TRANSITION]
+  * Transition 241 -> 840 (Count: 25, NLL: 5.48)
+  * Transition 493 -> 840 (Count: 16, NLL: 5.88)
+  * Transition 413 -> 840 (Count: 2, NLL: 8.75)
+  * Transition 840 -> 422 (Count: 4, NLL: 8.06)
+  * Transition 840 -> 249 (Count: 7, NLL: 5.15)
+  * Transition 442 -> 840 (Count: 4, NLL: 5.03)
+  * Transition 977 -> 840 (Count: 3, NLL: 5.62)
+  * Transition 840 -> 979 (Count: 3, NLL: 6.17)
+  * Transition 398 -> 840 (Count: 11, NLL: 6.00)
+  * Transition 840 -> 462 (Count: 21, NLL: 16.12) [RARE TRANSITION]
+  * Transition 431 -> 840 (Count: 6, NLL: 8.96)
+  * Transition 840 -> 501 (Count: 4, NLL: 8.38)
+  * Transition 532 -> 840 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 455 -> 840 (Count: 6, NLL: 16.12) [RARE TRANSITION]
+  * Transition 844 -> 840 (Count: 8, NLL: 16.12) [RARE TRANSITION]
+  * Transition 866 -> 840 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 499 -> 840 (Count: 5, NLL: 5.21)
+  * Transition 419 -> 840 (Count: 3, NLL: 8.58)
+  * Transition 840 -> 489 (Count: 8, NLL: 16.12) [RARE TRANSITION]
+  * Transition 201 -> 840 (Count: 8, NLL: 5.97)
+  * Transition 508 -> 840 (Count: 4, NLL: 16.12) [RARE TRANSITION]
+  * Transition 481 -> 840 (Count: 10, NLL: 5.31)
+  * Transition 840 -> 1017 (Count: 1, NLL: 6.84)
+  * Transition 190 -> 840 (Count: 8, NLL: 5.70)
+  * Transition 422 -> 840 (Count: 5, NLL: 8.69)
+  * Transition 840 -> 431 (Count: 5, NLL: 8.00)
+  * Transition 170 -> 840 (Count: 6, NLL: 5.26)
+  * Transition 840 -> 208 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1001 -> 840 (Count: 4, NLL: 5.67)
+  * Transition 842 -> 840 (Count: 9, NLL: 16.12) [RARE TRANSITION]
+  * Transition 426 -> 840 (Count: 4, NLL: 7.37)
+  * Transition 199 -> 840 (Count: 7, NLL: 6.53)
+  * Transition 193 -> 840 (Count: 9, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 562 (Count: 8, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 442 (Count: 7, NLL: 6.82)
+  * Transition 840 -> 1001 (Count: 4, NLL: 6.01)
+  * Transition 497 -> 840 (Count: 4, NLL: 5.61)
+  * Transition 840 -> 381 (Count: 7, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 426 (Count: 4, NLL: 7.88)
+  * Transition 840 -> 197 (Count: 10, NLL: 16.12) [RARE TRANSITION]
+  * Transition 417 -> 840 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 985 -> 840 (Count: 3, NLL: 5.45)
+  * Transition 564 -> 840 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 977 (Count: 2, NLL: 5.96)
+  * Transition 463 -> 840 (Count: 2, NLL: 5.45)
+  * Transition 298 -> 840 (Count: 1, NLL: 9.83) [RARE TRANSITION]
+  * Transition 840 -> 389 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 508 (Count: 4, NLL: 16.12) [RARE TRANSITION]
+  * Transition 761 -> 840 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 393 -> 840 (Count: 2, NLL: 8.56)
+  * Transition 840 -> 413 (Count: 2, NLL: 7.87)
+  * Transition 840 -> 417 (Count: 5, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 532 (Count: 5, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1005 -> 840 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 761 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 1928 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 386 -> 840 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 389 -> 840 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 455 (Count: 4, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 304 (Count: 2, NLL: 6.78)
+  * Transition 840 -> 1020 (Count: 1, NLL: 6.41)
+  * Transition 840 -> 1280 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 311 -> 840 (Count: 1, NLL: 5.21)
+  * Transition 460 -> 840 (Count: 9, NLL: 5.53)
+  * Transition 1919 -> 840 (Count: 1, NLL: 5.13)
+  * Transition 510 -> 840 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 866 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1105 -> 840 (Count: 2, NLL: 5.04)
+  * Transition 840 -> 289 (Count: 2, NLL: 16.12) [RARE TRANSITION]
+  * Transition 961 -> 840 (Count: 1, NLL: 5.28)
+  * Transition 840 -> 463 (Count: 1, NLL: 6.38)
+  * Transition 840 -> 844 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 386 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 840 -> 1005 (Count: 1, NLL: 6.03)
+  * Transition 840 -> 842 (Count: 1, NLL: 6.14)
+  * Transition 381 -> 840 (Count: 1, NLL: 16.12) [RARE TRANSITION]
+  * Transition 1223 -> 840 (Count: 1, NLL: 5.15)
+  * Transition 840 -> 320 (Count: 1, NLL: 6.67)
 --------------------------------------------------------------------------------
 TRANSFORMER ATTENTION FOCUS:
-  * 309      ---> 840      (Attention: 0.2247, 15.50x uniform)
-  * 241      ---> 309      (Attention: 0.1687, 12.15x uniform)
-  * 1249     ---> 840      (Attention: 0.0976, 6.73x uniform)
-  * 304      ---> 309      (Attention: 0.0722, 5.20x uniform)
+  * 309      ---> 840      (Attention: 0.2241, 15.46x uniform)
+  * 241      ---> 309      (Attention: 0.1580, 11.54x uniform)
+  * 497      ---> 309      (Attention: 0.1359, 9.92x uniform)
+  * 1322     ---> 840      (Attention: 0.0911, 6.28x uniform)
 ================================================================================
-RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (309) + ESCALATE_ALERT
+RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (840) + ESCALATE_ALERT
 ================================================================================
   [XAI Visual] Saved Radar Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_03\xai_visuals\incident_03_test_01__double-1_radar_chart.png
   [XAI Visual] Saved ID Attribution Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_03\xai_visuals\incident_03_test_01__double-1_id_attribution.png
@@ -452,34 +459,34 @@ RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (309) + ESCALATE_ALERT
   [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_03\xai_visuals\incident_03_test_01__double-1_subgraph_interactive.html
   [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\ctt_set_03\xai_visuals\incident_03_test_01__double-1_dashboard.png
 
---- Incident 4 [SUSPICIOUS] (test_01__double-2 @ 153.0s) ---
+--- Incident 4 [HIGH_RISK] (test_01__double-2 @ 153.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [SUSPICIOUS] — Incident #INC-2E91FCD6
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-2658C4C4
 ================================================================================
 Capture: test_01__double-2 | Timestamp: 153.00s
-Anomaly Score: 42.4474 (Decision Tau: 30.1101, Alert Tau: 107.9562)
+Anomaly Score: 187.5483 (Decision Tau: 6.7328, Alert Tau: 33.6587)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 0.3190
-  - Temporal Dynamics Jitter (T_error): 574.7798
+  - Temporal Dynamics Jitter (T_error): 545.0009
   - Structural Sequence Penalty (G_error): 3.3922
   - Per-ID Transition Excess   (E_error): 7303.9127
 --------------------------------------------------------------------------------
 PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
   1. CAN ID 190 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 41.8%
+     -> Share of Window Transition Excess: 46.6%
      -> Key Deviating Dimensions:
         * activity_share  [Bus Utilization Dominance Share]: residual=59.3326 (51.6%)
         * msg_count       [Message Volume / Frequency]: residual=49.0545 (42.7%)
         * signal_std      [Decoded Signal Standard Deviation]: residual=4.2732 (3.7%)
   2. CAN ID 481 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 27.9%
+     -> Share of Window Transition Excess: 46.5%
      -> Key Deviating Dimensions:
         * activity_share  [Bus Utilization Dominance Share]: residual=27.2578 (46.0%)
         * msg_count       [Message Volume / Frequency]: residual=26.4181 (44.5%)
         * signal_mean     [Decoded Signal Mean Value]: residual=3.2659 (5.5%)
   3. CAN ID 170 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 2.5%
+     -> Share of Window Transition Excess: 0.6%
      -> Key Deviating Dimensions:
         * activity_share  [Bus Utilization Dominance Share]: residual=0.5986 (50.0%)
         * signal_std      [Decoded Signal Standard Deviation]: residual=0.5745 (48.0%)
@@ -568,7 +575,7 @@ TRANSFORMER ATTENTION FOCUS:
   * 1249     ---> 481      (Attention: 0.1632, 10.77x uniform)
   * 979      ---> 481      (Attention: 0.1471, 9.71x uniform)
 ================================================================================
-RECOMMENDED GATEWAY POLICY ACTION: HEIGHTENED_MONITORING + LOG_TELEMETRY
+RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (190) + ESCALATE_ALERT
 ================================================================================
   [XAI Visual] Saved Radar Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_03\xai_visuals\incident_04_test_01__double-2_radar_chart.png
   [XAI Visual] Saved ID Attribution Chart to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_03\xai_visuals\incident_04_test_01__double-2_id_attribution.png
@@ -578,32 +585,32 @@ RECOMMENDED GATEWAY POLICY ACTION: HEIGHTENED_MONITORING + LOG_TELEMETRY
 
 --- Incident 5 [NORMAL] (ambient_attack-free-4_part2 @ 0.0s) ---
 ================================================================================
-SECURITY INCIDENT REPORT [NORMAL] — Incident #INC-009B4152
+SECURITY INCIDENT REPORT [NORMAL] — Incident #INC-2C534020
 ================================================================================
 Capture: ambient_attack-free-4_part2 | Timestamp: 0.00s
-Anomaly Score: 3.4658 (Decision Tau: 30.1101, Alert Tau: 107.9562)
+Anomaly Score: 3.4658 (Decision Tau: 6.7328, Alert Tau: 33.6587)
 --------------------------------------------------------------------------------
 COMPONENT ANOMALY BREAKDOWN:
   - Reconstruction Residual (R_error): 0.2036
-  - Temporal Dynamics Jitter (T_error): 7.7264
+  - Temporal Dynamics Jitter (T_error): 1.0000
   - Structural Sequence Penalty (G_error): 2.4928
   - Per-ID Transition Excess   (E_error): 202.5480
 --------------------------------------------------------------------------------
 PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
   1. CAN ID 190 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 7.1%
+     -> Share of Window Transition Excess: 8.0%
      -> Key Deviating Dimensions:
         * signal_std      [Decoded Signal Standard Deviation]: residual=0.0982 (60.5%)
         * signal_range    [Dynamic Signal Span Range]: residual=0.0302 (18.6%)
         * signal_min      [Decoded Signal Minimum Bound]: residual=0.0151 (9.3%)
   2. CAN ID 761 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 6.2%
+     -> Share of Window Transition Excess: 7.0%
      -> Key Deviating Dimensions:
         * signal_std      [Decoded Signal Standard Deviation]: residual=0.3941 (88.3%)
         * activity_share  [Bus Utilization Dominance Share]: residual=0.0147 (3.3%)
         * signal_mean     [Decoded Signal Mean Value]: residual=0.0143 (3.2%)
   3. CAN ID 201 (Unmapped ECU (no public signal map)):
-     -> Share of Window Transition Excess: 5.7%
+     -> Share of Window Transition Excess: 6.4%
      -> Key Deviating Dimensions:
         * signal_mean     [Decoded Signal Mean Value]: residual=0.0619 (43.0%)
         * signal_std      [Decoded Signal Standard Deviation]: residual=0.0413 (28.7%)
