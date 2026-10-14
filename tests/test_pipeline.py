@@ -123,6 +123,23 @@ class TestDetectorContracts(unittest.TestCase):
         self.assertGreater(dev[1], 5 * max(dev[0], dev[2]))
 
 
+class TestRateScaleFloor(unittest.TestCase):
+    def test_periodic_ids_with_zero_spread_stay_in_message_units(self):
+        from torch_geometric.data import Data
+
+        def window(counts):
+            x = torch.zeros((3, 9))
+            x[:, 0] = torch.tensor(counts, dtype=torch.float32)
+            g = Data(x=x, edge_index=torch.tensor([[0, 1], [1, 2]]), edge_attr=torch.ones(2))
+            g.id_idx = torch.tensor([1, 2, 3])
+            return g
+
+        baseline = TransitionBaseline(vocab_size=5)
+        baseline.fit([window([10.0, 11.0, 12.0])] * 20)  # every ID perfectly periodic: MAD 0
+        dev = baseline.node_rate_deviation(window([12.0, 11.0, 12.0]))
+        self.assertAlmostEqual(float(dev[0]), 2.0, places=4)  # two extra messages -> T = 2, not 2e6
+
+
 class TestIntensityAndEpisodes(unittest.TestCase):
     def test_bins_and_episodes(self):
         from types import SimpleNamespace as NS

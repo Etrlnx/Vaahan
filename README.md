@@ -359,7 +359,7 @@ Anomaly detection is formulated as an **unsupervised one-class reconstruction ta
   where $E$ is the largest per-node *transition excess*: the count-weighted $-\log P(\text{id}_v \mid \text{id}_u)$ summed over a node's edges, minus that ID's benign median. The mean-transition term ($G$) carries weight 0; the ablation in `knowledge-graph/knowledge-graph.md` §5.4 shows why.
 - **Optional rate term ($T$, `evaluate.py --timing`)**: the largest per-ID deviation of message count or mean inter-arrival time from that ID's own benign median, in MAD units. When enabled, the score uses $\max(E/\sigma_E,\ T/\sigma_T)$ instead of $E/\sigma_E$. It is off by default:
   - it lifts injection and retiming attacks on can-train-and-test (§17);
-  - but on ROAD masquerades, where the attacker keeps the real ECU's rate, it lowers fold ROC-AUC from 0.967 to 0.849.
+  - but on ROAD masquerades, where the attacker keeps the real ECU's rate, it lowers fold ROC-AUC from 0.967 to 0.858.
 
 **Status: Implemented.** `ZeroDayDetector` in [`attack-detection/detector.py`](attack-detection/detector.py) calibrates $\tau_{\text{suspicious}} = 5.0893$ (95th pct) and $\tau_{\text{alert}} = 7.1042$ (99th pct) on benign validation windows (seed-42 split), yielding **0.9672 ROC-AUC**, **0.9081 PR-AUC** and **85.7% recall at 5.0% FPR** on the held-out test set. Correlated-signal (27/61) and coolant (0/7) windows remain the weak spot.
 
@@ -474,24 +474,25 @@ With the optional rate term (`--timing`), on known-vehicle subsets:
 
 | Set | test_01 ROC / FPR / P / R | test_03 ROC / FPR / P / R |
 |---|---|---|
-| set_01 | 0.999 / 2.2% / 56.9% / 100% | 0.935 / 2.6% / 83.3% / 89.1% |
-| set_02 | 0.859 / 5.9% / 24.5% / 74.3% | 0.735 / 6.5% / 15.9% / 48.0% |
-| set_03 | 0.975 / 0.9% / 87.9% / 81.0% | 0.931 / 2.2% / 88.4% / 69.4% |
-| set_04 | 0.995 / 2.3% / 93.1% / 98.6% | 0.973 / 4.7% / 62.1% / 90.2% |
+| set_01 | 0.983 / 4.4% / 39.4% / 97.3% | 0.923 / 4.6% / 71.8% / 80.5% |
+| set_02 | 0.811 / 4.6% / 24.2% / 56.3% | 0.789 / 3.3% / 21.5% / 36.0% |
+| set_03 | 0.937 / 6.0% / 50.1% / 73.0% | 0.902 / 4.8% / 76.5% / 64.2% |
+| set_04 | 0.940 / 1.4% / 94.8% / 83.7% | 0.959 / 4.4% / 63.1% / 89.0% |
 
 What this shows:
 - **More benign training data helps.** Adding the attack-free stretches of the labelled training drives cut the mean known-vehicle FPR from 12.2% to 3.3% (test_01) and from 12.3% to 4.4% (test_03).
-- **Timing-only attacks need the rate term.** Without it, unknown `interval` attacks (which only change an ID's period) are mostly missed. With `--timing`, mean test_03 ROC-AUC rises from 0.786 to 0.894 and recall from 39% to 74%.
+- **Timing-only attacks need the rate term.** Without it, unknown `interval` attacks (which only change an ID's period) are mostly missed. With `--timing`, mean test_03 ROC-AUC rises from 0.786 to 0.893 and recall from 39% to 67%. Mean test_01 ROC-AUC dips slightly, from 0.926 to 0.918.
 - **The rate term is not universal.** It hurts ROAD's rate-preserving masquerades, so the right score depends on the attack model.
+- **set_02 is weak because of its attacks, not the model.** Apart from DoS, its attacks average 0.03–0.07 attack frames per window. For example, `standstill-3` has 6 spoofed frames in 372 s, so each attack window holds one valid-looking frame among about 3,000. Its DoS files are fully caught.
 
 **Detection versus attack intensity.** The model never trains on attacks, so rare attack types are not a training-data problem. What matters is how much an attack disturbs a window. `evaluate.py` reports window recall by injected attack frames per 2 s window, plus episode detection: an episode is a run of consecutive attack windows, and it is caught if any of its windows alarms. Pooled over the 4 can-train-and-test sets (known vehicle):
 
 | Attack frames per window | 1 | 2–5 | 6–20 | 21–100 | 101+ | Episodes caught (test_01 / test_03) |
 |---|---|---|---|---|---|---|
 | Default (E) | 2% | 10% | 10% | 42% | 100% | 57/67 / 49/95 |
-| `--timing` (max(E,T)) | 7% | 31% | 85% | 99% | 97% | 64/67 / 58/95 |
+| `--timing` (max(E,T)) | 4% | 8% | 74% | 85% | 94% | 64/67 / 55/95 |
 
-- **Minimum detectable intensity:** with the rate term, about 6 injected frames per 2 s window (roughly 0.2% of the window's traffic).
+- **Minimum detectable intensity:** with the rate term, about 6 injected frames per 2 s window (roughly 0.2% of the window's traffic) gives 74% window recall.
 - **Below that, detection fails for any window-level detector.** For example, `standstill-4` has 52 attack frames in 430 s. Catching these needs evidence accumulated across windows (planned).
 - **ROAD (default):** 91% recall for windows with 101+ attack frames, 50% at 21–100, and 11/13 attack episodes caught with a median latency of 0 s.
 - **Unknown-vehicle subsets (`test_02`, `test_04`) alarm on nearly every window.** The baseline is specific to one vehicle by design.

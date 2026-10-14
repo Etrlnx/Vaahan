@@ -8,10 +8,10 @@ Loaded 27092 total graphs. Vocab size: 55.
 Split: 4686 train, 784 val, 21622 test.
 
 [2/4] Initializing and Calibrating Zero-Day Detector...
-Component scales fitted: recon=0.0298, temporal=0.0000, struct=0.1859, excess=160.2639
+Component scales fitted: recon=0.0298, temporal=91.0648, struct=0.1859, excess=160.2639
 Detector Calibrated on 784 validation windows:
-  tau_suspicious (95.0th percentile) : 11470175364.1528
-  tau_alert      (99.0th percentile) : 1078187639411.2279
+  tau_suspicious (95.0th percentile) : 13.9211
+  tau_alert      (99.0th percentile) : 31.0350
 
 [3/4] Evaluating Test Set (held-out ambient + ROAD attacks + held-out synthetic episodes)...
 
@@ -21,89 +21,89 @@ Detector Calibrated on 784 validation windows:
 REAL CTT_SET_04 PERFORMANCE (held-out ambient + real attack captures)
 ======================================================================
   Total Test Windows      : 21622 (Benign: 19326, Attack: 2296)
-  True Positives          :  1551  |  False Positives (FP) :   318
-  False Negatives         :   745  |  True Negatives (TN)  : 19008
+  True Positives          :  1592  |  False Positives (FP) :   258
+  False Negatives         :   704  |  True Negatives (TN)  : 19068
 ----------------------------------------------------------------------
-  Decision Threshold      : 11470175364.1528
-  High-Risk               : 1078187639411.2279
+  Decision Threshold      : 13.9211
+  High-Risk               : 31.0350
 ----------------------------------------------------------------------
-  precision               : 0.8299
-  recall                  : 0.6755
-  f1                      : 0.7448
-  accuracy                : 0.9508
-  fpr                     : 0.0165
-  roc_auc                 : 0.7997
-  pr_auc                  : 0.7220
-  false alarms / hour     : 96.4 (ambient driving)
+  precision               : 0.8605
+  recall                  : 0.6934
+  f1                      : 0.7680
+  accuracy                : 0.9555
+  fpr                     : 0.0133
+  roc_auc                 : 0.8730
+  pr_auc                  : 0.7329
+  false alarms / hour     : 56.2 (ambient driving)
 ======================================================================
 
 PER-CAPTURE ZERO-DAY EVALUATION BREAKDOWN:
 Capture Name                                  | Type       | Score Mean | Alerts/Total    | Attack Hits  | Latency 
 --------------------------------------------------------------------------------------------------------------
-ambient_train-rpm-accessory-3_seg2            | BENIGN     | 48968591562.9820 | 5/52            | -            | N/A     
-ambient_train-speed-3_seg2                    | BENIGN     | 18183025855.9041 | 3/311           | -            | N/A     
-ambient_train-speed-accessory-3_seg1          | BENIGN     | 37651913009.1913 | 2/46            | -            | N/A     
-ambient_train-standstill-4_seg1               | BENIGN     | 65585585107.1211 | 2/39            | -            | N/A     
-test_01__interval-1                           | ATTACK     | 4429383267369.4209 | 460/475         | 460/460      | 0.00s   
-test_01__interval-2                           | ATTACK     | 1116530491756.2639 | 273/280         | 273/273      | 0.00s   
-test_01__rpm-1                                | ATTACK     | 383984700596.9903 | 31/300          | 25/25        | 0.00s   
-test_01__rpm-2                                | ATTACK     | 42956210348.7831 | 56/353          | 50/50        | 0.00s   
-test_01__rpm-accessory-1                      | ATTACK     | 419375400502.7121 | 9/80            | 7/7          | 0.00s   
-test_01__rpm-accessory-2                      | ATTACK     | 87492953415.5896 | 29/86           | 24/24        | 0.00s   
-test_01__speed-1                              | ATTACK     | 654614305142.9232 | 65/462          | 52/53        | 1.00s   
-test_01__speed-2                              | ATTACK     | 87307452492.0069 | 18/443          | 14/14        | 0.00s   
-test_01__speed-accessory-1                    | ATTACK     | 225720035465.9457 | 30/162          | 20/20        | 0.00s   
-test_01__speed-accessory-2                    | ATTACK     | 60691718497.0092 | 4/103           | 2/2          | 0.00s   
-test_01__standstill-1                         | ATTACK     | 990457404555.6018 | 28/185          | 26/26        | 0.00s   
-test_01__standstill-2                         | ATTACK     | 113329423323.2625 | 20/552          | 10/10        | 0.00s   
-test_01__systematic-1                         | ATTACK     | 20624927670.0124 | 22/317          | 13/13        | 0.00s   
-test_01__systematic-2                         | ATTACK     | 17293706346.8666 | 16/390          | 12/25        | 0.00s   
-test_02__interval-1                           | ATTACK     | 777980596.2457 | 1/311           | 0/304        | N/A     
-test_02__interval-2                           | ATTACK     | 612950935.1889 | 2/828           | 0/17         | N/A     
-test_02__rpm-1                                | ATTACK     | 877204910.1544 | 6/1654          | 0/7          | N/A     
-test_02__rpm-2                                | ATTACK     | 490563117.2355 | 1/989           | 0/12         | N/A     
-test_02__rpm-accessory-1                      | ATTACK     | 1042248431.5912 | 2/265           | 0/31         | N/A     
-test_02__rpm-accessory-2                      | ATTACK     | 1791076054.6364 | 2/154           | 0/29         | N/A     
-test_02__speed-1                              | ATTACK     | 493424500.5843 | 2/1311          | 0/8          | N/A     
-test_02__speed-2                              | ATTACK     | 539681069.4349 | 2/1369          | 0/28         | N/A     
-test_02__speed-accessory-1                    | ATTACK     | 1042198383.8523 | 2/265           | 0/27         | N/A     
-test_02__speed-accessory-2                    | ATTACK     | 1790998629.8035 | 2/154           | 0/20         | N/A     
-test_02__standstill-1                         | ATTACK     | 533429186.5512 | 1/606           | 0/19         | N/A     
-test_02__standstill-2                         | ATTACK     | 1195035153.6908 | 2/308           | 0/48         | N/A     
-test_02__systematic-1                         | ATTACK     | 380374399185.2245 | 44/253          | 42/42        | 0.00s   
-test_02__systematic-2                         | ATTACK     | 111621621123.8241 | 23/227          | 22/25        | 0.00s   
-test_03__DoS-1                                | ATTACK     | 15805682041.9903 | 35/392          | 0/13         | N/A     
-test_03__DoS-2                                | ATTACK     | 1341273249492.0662 | 64/439          | 34/35        | 0.00s   
-test_03__double-1                             | ATTACK     | 177074628739.3635 | 38/765          | 28/28        | 0.00s   
-test_03__double-2                             | ATTACK     | 140164868022.3143 | 30/429          | 11/11        | 0.00s   
-test_03__force-neutral-1                      | ATTACK     | 133349028803.0359 | 34/326          | 23/23        | 0.00s   
-test_03__force-neutral-2                      | ATTACK     | 127882189497.9311 | 13/295          | 6/6          | 0.00s   
-test_03__fuzzing-1                            | ATTACK     | 19094318040.1935 | 63/392          | 35/37        | 0.00s   
-test_03__fuzzing-2                            | ATTACK     | 143762866521.6277 | 77/531          | 55/71        | 1.00s   
-test_03__triple-1                             | ATTACK     | 1340984534251.9680 | 91/305          | 86/86        | 0.00s   
-test_03__triple-2                             | ATTACK     | 244059798265.4405 | 43/429          | 25/26        | 0.00s   
-test_04__DoS-1                                | ATTACK     | 1444601236.6815 | 2/191           | 0/20         | N/A     
-test_04__DoS-2                                | ATTACK     | 2013629264.5846 | 2/194           | 0/29         | N/A     
-test_04__double-1                             | ATTACK     | 927740273.3026 | 2/546           | 0/12         | N/A     
-test_04__double-2                             | ATTACK     | 2307458558.3067 | 4/229           | 0/18         | N/A     
-test_04__force-neutral-1                      | ATTACK     | 813320117.7122 | 1/255           | 0/16         | N/A     
-test_04__force-neutral-2                      | BENIGN     | 1013883978.5880 | 1/227           | -            | N/A     
-test_04__fuzzing-1                            | ATTACK     | 498114422302.8020 | 127/562         | 125/125      | 0.00s   
-test_04__fuzzing-2                            | ATTACK     | 158866750637.6958 | 65/581          | 63/64        | 1.00s   
-test_04__triple-1                             | ATTACK     | 658881545.6238 | 2/875           | 0/49         | N/A     
-test_04__triple-2                             | ATTACK     | 95320059987.7398 | 10/329          | 8/8          | 0.00s   
+ambient_train-rpm-accessory-3_seg2            | BENIGN     | 10.0741    | 2/52            | -            | N/A     
+ambient_train-speed-3_seg2                    | BENIGN     | 9.2048     | 2/311           | -            | N/A     
+ambient_train-speed-accessory-3_seg1          | BENIGN     | 9.4355     | 1/46            | -            | N/A     
+ambient_train-standstill-4_seg1               | BENIGN     | 9.6365     | 2/39            | -            | N/A     
+test_01__interval-1                           | ATTACK     | 16.5022    | 432/475         | 432/460      | 2.00s   
+test_01__interval-2                           | ATTACK     | 15.7495    | 226/280         | 226/273      | 2.00s   
+test_01__rpm-1                                | ATTACK     | 11.9738    | 29/300          | 21/25        | 0.00s   
+test_01__rpm-2                                | ATTACK     | 8.8737     | 4/353           | 0/50         | N/A     
+test_01__rpm-accessory-1                      | ATTACK     | 11.7179    | 9/80            | 5/7          | 1.00s   
+test_01__rpm-accessory-2                      | ATTACK     | 9.7173     | 10/86           | 6/24         | 1.00s   
+test_01__speed-1                              | ATTACK     | 17.1582    | 49/462          | 44/53        | 1.00s   
+test_01__speed-2                              | ATTACK     | 10.3052    | 15/443          | 13/14        | 0.00s   
+test_01__speed-accessory-1                    | ATTACK     | 10.7889    | 23/162          | 18/20        | 1.00s   
+test_01__speed-accessory-2                    | ATTACK     | 21.0539    | 4/103           | 2/2          | 0.00s   
+test_01__standstill-1                         | ATTACK     | 13.9565    | 28/185          | 26/26        | 0.00s   
+test_01__standstill-2                         | ATTACK     | 9.6274     | 12/552          | 10/10        | 0.00s   
+test_01__systematic-1                         | ATTACK     | 13.0413    | 17/317          | 11/13        | 1.00s   
+test_01__systematic-2                         | ATTACK     | 8.4322     | 27/390          | 25/25        | 0.00s   
+test_02__interval-1                           | ATTACK     | 12.8212    | 3/311           | 1/304        | 303.00s 
+test_02__interval-2                           | ATTACK     | 12.8938    | 18/828          | 15/17        | 1.00s   
+test_02__rpm-1                                | ATTACK     | 12.8813    | 15/1654         | 7/7          | 0.00s   
+test_02__rpm-2                                | ATTACK     | 12.9027    | 6/989           | 4/12         | 5.00s   
+test_02__rpm-accessory-1                      | ATTACK     | 13.0213    | 17/265          | 17/31        | 3.00s   
+test_02__rpm-accessory-2                      | ATTACK     | 12.8672    | 0/154           | 0/29         | N/A     
+test_02__speed-1                              | ATTACK     | 12.8312    | 3/1311          | 0/8          | N/A     
+test_02__speed-2                              | ATTACK     | 12.8185    | 3/1369          | 0/28         | N/A     
+test_02__speed-accessory-1                    | ATTACK     | 12.9330    | 0/265           | 0/27         | N/A     
+test_02__speed-accessory-2                    | ATTACK     | 12.8478    | 0/154           | 0/20         | N/A     
+test_02__standstill-1                         | ATTACK     | 13.0114    | 11/606          | 7/19         | 0.00s   
+test_02__standstill-2                         | ATTACK     | 12.7185    | 0/308           | 0/48         | N/A     
+test_02__systematic-1                         | ATTACK     | 240.7456   | 42/253          | 42/42        | 0.00s   
+test_02__systematic-2                         | ATTACK     | 119.2903   | 25/227          | 25/25        | 0.00s   
+test_03__DoS-1                                | ATTACK     | 13.5938    | 28/392          | 12/13        | 0.00s   
+test_03__DoS-2                                | ATTACK     | 14.9294    | 72/439          | 29/35        | 1.00s   
+test_03__double-1                             | ATTACK     | 9.3090     | 29/765          | 25/28        | 0.00s   
+test_03__double-2                             | ATTACK     | 13.0870    | 39/429          | 11/11        | 0.00s   
+test_03__force-neutral-1                      | ATTACK     | 7.8962     | 1/326           | 0/23         | N/A     
+test_03__force-neutral-2                      | ATTACK     | 12.7217    | 7/295           | 5/6          | 1.00s   
+test_03__fuzzing-1                            | ATTACK     | 45.3216    | 53/392          | 37/37        | 0.00s   
+test_03__fuzzing-2                            | ATTACK     | 117.9469   | 109/531         | 70/71        | 0.00s   
+test_03__triple-1                             | ATTACK     | 22.2882    | 87/305          | 85/86        | 1.00s   
+test_03__triple-2                             | ATTACK     | 14.9592    | 49/429          | 25/26        | 0.00s   
+test_04__DoS-1                                | ATTACK     | 23.5474    | 20/191          | 20/20        | 0.00s   
+test_04__DoS-2                                | ATTACK     | 33.6147    | 30/194          | 29/29        | 0.00s   
+test_04__double-1                             | ATTACK     | 13.3403    | 15/546          | 12/12        | 0.00s   
+test_04__double-2                             | ATTACK     | 14.2495    | 17/229          | 17/18        | 1.00s   
+test_04__force-neutral-1                      | ATTACK     | 12.8590    | 12/255          | 12/16        | 2.00s   
+test_04__force-neutral-2                      | BENIGN     | 12.6720    | 0/227           | -            | N/A     
+test_04__fuzzing-1                            | ATTACK     | 318.5364   | 125/562         | 125/125      | 0.00s   
+test_04__fuzzing-2                            | ATTACK     | 157.4380   | 64/581          | 64/64        | 0.00s   
+test_04__triple-1                             | ATTACK     | 14.0093    | 49/875          | 49/49        | 0.00s   
+test_04__triple-2                             | ATTACK     | 13.6314    | 9/329           | 8/8          | 0.00s   
 ==============================================================================================================
 
 ATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)
-  [all real] episodes 53/106 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (76) | 2-5: 2% (94) | 6-20: 58% (127) | 21-100: 50% (622) | 101+: 85% (1377)
-  [test_01] windows 4188 (attack 1002) | ROC 0.9949 | PR 0.9867 | P 0.931 | R 0.986 | F1 0.958 | FPR 0.023
-  [test_01] episodes 27/27 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 100% (2) | 6-20: 100% (74) | 21-100: 100% (299) | 101+: 98% (626)
-  [test_02] windows 8694 (attack 617) | ROC 0.5474 | PR 0.1877 | P 0.696 | R 0.104 | F1 0.181 | FPR 0.003
-  [test_02] episodes 2/48 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (74) | 2-5: 0% (90) | 6-20: 0% (52) | 21-100: 1% (308) | 101+: 67% (93)
-  [test_03] windows 4303 (attack 336) | ROC 0.9727 | PR 0.9038 | P 0.621 | R 0.902 | F1 0.735 | FPR 0.047
-  [test_03] episodes 21/22 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 0% (2) | 6-20: 0% (1) | 21-100: 82% (11) | 101+: 92% (321)
-  [test_04] windows 3989 (attack 341) | ROC 0.7832 | PR 0.6546 | P 0.907 | R 0.575 | F1 0.704 | FPR 0.005
-  [test_04] episodes 3/9 (median latency 0.0s) | recall by attack frames/window -> 1: - | 2-5: - | 6-20: - | 21-100: 25% (4) | 101+: 58% (337)
+  [all real] episodes 64/106 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (76) | 2-5: 1% (94) | 6-20: 22% (127) | 21-100: 40% (622) | 101+: 95% (1377)
+  [test_01] windows 4188 (attack 1002) | ROC 0.9398 | PR 0.8522 | P 0.948 | R 0.837 | F1 0.889 | FPR 0.014
+  [test_01] episodes 26/27 (median latency 0.5s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 0% (2) | 6-20: 8% (74) | 21-100: 79% (299) | 101+: 95% (626)
+  [test_02] windows 8694 (attack 617) | ROC 0.5628 | PR 0.2931 | P 0.825 | R 0.191 | F1 0.311 | FPR 0.003
+  [test_02] episodes 8/48 (median latency 0.5s) | recall by attack frames/window -> 1: 0% (74) | 2-5: 0% (90) | 6-20: 40% (52) | 21-100: 3% (308) | 101+: 96% (93)
+  [test_03] windows 4303 (attack 336) | ROC 0.9590 | PR 0.8488 | P 0.631 | R 0.890 | F1 0.738 | FPR 0.044
+  [test_03] episodes 21/22 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 50% (2) | 6-20: 100% (1) | 21-100: 18% (11) | 101+: 92% (321)
+  [test_04] windows 3989 (attack 341) | ROC 0.9969 | PR 0.9879 | P 0.985 | R 0.985 | F1 0.985 | FPR 0.001
+  [test_04] episodes 9/9 (median latency 0.0s) | recall by attack frames/window -> 1: - | 2-5: - | 6-20: - | 21-100: 50% (4) | 101+: 99% (337)
   [Evaluation Visual] Saved Confusion Matrix to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_04\xai_visuals\confusion_matrix.png
   [Visual Explainer] Saved Interactive Scenario Explainer HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_04\xai_visuals\scenario_explainer.html
  Saved Scenario Table to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_04\xai_visuals\scenario_explainer_table.png

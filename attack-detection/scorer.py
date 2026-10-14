@@ -18,8 +18,8 @@ class AnomalyScorerConfig:
     # Weights act on validation-scaled components (each divided by its benign MAD).
     # Ablation on the ROAD test split: structural excess (E) carries the detection signal,
     # R adds a small FPR reduction and G is subsumed by E. T (per-ID rate deviation) is off by
-    # default: it lifts injection/retiming attacks on can-train-and-test (test_03 ROC up to +0.16)
-    # but cuts ROAD masquerade fold ROC 0.967 -> 0.849, where attackers keep the real ECU's rate.
+    # default: it lifts injection/retiming attacks on can-train-and-test (mean test_03 ROC 0.786 -> 0.893)
+    # but cuts ROAD masquerade fold ROC 0.967 -> 0.858, where attackers keep the real ECU's rate.
     # Enable with beta_temporal=1.0 (evaluate.py --timing).
     alpha_recon: float = 0.25
     beta_temporal: float = 0.0
@@ -94,7 +94,16 @@ class TransitionBaseline:
                 rows = np.asarray(rows)
                 self.rate_median[i] = np.median(rows, axis=0)
                 spread[i] = 1.4826 * np.median(np.abs(rows - self.rate_median[i]), axis=0)
-        floor = np.maximum(np.nanmedian(spread, axis=0), 1e-6)
+        # Integer features (msg_count) of periodic IDs have MAD 0, and the median across IDs can be 0
+        # too; floor at the feature's quantisation step (one message for msg_count) so T stays in
+        # physical units instead of exploding (1 extra message on a periodic ID -> T = 1).
+        all_rows = np.concatenate([np.asarray(r) for r in feats.values()])
+        steps = []
+        for c in range(k):
+            gaps = np.diff(np.unique(all_rows[:, c]))
+            gaps = gaps[gaps > 1e-9]
+            steps.append(gaps.min() if len(gaps) else 1e-6)
+        floor = np.maximum(np.nan_to_num(np.nanmedian(spread, axis=0)), np.asarray(steps))
         self.rate_scale = np.where(np.isnan(spread), floor, np.maximum(spread, floor))
 
     def node_surprise(self, g) -> np.ndarray:
