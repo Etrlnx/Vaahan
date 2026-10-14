@@ -5,12 +5,11 @@ import numpy as np
 import pandas as pd
 import torch
 from torch_geometric.data import Data
-from preprocess import WindowRecord
+from preprocess import WindowRecord, discover_captures, load_capture, window_capture, AMBIENT_DIR, ATTACK_DIR
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 from preprocess import OUTPUT_DIR
-WINDOWED_DATA_PATH = os.path.join(OUTPUT_DIR, "road_windowed.pkl")
 GRAPH_OUTPUT_PATH = os.path.join(OUTPUT_DIR, "graphs.pt")
 VOCAB_OUTPUT_PATH = os.path.join(OUTPUT_DIR, "vocab.pkl")
 NODE_FEATURE_DIM = 9
@@ -87,26 +86,20 @@ def extract_node_features(id_messages: pd.DataFrame, window_duration: float, tot
 
 
 def build_edges(messages: pd.DataFrame, node_index: dict) -> tuple[np.ndarray, np.ndarray]:
-    sorted_msgs = messages.sort_values("Time")
-    ids_in_order = sorted_msgs["ID"].values
-
-    edge_counts = {}
-    for k in range(len(ids_in_order) - 1):
-        src_id = ids_in_order[k]
-        dst_id = ids_in_order[k + 1]
-        if src_id == dst_id:
-            continue
-        src = node_index[src_id]
-        dst = node_index[dst_id]
-        edge_counts[(src, dst)] = edge_counts.get((src, dst), 0) + 1
-
-    if not edge_counts:
+    """Directed transition counts between consecutive messages of different IDs, edges in order
+    of first occurrence (same output as the original per-message loop, vectorised)."""
+    ids_in_order = messages.sort_values("Time")["ID"].values
+    codes = pd.Index(list(node_index)).get_indexer(ids_in_order)
+    src, dst = codes[:-1], codes[1:]
+    keep = src != dst
+    if not keep.any():
         return np.zeros((2, 0), dtype=np.int64), np.zeros((0,), dtype=np.float32)
-
-    edges = np.array(list(edge_counts.keys())).T
-    weights = np.array(list(edge_counts.values()), dtype=np.float32)
-
-    return edges, weights
+    n = len(node_index)
+    pairs = src[keep].astype(np.int64) * n + dst[keep]
+    uniq, first, counts = np.unique(pairs, return_index=True, return_counts=True)
+    order = np.argsort(first)
+    edges = np.stack([uniq[order] // n, uniq[order] % n])
+    return edges, counts[order].astype(np.float32)
 
 
 def build_graph_for_window(window: WindowRecord, global_vocab: dict) -> Data:
@@ -121,8 +114,9 @@ def build_graph_for_window(window: WindowRecord, global_vocab: dict) -> Data:
     node_features = []
     global_id_indices = []
 
+    groups = dict(tuple(df.groupby("ID", sort=False)))
     for id_str in unique_ids:
-        id_msgs = df[df["ID"] == id_str]
+        id_msgs = groups[id_str]
         feat = extract_node_features(id_msgs, window_duration, total_window_messages)
         node_features.append(feat)
         global_id_indices.append(global_vocab.get(id_str, global_vocab["<UNK>"]))
@@ -151,36 +145,42 @@ def build_graph_for_window(window: WindowRecord, global_vocab: dict) -> Data:
     return data
 
 
+def _capture_windows(capture):
+    df = load_capture(capture)
+    interval = capture.metadata.get("injection_interval") if capture.metadata.get("synthetic") else None
+    return window_capture(df, capture.capture_name, capture.is_attack, keep_messages=True, attack_interval=interval)
+
+
 def main():
+    """Windows and builds graphs one capture at a time, so peak memory is one capture's raw
+    messages rather than every window of the dataset (the old pickle route ran out of RAM)."""
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    captures = discover_captures(AMBIENT_DIR, ATTACK_DIR)
 
-    with open(WINDOWED_DATA_PATH, "rb") as f:
-        windows: list[WindowRecord] = pickle.load(f)
-
-    print(f"Loaded {len(windows)} windows.")
-
-    print("Building global ID vocabulary...")
-    vocab = build_id_vocab(windows)
+    print("Building global ID vocabulary from ambient captures...")
+    ids = set()
+    for c in captures:
+        if c.capture_name.startswith("ambient_"):
+            ids.update(k for k in build_id_vocab(_capture_windows(c)) if k != "<UNK>")
+    vocab = {"<UNK>": 0, **{id_str: i for i, id_str in enumerate(sorted(ids), start=1)}}
     print(f"  -> {len(vocab)} unique IDs (including <UNK>)")
 
-    print("Building graphs...")
+    print("Building graphs capture by capture...")
     graphs = []
     skipped = 0
-    print("Processing windows in batches:\n")
-    for i, w in enumerate(windows):
-        try:
-            g = build_graph_for_window(w, vocab)
-            if g.x.shape[0] < 2:
+    for n, capture in enumerate(captures, 1):
+        windows = _capture_windows(capture)
+        for w in windows:
+            try:
+                g = build_graph_for_window(w, vocab)
+                if g.x.shape[0] < 2:
+                    skipped += 1
+                    continue
+                graphs.append(g)
+            except Exception as e:
+                print(f"  WARNING: failed to build graph for {w.capture_name} @ {w.window_start}s: {e}")
                 skipped += 1
-                continue
-            graphs.append(g)
-        except Exception as e:
-            print(f"  WARNING: failed to build graph for window {i} "
-                  f"({w.capture_name} @ {w.window_start}s): {e}")
-            skipped += 1
-
-        if (i + 1) % 1000 == 0:
-            print(f"  ...{i + 1}/{len(windows)}")
+        print(f"  [{n}/{len(captures)}] {capture.capture_name}: {len(windows)} windows")
 
     print(f"Built {len(graphs)} graphs, skipped {skipped}.")
 

@@ -1,0 +1,95 @@
+D:\git_repos\capstone\.venv\Lib\site-packages\torch\jit\_script.py:1485: FutureWarning: `torch.jit.script` is not supported in Python 3.14+ and may break. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+======================================================================
+ZERO-DAY CAN INTRUSION DETECTION EVALUATION
+======================================================================
+
+[1/4] Loading graphs, vocabulary, and model weights...
+Restoring exact capture splits and feature normalizer from checkpoint metadata...
+Loaded 26157 total graphs. Vocab size: 52.
+Split: 5416 train, 842 val, 19899 test.
+
+[2/4] Initializing and Calibrating Zero-Day Detector...
+Component scales fitted: recon=0.0231, temporal=0.0069, struct=0.0784, excess=48.8024
+Detector Calibrated on 842 validation windows:
+  tau_suspicious (95.0th percentile) : 11.3878
+  tau_alert      (99.0th percentile) : 12.9469
+
+[3/4] Evaluating Test Set (held-out ambient + ROAD attacks + held-out synthetic episodes)...
+
+[4/4] Computing Intrusion Detection Metrics...
+
+======================================================================
+REAL CTT_SET_01 PERFORMANCE (held-out ambient + real attack captures)
+======================================================================
+  Total Test Windows      : 19899 (Benign: 18629, Attack: 1270)
+  True Positives          :   669  |  False Positives (FP) :  9141
+  False Negatives         :   601  |  True Negatives (TN)  :  9488
+----------------------------------------------------------------------
+  Decision Threshold      : 11.3878
+  High-Risk               : 12.9469
+----------------------------------------------------------------------
+  precision               : 0.0682
+  recall                  : 0.5268
+  f1                      : 0.1208
+  accuracy                : 0.5104
+  fpr                     : 0.4907
+  roc_auc                 : 0.6020
+  pr_auc                  : 0.2477
+  false alarms / hour     : 221.5 (ambient driving)
+======================================================================
+
+PER-CAPTURE ZERO-DAY EVALUATION BREAKDOWN:
+Capture Name                                  | Type       | Score Mean | Alerts/Total    | Attack Hits  | Latency 
+--------------------------------------------------------------------------------------------------------------
+ambient_train-accessory-1_seg1                | BENIGN     | 5.8307     | 13/144          | -            | N/A     
+ambient_train-force-neutral-1_seg2            | BENIGN     | 5.3838     | 16/270          | -            | N/A     
+ambient_train-standstill-2_seg2               | BENIGN     | 5.3917     | 30/545          | -            | N/A     
+test_01__DoS-3                                | ATTACK     | 47.5446    | 24/94           | 21/21        | 0.00s   
+test_01__DoS-4                                | ATTACK     | 17.6218    | 53/612          | 30/32        | 8.00s   
+test_01__force-neutral-3                      | ATTACK     | 6.6214     | 38/624          | 9/9          | 0.00s   
+test_01__force-neutral-4                      | ATTACK     | 5.5561     | 34/582          | 5/5          | 0.00s   
+test_01__rpm-3                                | ATTACK     | 7.4646     | 35/558          | 13/13        | 0.00s   
+test_01__rpm-4                                | ATTACK     | 5.5743     | 33/570          | 4/6          | 1.00s   
+test_01__standstill-3                         | ATTACK     | 6.2971     | 35/435          | 19/19        | 0.00s   
+test_01__standstill-4                         | ATTACK     | 5.3627     | 14/430          | 0/7          | N/A     
+test_02__DoS-3                                | ATTACK     | 206.8601   | 367/367         | 129/129      | 0.00s   
+test_02__DoS-4                                | ATTACK     | 81.5481    | 266/266         | 6/6          | 0.00s   
+test_02__force-neutral-3                      | ATTACK     | 74.7110    | 175/175         | 5/5          | 0.00s   
+test_02__force-neutral-4                      | ATTACK     | 74.2174    | 640/640         | 7/7          | 0.00s   
+test_02__rpm-3                                | ATTACK     | 74.2343    | 247/247         | 15/15        | 0.00s   
+test_02__rpm-4                                | ATTACK     | 74.1838    | 251/252         | 27/27        | 0.00s   
+test_02__standstill-3                         | ATTACK     | 74.2146    | 247/247         | 29/29        | 0.00s   
+test_02__standstill-4                         | ATTACK     | 74.0486    | 251/252         | 10/10        | 0.00s   
+test_03__double-3                             | ATTACK     | 5.5920     | 36/624          | 7/8          | 1.00s   
+test_03__double-4                             | ATTACK     | 5.6095     | 33/582          | 4/5          | 1.00s   
+test_03__fuzzing-3                            | ATTACK     | 7.4577     | 100/393         | 83/92        | 0.00s   
+test_03__fuzzing-4                            | ATTACK     | 5.4139     | 13/283          | 1/39         | 27.00s  
+test_03__interval-3                           | ATTACK     | 6.6674     | 34/541          | 30/433       | 3.00s   
+test_03__interval-4                           | ATTACK     | 5.4467     | 25/612          | 0/15         | N/A     
+test_03__speed-3                              | ATTACK     | 9.3281     | 28/435          | 13/13        | 0.00s   
+test_03__speed-4                              | ATTACK     | 7.1631     | 21/430          | 7/7          | 0.00s   
+test_03__systematic-3                         | ATTACK     | 5.7315     | 34/541          | 8/71         | 16.00s  
+test_03__systematic-4                         | ATTACK     | 5.5428     | 24/393          | 4/63         | 5.00s   
+test_03__triple-3                             | ATTACK     | 6.0200     | 36/558          | 12/12        | 0.00s   
+test_03__triple-4                             | ATTACK     | 5.5397     | 31/570          | 4/5          | 1.00s   
+test_04__double-3                             | ATTACK     | 81.0089    | 555/555         | 10/10        | 0.00s   
+test_04__double-4                             | ATTACK     | 81.7201    | 652/652         | 6/6          | 0.00s   
+test_04__fuzzing-3                            | ATTACK     | 83.0151    | 247/247         | 9/9          | 0.00s   
+test_04__fuzzing-4                            | ATTACK     | 82.8151    | 311/311         | 22/22        | 0.00s   
+test_04__interval-3                           | ATTACK     | 80.9066    | 446/446         | 12/12        | 0.00s   
+test_04__interval-4                           | ATTACK     | 81.9170    | 431/431         | 4/4          | 0.00s   
+test_04__speed-3                              | ATTACK     | 82.6929    | 1321/1322       | 11/11        | 0.00s   
+test_04__speed-4                              | ATTACK     | 80.9446    | 949/949         | 8/8          | 0.00s   
+test_04__systematic-3                         | ATTACK     | 80.9667    | 254/254         | 60/60        | 0.00s   
+test_04__systematic-4                         | ATTACK     | 81.0584    | 165/165         | 13/13        | 0.00s   
+test_04__triple-3                             | ATTACK     | 81.5507    | 998/998         | 5/5          | 0.00s   
+test_04__triple-4                             | ATTACK     | 81.0116    | 297/297         | 7/7          | 0.00s   
+==============================================================================================================
+  [test_01] windows 3905 (attack 112) | ROC 0.9732 | PR 0.9074 | P 0.380 | R 0.902 | F1 0.534 | FPR 0.044
+  [test_02] windows 2446 (attack 228) | ROC 0.8150 | PR 0.6780 | P 0.093 | R 1.000 | F1 0.171 | FPR 0.999
+  [test_03] windows 5962 (attack 763) | ROC 0.8102 | PR 0.4058 | P 0.417 | R 0.227 | F1 0.294 | FPR 0.047
+  [test_04] windows 6627 (attack 167) | ROC 0.6309 | PR 0.0812 | P 0.025 | R 1.000 | F1 0.049 | FPR 1.000
+  [Evaluation Visual] Saved Confusion Matrix to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_01\xai_visuals\confusion_matrix.png
+  [Visual Explainer] Saved Interactive Scenario Explainer HTML to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_01\xai_visuals\scenario_explainer.html
+ Saved Scenario Table to: D:\git_repos\capstone\graph-transformer\outputs\ctt_set_01\xai_visuals\scenario_explainer_table.png

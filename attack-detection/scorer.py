@@ -17,11 +17,17 @@ if GT_DIR not in sys.path:
 class AnomalyScorerConfig:
     # Weights act on validation-scaled components (each divided by its benign MAD).
     # Ablation on the ROAD test split: structural excess (E) carries the detection signal,
-    # R adds a small FPR reduction, T ranks below chance and G is subsumed by E.
+    # R adds a small FPR reduction and G is subsumed by E. T (per-ID rate deviation) is off by
+    # default: it lifts injection/retiming attacks on can-train-and-test (test_03 ROC up to +0.16)
+    # but cuts ROAD masquerade fold ROC 0.967 -> 0.849, where attackers keep the real ECU's rate.
+    # Enable with beta_temporal=1.0 (evaluate.py --timing).
     alpha_recon: float = 0.25
     beta_temporal: float = 0.0
     gamma_struct: float = 0.0
     delta_excess: float = 1.0
+    # "max": E and T are alternative detectors (ordering vs rate), so the window takes the larger of
+    # the two scaled terms instead of their sum, where one term's benign noise masks the other.
+    fusion: str = "max"
     feature_weights: tuple = (1.0, 1.0, 1.0, 1.2, 2.0, 1.0, 1.5, 2.5, 2.5)
     edge_loss_weight: float = 0.50
     rare_transition_prob_threshold: float = 1e-4
@@ -32,6 +38,8 @@ class AnomalyScorerConfig:
 
 
 class TransitionBaseline:
+    RATE_FEATURES = [0, 1]  # msg_count, mean_iat (node feature columns)
+
     def __init__(self, vocab_size: int = 106):
         self.vocab_size = vocab_size
         self.transition_counts = np.zeros((vocab_size, vocab_size), dtype=np.float64)
@@ -70,6 +78,25 @@ class TransitionBaseline:
             if i < self.vocab_size:
                 self.id_surprise_median[i] = np.median(vals)
 
+        # Per-ID benign rate profile: median and robust spread of msg_count and mean_iat. Spreads are
+        # floored at the median spread across IDs so near-constant IDs do not explode.
+        feats = {}
+        for g in benign_graphs:
+            ids = g.id_idx.cpu().numpy()
+            x = g.x[:, self.RATE_FEATURES].cpu().numpy()
+            for i, row in zip(ids, x):
+                feats.setdefault(int(i), []).append(row)
+        k = len(self.RATE_FEATURES)
+        self.rate_median = np.zeros((self.vocab_size, k))
+        spread = np.full((self.vocab_size, k), np.nan)
+        for i, rows in feats.items():
+            if i < self.vocab_size:
+                rows = np.asarray(rows)
+                self.rate_median[i] = np.median(rows, axis=0)
+                spread[i] = 1.4826 * np.median(np.abs(rows - self.rate_median[i]), axis=0)
+        floor = np.maximum(np.nanmedian(spread, axis=0), 1e-6)
+        self.rate_scale = np.where(np.isnan(spread), floor, np.maximum(spread, floor))
+
     def node_surprise(self, g) -> np.ndarray:
         """Count-weighted transition NLL summed over every edge touching each node."""
         n = g.id_idx.shape[0]
@@ -88,6 +115,17 @@ class TransitionBaseline:
             return np.zeros(g.id_idx.shape[0], dtype=np.float64)
         ids = np.minimum(g.id_idx.cpu().numpy(), self.vocab_size - 1)
         return self.node_surprise(g) - self.id_surprise_median[ids]
+
+    def node_rate_deviation(self, g) -> np.ndarray:
+        """Per-node max |feature - ID median| / ID spread over msg_count and mean_iat: how far each
+        ID's message rate is from its own benign rate. Unseen IDs (<UNK>) are left to E."""
+        if not self.fitted:
+            return np.zeros(g.id_idx.shape[0], dtype=np.float64)
+        ids = np.minimum(g.id_idx.cpu().numpy(), self.vocab_size - 1)
+        x = g.x[:, self.RATE_FEATURES].cpu().numpy()
+        dev = np.abs(x - self.rate_median[ids]) / self.rate_scale[ids]
+        dev[ids == 0] = 0.0
+        return dev.max(axis=1)
 
     def compute_structural_penalty(self, g) -> float:
         if not self.fitted or g.edge_index.shape[1] == 0:
@@ -111,8 +149,6 @@ class TransitionBaseline:
 
 
 class AnomalyScorer:
-    TEMPORAL_FEATURE_IDX = [1, 2]  # mean_iat, std_iat
-
     def __init__(self, config: AnomalyScorerConfig = None):
         self.config = config or AnomalyScorerConfig()
         self.feat_weights_tensor = torch.tensor(
@@ -132,14 +168,12 @@ class AnomalyScorer:
         total_recon_error = node_error + (self.config.edge_loss_weight * edge_error)
         return total_recon_error, node_residuals.detach()
 
-    def compute_temporal_deviation(self, batch, outputs) -> float:
-        x_recon = outputs["x_recon"]
-        x_true = batch.x
-        if x_recon.shape[-1] <= max(self.TEMPORAL_FEATURE_IDX):
+    @staticmethod
+    def compute_temporal_deviation(batch, transition_baseline: Optional[TransitionBaseline]) -> float:
+        """T: largest per-ID rate deviation in the window (see TransitionBaseline.node_rate_deviation)."""
+        if transition_baseline is None or batch.x.shape[0] == 0:
             return 0.0
-        temporal_residuals = (x_recon[:, self.TEMPORAL_FEATURE_IDX] - x_true[:, self.TEMPORAL_FEATURE_IDX]) ** 2
-        temporal_error = temporal_residuals.mean().item()
-        return max(0.0, temporal_error)
+        return float(transition_baseline.node_rate_deviation(batch).max())
 
     def fit_component_scales(self, model, val_loader, device, transition_baseline: Optional[TransitionBaseline] = None):
         model.eval()
@@ -158,7 +192,7 @@ class AnomalyScorer:
                     edge_weight=batch.edge_attr,
                 )
                 r_error, _ = self.compute_reconstruction_deviation(batch, outputs)
-                t_error = self.compute_temporal_deviation(batch, outputs)
+                t_error = self.compute_temporal_deviation(batch, transition_baseline)
                 g_error = transition_baseline.compute_structural_penalty(batch) if transition_baseline else 0.0
                 e_error = float(transition_baseline.node_excess_surprise(batch).max()) if transition_baseline else 0.0
 
@@ -186,7 +220,7 @@ class AnomalyScorer:
 
     def score_window(self, batch, outputs, transition_baseline: TransitionBaseline = None) -> dict:
         r_error, node_residuals = self.compute_reconstruction_deviation(batch, outputs)
-        t_error = self.compute_temporal_deviation(batch, outputs)
+        t_error = self.compute_temporal_deviation(batch, transition_baseline)
         g_error = transition_baseline.compute_structural_penalty(batch) if transition_baseline else 0.0
         node_excess = (transition_baseline.node_excess_surprise(batch) if transition_baseline
                        else np.zeros(batch.x.shape[0]))
@@ -195,11 +229,13 @@ class AnomalyScorer:
         def scaled(value, scale):
             return value / scale if scale is not None else value
 
+        e_term = self.config.delta_excess * scaled(e_error, self.config.excess_scale)
+        t_term = self.config.beta_temporal * scaled(t_error, self.config.temporal_scale)
         fused_score = (
             self.config.alpha_recon * scaled(r_error, self.config.recon_scale) +
-            self.config.beta_temporal * scaled(t_error, self.config.temporal_scale) +
             self.config.gamma_struct * scaled(g_error, self.config.struct_scale) +
-            self.config.delta_excess * scaled(e_error, self.config.excess_scale)
+            (max(e_term, t_term) if self.config.fusion == "max" and self.config.beta_temporal > 0
+             else e_term + t_term)
         )
         return {
             "anomaly_score": float(fused_score),

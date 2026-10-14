@@ -224,5 +224,7 @@ def save_dataset(windows: list[WindowRecord], output_dir: str):
 
 
 if __name__ == "__main__":
-    windows = build_dataset()
+    # Window index + labels only; graph_builder.py re-windows each capture with its raw messages,
+    # so the multi-GB message pickle is no longer needed.
+    windows = build_dataset(keep_messages=False)
     save_dataset(windows, OUTPUT_DIR)

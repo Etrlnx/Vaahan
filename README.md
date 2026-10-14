@@ -205,6 +205,7 @@ capstone/
 │   ├── graph_builder.py       # Dynamic graph construction (9D node features, benign-only ID vocab, directed edges)
 │   ├── attack_injector.py     # Synthetic timing attacks -> outputs/synthetic/ (+ metadata.json)
 │   ├── convert_can_train_and_test.py  # Raw frames (hex payload) -> ROAD CSV layout, one set at a time
+│   │                                  # graph_builder.py windows + builds graphs per capture (low memory)
 │   ├── model.py               # Coupled GraphTransformerAutoencoder (TransformerConv + MLP/edge decoders)
 │   ├── train.py               # Benign-only training, capture split / 6-fold rotation, leakage-safe test assignment
 │   ├── road/                  # Local ROAD dataset directory (signal-translated CSVs)
@@ -259,9 +260,9 @@ python graph-transformer/attack_injector.py
 
 # Step 1: Preprocess raw ROAD dataset into temporal window records (2.0 s windows, 1.0 s stride)
 python graph-transformer/preprocess.py
-# -> Emits outputs/road_windowed.pkl
+# -> Emits outputs/road_windowed.pkl (window index + labels; raw messages are re-read by graph_builder.py)
 
-# Step 2: Build dynamic PyTorch Geometric graphs and global ID vocabulary
+# Step 2: Build dynamic PyTorch Geometric graphs and global ID vocabulary (one capture at a time)
 python graph-transformer/graph_builder.py
 # -> Emits outputs/graphs.pt and outputs/vocab.pkl
 
@@ -292,11 +293,14 @@ export CAN_DATASET=ctt_set_01                                     # PowerShell: 
 python graph-transformer/preprocess.py && python graph-transformer/graph_builder.py
 python graph-transformer/train.py && python attack-detection/evaluate.py --no-plot
 # -> evaluate.py also prints metrics per dataset test subset (test_01 .. test_04)
+python attack-detection/evaluate.py --no-plot --timing   # adds the per-ID rate term, max(E, T)
 ```
 
 How the converter maps the data:
 - **Payload bytes become signals:** `Signal_k_of_ID` is payload byte k.
-- **Training uses only the attack-free drives,** each cut into 4 time parts.
+- **Training uses benign driving from `train_01` only:**
+  - the attack-free drives, each cut into 4 time parts;
+  - stretches of the labelled attack drives that stay at least 2 s away from every attack frame and last at least 30 s. This gives 3–10× more benign data.
 - **The dataset's own `test_01`–`test_04` files are the test set.**
 
 ## 13. Graph Construction
@@ -352,7 +356,10 @@ Anomaly detection is formulated as an **unsupervised one-class reconstruction ta
 
 - **Window Score**: each component is divided by its benign-validation MAD and fused as
   $$S = 1.0 \cdot E/\sigma_E + 0.25 \cdot R/\sigma_R$$
-  where $E$ is the largest per-node *transition excess*: the count-weighted $-\log P(\text{id}_v \mid \text{id}_u)$ summed over a node's edges, minus that ID's benign median. The timing ($T$) and mean-transition ($G$) terms are still computed and shown in reports but carry weight 0; the ablation in `knowledge-graph/knowledge-graph.md` §5.4 shows why.
+  where $E$ is the largest per-node *transition excess*: the count-weighted $-\log P(\text{id}_v \mid \text{id}_u)$ summed over a node's edges, minus that ID's benign median. The mean-transition term ($G$) carries weight 0; the ablation in `knowledge-graph/knowledge-graph.md` §5.4 shows why.
+- **Optional rate term ($T$, `evaluate.py --timing`)**: the largest per-ID deviation of message count or mean inter-arrival time from that ID's own benign median, in MAD units. When enabled, the score uses $\max(E/\sigma_E,\ T/\sigma_T)$ instead of $E/\sigma_E$. It is off by default:
+  - it lifts injection and retiming attacks on can-train-and-test (§17);
+  - but on ROAD masquerades, where the attacker keeps the real ECU's rate, it lowers fold ROC-AUC from 0.967 to 0.849.
 
 **Status: Implemented.** `ZeroDayDetector` in [`attack-detection/detector.py`](attack-detection/detector.py) calibrates $\tau_{\text{suspicious}} = 5.0893$ (95th pct) and $\tau_{\text{alert}} = 7.1042$ (99th pct) on benign validation windows (seed-42 split), yielding **0.9672 ROC-AUC**, **0.9081 PR-AUC** and **85.7% recall at 5.0% FPR** on the held-out test set. Correlated-signal (27/61) and coolant (0/7) windows remain the weak spot.
 
@@ -451,6 +458,32 @@ Known limits:
 - **Suspension is weak.** The score only looks at message orderings that are present, so missing messages barely register.
 
 Full detail is in `knowledge-graph/knowledge-graph.md` §5.
+
+### Second dataset: can-train-and-test (4 real vehicles)
+
+Each set is a separate run with its own vocabulary, baseline and model, using the dataset's own test subsets. The table shows known-vehicle subsets (single split, seed 42):
+
+| Set | Training windows | test_01 ROC / FPR / P / R (known attacks) | test_03 ROC / FPR / P / R (unknown attacks) |
+|---|---|---|---|
+| set_01 | 5,416 | 0.973 / 4.4% / 38.0% / 90.2% | 0.810 / 4.7% / 41.7% / 22.7% |
+| set_02 | 5,824 | 0.773 / 4.7% / 20.3% / 46.1% | 0.572 / 6.2% / 8.4% / 22.7% |
+| set_03 | 3,737 | 0.980 / 0.5% / 92.6% / 79.8% | 0.769 / 1.8% / 64.6% / 13.1% |
+| set_04 | 4,686 | 0.980 / 3.5% / 89.3% / 92.8% | 0.991 / 4.9% / 62.9% / 97.9% |
+
+With the optional rate term (`--timing`), on known-vehicle subsets:
+
+| Set | test_01 ROC / FPR / P / R | test_03 ROC / FPR / P / R |
+|---|---|---|
+| set_01 | 0.999 / 2.2% / 56.9% / 100% | 0.935 / 2.6% / 83.3% / 89.1% |
+| set_02 | 0.859 / 5.9% / 24.5% / 74.3% | 0.735 / 6.5% / 15.9% / 48.0% |
+| set_03 | 0.975 / 0.9% / 87.9% / 81.0% | 0.931 / 2.2% / 88.4% / 69.4% |
+| set_04 | 0.995 / 2.3% / 93.1% / 98.6% | 0.973 / 4.7% / 62.1% / 90.2% |
+
+What this shows:
+- **More benign training data helps.** Adding the attack-free stretches of the labelled training drives cut the mean known-vehicle FPR from 12.2% to 3.3% (test_01) and from 12.3% to 4.4% (test_03).
+- **Timing-only attacks need the rate term.** Without it, unknown `interval` attacks (which only change an ID's period) are mostly missed. With `--timing`, mean test_03 ROC-AUC rises from 0.786 to 0.894 and recall from 39% to 74%.
+- **The rate term is not universal.** It hurts ROAD's rate-preserving masquerades, so the right score depends on the attack model.
+- **Unknown-vehicle subsets (`test_02`, `test_04`) alarm on nearly every window.** The baseline is specific to one vehicle by design.
 
 ## 18. Future Work
 

@@ -61,7 +61,8 @@ class ZeroDayDetector:
         if len(val_loader) == 0:
             raise ValueError("Validation loader yielded 0 windows; cannot calibrate detector thresholds.")
 
-        needs_baseline = self.scorer_config.gamma_struct > 0 or self.scorer_config.delta_excess > 0
+        needs_baseline = (self.scorer_config.gamma_struct > 0 or self.scorer_config.delta_excess > 0
+                          or self.scorer_config.beta_temporal > 0)
         if needs_baseline and (self.transition_baseline is None or not self.transition_baseline.fitted):
             raise RuntimeError(
                 "Structural weights (gamma_struct / delta_excess) > 0, but TransitionBaseline has not been fitted. "

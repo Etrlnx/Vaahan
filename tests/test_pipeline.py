@@ -105,6 +105,23 @@ class TestDetectorContracts(unittest.TestCase):
         self.assertEqual(int(np.argmax(excess)), 2)
         self.assertLessEqual(baseline.node_excess_surprise(chain([1, 2, 3, 4], [5.0, 5.0, 5.0])).max(), 1e-9)
 
+    def test_rate_deviation_flags_changed_period(self):
+        from torch_geometric.data import Data
+        rng = np.random.default_rng(0)
+
+        def window(count_id2):
+            x = torch.zeros((3, 9))
+            x[:, 0] = torch.tensor([10.0, count_id2, 10.0]) + torch.tensor(rng.normal(0, 0.5, 3), dtype=torch.float32)
+            g = Data(x=x, edge_index=torch.tensor([[0, 1], [1, 2]]), edge_attr=torch.ones(2))
+            g.id_idx = torch.tensor([1, 2, 3])
+            return g
+
+        baseline = TransitionBaseline(vocab_size=5)
+        baseline.fit([window(10.0) for _ in range(50)])
+        dev = baseline.node_rate_deviation(window(20.0))  # ID 2 now sends twice as often
+        self.assertEqual(int(np.argmax(dev)), 1)
+        self.assertGreater(dev[1], 5 * max(dev[0], dev[2]))
+
 
 class TestSignalScaling(unittest.TestCase):
     def test_symmetric_log1p(self):
