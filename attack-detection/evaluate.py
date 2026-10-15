@@ -205,6 +205,18 @@ def alarm_events_per_hour(results: list, tau: float, stride: float = 1.0) -> flo
     return 3600.0 * events / max(len(results) * stride, 1e-9)
 
 
+def drive_type_breakdown(benign_results: list, tau: float) -> dict:
+    """False alarms on real benign test drives, split by drive type (ROAD: dyno vs highway)."""
+    out = {}
+    for kind in ("dyno", "highway"):
+        rs = [r for r in benign_results if (kind == "highway") == ("highway" in str(r.capture_name))]
+        if rs:
+            fp = sum(r.anomaly_score >= tau for r in rs)
+            out[kind] = {"windows": len(rs), "fp": int(fp), "fpr": fp / len(rs),
+                         "events_per_hour": alarm_events_per_hour(rs, tau)}
+    return out
+
+
 def summarize_synthetic(results: list, tau: float) -> dict:
     """Per attack type / intensity: window recall and episode detection (one episode per capture)."""
     groups = {}
@@ -315,6 +327,7 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
     metrics["false_alarm_windows_per_hour"] = (
         3600.0 * sum(r.anomaly_score >= tau for r in benign_ambient) / max(len(benign_ambient), 1))
     metrics["false_alarm_events_per_hour"] = alarm_events_per_hour(benign_ambient, tau)
+    metrics["drive_types"] = drive_type_breakdown(benign_ambient, tau)
     synthetic = summarize_synthetic(results, tau)
     syn_windows = [r for r in results if synthetic_parent(r.capture_name) is not None]
     metrics["synthetic_window_recall"] = (
@@ -334,6 +347,9 @@ def run_evaluation(scorer_config: AnomalyScorerConfig = None, show_plot: bool = 
         print(f"  {k:<24}: {metrics[k]:.4f}")
     print(f"  {'false alarms / hour':<24}: {metrics['false_alarm_windows_per_hour']:.1f} windows, "
           f"{metrics['false_alarm_events_per_hour']:.1f} distinct events (ambient driving)")
+    for kind, d in metrics["drive_types"].items():
+        print(f"  {'FPR ' + kind + ' drives':<24}: {d['fpr']:.4f} ({d['fp']}/{d['windows']} real benign windows, "
+              f"{d['events_per_hour']:.1f} events/h)")
     print("=" * 70)
 
     if synthetic:
@@ -451,6 +467,11 @@ def run_fold_evaluation(n_folds: int, scorer_config: AnomalyScorerConfig = None)
         print(f"  {k:<30}: {summary[k]['mean']:.4f} +/- {summary[k]['std']:.4f}")
     print(f"  {'pooled benign FPR':<30}: {pooled_fp / max(pooled_benign, 1):.4f} "
           f"({pooled_fp}/{pooled_benign} benign test windows across folds)")
+    for kind in ("dyno", "highway"):
+        parts = [m["drive_types"][kind] for m in per_fold if kind in m.get("drive_types", {})]
+        if parts:
+            fp, n = sum(p["fp"] for p in parts), sum(p["windows"] for p in parts)
+            print(f"  {'pooled FPR ' + kind + ' drives':<30}: {fp / n:.4f} ({fp}/{n} real benign windows)")
 
     print("\nSYNTHETIC EPISODES ACROSS FOLDS (each parent capture held out exactly once)")
     for key in sorted({k for m in per_fold for k in m["synthetic"]}):
@@ -461,7 +482,28 @@ def run_fold_evaluation(n_folds: int, scorer_config: AnomalyScorerConfig = None)
         det = sum(r["episodes_detected"] for r in rows)
         print(f"  {key:<22}: window recall {hit / max(w, 1):6.2%} ({w} windows) | episodes detected {det}/{ep}")
 
-    out = {"per_fold": per_fold, "summary": summary, "pooled_benign_fpr": pooled_fp / max(pooled_benign, 1)}
+    # Pooled confusion matrix: every benign drive is tested once across the folds; the same real attack
+    # windows are scored by each fold's model, so attacks are counted n_folds times (6 independent models).
+    tp, fp, tn, fn = (sum(m[k] for m in per_fold) for k in ("tp", "fp", "tn", "fn"))
+    precision, recall = tp / max(tp + fp, 1), tp / max(tp + fn, 1)
+    pooled = {"tp": tp, "fp": fp, "tn": tn, "fn": fn, "precision": precision, "recall": recall,
+              "f1": 2 * precision * recall / max(precision + recall, 1e-6),
+              "accuracy": (tp + tn) / max(tp + tn + fp + fn, 1), "fpr": fp / max(fp + tn, 1)}
+    print(f"\nPOOLED {n_folds}-FOLD CONFUSION MATRIX (benign windows counted once, attack windows once per fold model)")
+    print(f"  TP {tp} | FP {fp} | TN {tn} | FN {fn}")
+    print("  " + " | ".join(f"{k} {pooled[k]:.4f}" for k in ("precision", "recall", "f1", "accuracy", "fpr")))
+    plot_confusion_matrix(
+        y_true=np.array([1] * (tp + fn) + [0] * (fp + tn)),
+        y_pred=np.array([1] * tp + [0] * fn + [1] * fp + [0] * tn),
+        class_names=["Benign", "Attack"],
+        metrics={**pooled, "roc_auc": summary["roc_auc"]["mean"], "pr_auc": summary["pr_auc"]["mean"]},
+        title=f"Pooled {n_folds}-Fold Capture Rotation (ROAD)",
+        save_path=os.path.join(OUTPUTS_DIR, "xai_visuals", "confusion_matrix_folds_pooled.png"),
+        show=False,
+    )
+
+    out = {"per_fold": per_fold, "summary": summary, "pooled_benign_fpr": pooled_fp / max(pooled_benign, 1),
+           "pooled_confusion": pooled}
     with open(os.path.join(OUTPUTS_DIR, "fold_results.json"), "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2, default=float)
     return out
