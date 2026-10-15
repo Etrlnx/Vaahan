@@ -15,7 +15,7 @@ import numpy as np
 import torch
 
 from plot_confusion_matrix import plot_confusion_matrix
-from evaluate import compute_roc_auc, compute_pr_auc, intensity_and_episodes, alarm_events_per_hour
+from evaluate import compute_roc_auc, compute_pr_auc, intensity_and_episodes, alarm_events_per_hour, drive_type_breakdown
 from detector import ZeroDayDetector, RiskState
 from scorer import AnomalyScorer, AnomalyScorerConfig, TransitionBaseline
 
@@ -186,6 +186,16 @@ class TestAlarmEvents(unittest.TestCase):
               for t, s in [(0, 2), (1, 2), (2, 2), (3, 0), (4, 2), (5, 0)]]  # 2 events in 6 s
         rs += [NS(capture_name="b", window_start=float(t), anomaly_score=0.0) for t in range(6)]
         self.assertAlmostEqual(alarm_events_per_hour(rs, tau=1.0), 3600.0 * 2 / 12)
+
+
+class TestDriveTypeBreakdown(unittest.TestCase):
+    def test_splits_dyno_and_highway(self):
+        from types import SimpleNamespace as NS
+        rs = [NS(capture_name="ambient_dyno_x", window_start=float(t), anomaly_score=2.0 if t == 0 else 0.0) for t in range(4)]
+        rs += [NS(capture_name="ambient_highway_y", window_start=float(t), anomaly_score=2.0) for t in range(2)]
+        d = drive_type_breakdown(rs, tau=1.0)
+        self.assertEqual((d["dyno"]["fp"], d["dyno"]["windows"]), (1, 4))
+        self.assertEqual((d["highway"]["fp"], d["highway"]["windows"]), (2, 2))
 
 
 class TestSignalScaling(unittest.TestCase):
