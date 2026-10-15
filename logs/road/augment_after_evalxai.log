@@ -1,0 +1,334 @@
+================================================================================
+EXPLAINABLE AI (XAI) GROUND-TRUTH FIDELITY BENCHMARK
+================================================================================
+
+[1/3] Loading model, vocabulary, and test graphs...
+Restoring exact capture splits and feature normalizer from checkpoint metadata...
+Component scales fitted: recon=0.0157, temporal=1.4826, struct=0.1573, excess=82.1374
+Detector Calibrated on 2147 validation windows:
+  tau_suspicious (95.0th percentile) : 5.5743
+  tau_alert      (99.0th percentile) : 9.4253
+
+[2/3] Evaluating Explanation Fidelity on True Attack Windows...
+
+================================================================================
+EXPLAINABILITY FIDELITY BENCHMARK RESULTS
+================================================================================
+  [ROAD] Evaluated Attack Alert Windows : 265
+  [ROAD] Hit Rate @ Top-1 (HR@1)        : 96.98%
+  [ROAD] Hit Rate @ Top-3 (HR@3)        : 99.62%
+  [ROAD] Feature Grounding Fidelity     : 93.96%
+  [SYNTHETIC] Evaluated Attack Alert Windows : 70
+  [SYNTHETIC] Hit Rate @ Top-1 (HR@1)        : 74.29%
+  [SYNTHETIC] Hit Rate @ Top-3 (HR@3)        : 74.29%
+  [SYNTHETIC] Feature Grounding Fidelity     : 97.14%
+================================================================================
+
+[3/3] Generating Visual Explanations & Security Incident Reports...
+
+--- Incident 1 [HIGH_RISK] (max_speedometer_attack_1_masquerade @ 57.0s) ---
+================================================================================
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-540BCAC3
+================================================================================
+Capture: max_speedometer_attack_1_masquerade | Timestamp: 57.00s
+Anomaly Score: 14.2556 (Decision Tau: 5.5743, Alert Tau: 9.4253)
+--------------------------------------------------------------------------------
+COMPONENT ANOMALY BREAKDOWN:
+  - Reconstruction Residual (R_error): 0.1309
+  - Temporal Dynamics Jitter (T_error): 40.0003
+  - Structural Sequence Penalty (G_error): 2.6322
+  - Per-ID Transition Excess   (E_error): 999.6750
+--------------------------------------------------------------------------------
+PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
+  1. CAN ID 208 (Speedometer & Reverse-Light Status (ROAD injection target)):
+     -> Share of Window Transition Excess: 41.6%
+     -> Key Deviating Dimensions:
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0717 (55.4%)
+        * signal_range    [Dynamic Signal Span Range]: residual=0.0280 (21.6%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=0.0150 (11.6%)
+  2. CAN ID 51 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 16.8%
+     -> Key Deviating Dimensions:
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0338 (35.3%)
+        * signal_min      [Decoded Signal Minimum Bound]: residual=0.0258 (26.9%)
+        * signal_range    [Dynamic Signal Span Range]: residual=0.0132 (13.8%)
+  3. CAN ID 640 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 16.1%
+     -> Key Deviating Dimensions:
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.7624 (55.6%)
+        * msg_count       [Message Volume / Frequency]: residual=0.3313 (24.2%)
+        * std_iat         [Inter-Arrival Time Jitter (Timing Irregularity)]: residual=0.0757 (5.5%)
+--------------------------------------------------------------------------------
+STRUCTURAL SEQUENCING ANOMALIES:
+  * Transition 208 -> 1277 (Count: 23, NLL: 5.61)
+  * Transition 208 -> 813 (Count: 5, NLL: 5.55)
+  * Transition 208 -> 640 (Count: 6, NLL: 7.05)
+  * Transition 208 -> 1788 (Count: 17, NLL: 6.33)
+  * Transition 208 -> 452 (Count: 2, NLL: 7.33)
+  * Transition 208 -> 186 (Count: 12, NLL: 5.15)
+  * Transition 208 -> 1644 (Count: 12, NLL: 6.17)
+  * Transition 208 -> 627 (Count: 1, NLL: 8.62)
+  * Transition 208 -> 622 (Count: 2, NLL: 6.24)
+  * Transition 208 -> 1072 (Count: 2, NLL: 6.26)
+  * Transition 208 -> 1307 (Count: 3, NLL: 7.03)
+  * Transition 208 -> 241 (Count: 1, NLL: 7.99)
+  * Transition 208 -> 663 (Count: 1, NLL: 7.69)
+  * Transition 208 -> 1533 (Count: 1, NLL: 8.63)
+  * Transition 208 -> 953 (Count: 1, NLL: 8.55)
+  * Transition 208 -> 676 (Count: 1, NLL: 7.32)
+  * Transition 208 -> 65 (Count: 1, NLL: 8.57)
+  * Transition 208 -> 1455 (Count: 1, NLL: 8.47)
+  * Transition 208 -> 695 (Count: 1, NLL: 8.61)
+  * Transition 208 -> 692 (Count: 1, NLL: 6.11)
+--------------------------------------------------------------------------------
+TRANSFORMER ATTENTION FOCUS:
+  * 676      ---> 1760     (Attention: 0.4741, 7.59x uniform)
+  * 663      ---> 208      (Attention: 0.2517, 5.03x uniform)
+  * 60       ---> 1176     (Attention: 0.3445, 3.79x uniform)
+  * 37       ---> 737      (Attention: 0.4134, 3.31x uniform)
+================================================================================
+RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (208) + ESCALATE_ALERT
+================================================================================
+  [XAI Visual] Saved Radar Chart to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_01_max_speedometer_attack_1_masquerade_radar_chart.png
+  [XAI Visual] Saved ID Attribution Chart to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_01_max_speedometer_attack_1_masquerade_id_attribution.png
+findfont: Failed to find font weight semibold for DejaVu Sans, now using 700.
+  [XAI Visual] Saved Subgraph Network PNG to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_01_max_speedometer_attack_1_masquerade_subgraph.png
+  [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_01_max_speedometer_attack_1_masquerade_subgraph_interactive.html
+  [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_01_max_speedometer_attack_1_masquerade_dashboard.png
+
+--- Incident 2 [HIGH_RISK] (reverse_light_off_attack_3_masquerade @ 21.0s) ---
+================================================================================
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-E87C61AE
+================================================================================
+Capture: reverse_light_off_attack_3_masquerade | Timestamp: 21.00s
+Anomaly Score: 13.8349 (Decision Tau: 5.5743, Alert Tau: 9.4253)
+--------------------------------------------------------------------------------
+COMPONENT ANOMALY BREAKDOWN:
+  - Reconstruction Residual (R_error): 0.1326
+  - Temporal Dynamics Jitter (T_error): 2.0000
+  - Structural Sequence Penalty (G_error): 2.5951
+  - Per-ID Transition Excess   (E_error): 962.9428
+--------------------------------------------------------------------------------
+PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
+  1. CAN ID 208 (Speedometer & Reverse-Light Status (ROAD injection target)):
+     -> Share of Window Transition Excess: 53.0%
+     -> Key Deviating Dimensions:
+        * signal_range    [Dynamic Signal Span Range]: residual=0.0607 (32.3%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=0.0471 (25.1%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.0362 (19.3%)
+  2. CAN ID 51 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 29.8%
+     -> Key Deviating Dimensions:
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0707 (34.4%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.0658 (32.0%)
+        * msg_count       [Message Volume / Frequency]: residual=0.0462 (22.5%)
+  3. CAN ID 412 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 7.0%
+     -> Key Deviating Dimensions:
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0063 (61.4%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=0.0014 (13.2%)
+        * signal_min      [Decoded Signal Minimum Bound]: residual=0.0012 (12.0%)
+--------------------------------------------------------------------------------
+STRUCTURAL SEQUENCING ANOMALIES:
+  * Transition 208 -> 1533 (Count: 4, NLL: 8.63)
+  * Transition 208 -> 705 (Count: 6, NLL: 5.92)
+  * Transition 208 -> 1644 (Count: 2, NLL: 6.17)
+  * Transition 208 -> 426 (Count: 1, NLL: 8.55)
+  * Transition 208 -> 6 (Count: 1, NLL: 8.60)
+  * Transition 208 -> 1398 (Count: 1, NLL: 8.52)
+  * Transition 208 -> 1459 (Count: 9, NLL: 6.33)
+  * Transition 208 -> 60 (Count: 3, NLL: 6.25)
+  * Transition 208 -> 248 (Count: 1, NLL: 8.73)
+  * Transition 208 -> 253 (Count: 1, NLL: 8.49)
+  * Transition 208 -> 1049 (Count: 1, NLL: 7.85)
+  * Transition 208 -> 541 (Count: 1, NLL: 8.66)
+  * Transition 208 -> 676 (Count: 1, NLL: 7.32)
+  * Transition 208 -> 1560 (Count: 1, NLL: 8.52)
+  * Transition 208 -> 1175 (Count: 2, NLL: 6.18)
+  * Transition 208 -> 519 (Count: 4, NLL: 6.46)
+  * Transition 208 -> 1661 (Count: 1, NLL: 8.46)
+--------------------------------------------------------------------------------
+TRANSFORMER ATTENTION FOCUS:
+  * 1560     ---> 208      (Attention: 0.1554, 4.35x uniform)
+  * 676      ---> 339      (Attention: 0.3362, 3.70x uniform)
+  * 60       ---> 293      (Attention: 0.2007, 3.61x uniform)
+  * 961      ---> 852      (Attention: 0.7159, 3.58x uniform)
+================================================================================
+RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (208) + ESCALATE_ALERT
+================================================================================
+  [XAI Visual] Saved Radar Chart to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_02_reverse_light_off_attack_3_masquerade_radar_chart.png
+  [XAI Visual] Saved ID Attribution Chart to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_02_reverse_light_off_attack_3_masquerade_id_attribution.png
+  [XAI Visual] Saved Subgraph Network PNG to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_02_reverse_light_off_attack_3_masquerade_subgraph.png
+  [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_02_reverse_light_off_attack_3_masquerade_subgraph_interactive.html
+  [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_02_reverse_light_off_attack_3_masquerade_dashboard.png
+
+--- Incident 3 [HIGH_RISK] (reverse_light_on_attack_3_masquerade @ 42.0s) ---
+================================================================================
+SECURITY INCIDENT REPORT [HIGH_RISK] — Incident #INC-7E4A3668
+================================================================================
+Capture: reverse_light_on_attack_3_masquerade | Timestamp: 42.00s
+Anomaly Score: 14.4118 (Decision Tau: 5.5743, Alert Tau: 9.4253)
+--------------------------------------------------------------------------------
+COMPONENT ANOMALY BREAKDOWN:
+  - Reconstruction Residual (R_error): 0.1363
+  - Temporal Dynamics Jitter (T_error): 2.0000
+  - Structural Sequence Penalty (G_error): 2.7868
+  - Per-ID Transition Excess   (E_error): 1005.4984
+--------------------------------------------------------------------------------
+PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
+  1. CAN ID 208 (Speedometer & Reverse-Light Status (ROAD injection target)):
+     -> Share of Window Transition Excess: 40.5%
+     -> Key Deviating Dimensions:
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0605 (36.8%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.0528 (32.1%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.0238 (14.5%)
+  2. CAN ID 51 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 19.0%
+     -> Key Deviating Dimensions:
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.1243 (41.9%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.0428 (14.4%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.0340 (11.5%)
+  3. CAN ID 412 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 14.0%
+     -> Key Deviating Dimensions:
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0127 (34.6%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.0117 (32.1%)
+        * msg_count       [Message Volume / Frequency]: residual=0.0071 (19.6%)
+--------------------------------------------------------------------------------
+STRUCTURAL SEQUENCING ANOMALIES:
+  * Transition 208 -> 470 (Count: 4, NLL: 6.30)
+  * Transition 208 -> 1661 (Count: 1, NLL: 8.46)
+  * Transition 208 -> 6 (Count: 2, NLL: 8.60)
+  * Transition 208 -> 996 (Count: 7, NLL: 6.17)
+  * Transition 208 -> 1372 (Count: 2, NLL: 6.79)
+  * Transition 208 -> 1413 (Count: 4, NLL: 5.77)
+  * Transition 208 -> 1398 (Count: 2, NLL: 8.52)
+  * Transition 208 -> 1049 (Count: 3, NLL: 7.85)
+  * Transition 208 -> 1399 (Count: 3, NLL: 5.50)
+  * Transition 208 -> 519 (Count: 3, NLL: 6.46)
+  * Transition 208 -> 1628 (Count: 10, NLL: 6.34)
+  * Transition 208 -> 60 (Count: 4, NLL: 6.25)
+  * Transition 208 -> 458 (Count: 1, NLL: 6.27)
+  * Transition 208 -> 663 (Count: 1, NLL: 7.69)
+  * Transition 208 -> 1225 (Count: 1, NLL: 6.41)
+  * Transition 208 -> 426 (Count: 2, NLL: 8.55)
+  * Transition 208 -> 622 (Count: 1, NLL: 6.24)
+  * Transition 208 -> 244 (Count: 10, NLL: 5.64)
+  * Transition 208 -> 248 (Count: 1, NLL: 8.73)
+  * Transition 208 -> 37 (Count: 1, NLL: 8.22)
+--------------------------------------------------------------------------------
+TRANSFORMER ATTENTION FOCUS:
+  * 1225     ---> 208      (Attention: 0.1569, 5.65x uniform)
+  * 663      ---> 1760     (Attention: 0.2531, 5.06x uniform)
+  * 300      ---> 14       (Attention: 0.3868, 4.64x uniform)
+  * 676      ---> 852      (Attention: 0.4304, 4.30x uniform)
+================================================================================
+RECOMMENDED GATEWAY POLICY ACTION: RESTRICT_ID (208) + ESCALATE_ALERT
+================================================================================
+  [XAI Visual] Saved Radar Chart to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_03_reverse_light_on_attack_3_masquerade_radar_chart.png
+  [XAI Visual] Saved ID Attribution Chart to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_03_reverse_light_on_attack_3_masquerade_id_attribution.png
+  [XAI Visual] Saved Subgraph Network PNG to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_03_reverse_light_on_attack_3_masquerade_subgraph.png
+  [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_03_reverse_light_on_attack_3_masquerade_subgraph_interactive.html
+  [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_03_reverse_light_on_attack_3_masquerade_dashboard.png
+
+--- Incident 4 [SUSPICIOUS] (correlated_signal_attack_2_masquerade @ 7.0s) ---
+================================================================================
+SECURITY INCIDENT REPORT [SUSPICIOUS] — Incident #INC-300D9C7A
+================================================================================
+Capture: correlated_signal_attack_2_masquerade | Timestamp: 7.00s
+Anomaly Score: 7.9274 (Decision Tau: 5.5743, Alert Tau: 9.4253)
+--------------------------------------------------------------------------------
+COMPONENT ANOMALY BREAKDOWN:
+  - Reconstruction Residual (R_error): 0.1130
+  - Temporal Dynamics Jitter (T_error): 4.0000
+  - Structural Sequence Penalty (G_error): 2.4324
+  - Per-ID Transition Excess   (E_error): 503.3351
+--------------------------------------------------------------------------------
+PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
+  1. CAN ID 1076 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 38.0%
+     -> Key Deviating Dimensions:
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.2986 (73.0%)
+        * signal_range    [Dynamic Signal Span Range]: residual=0.0445 (10.9%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.0371 (9.1%)
+  2. CAN ID 1760 (Wheel Speeds (ROAD correlated-signal target)):
+     -> Share of Window Transition Excess: 18.6%
+     -> Key Deviating Dimensions:
+        * signal_mean     [Decoded Signal Mean Value]: residual=1.6343 (91.3%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=0.0541 (3.0%)
+        * signal_std      [Decoded Signal Standard Deviation]: residual=0.0345 (1.9%)
+  3. CAN ID 1176 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 11.2%
+     -> Key Deviating Dimensions:
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.0894 (45.6%)
+        * signal_min      [Decoded Signal Minimum Bound]: residual=0.0561 (28.6%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=0.0402 (20.5%)
+--------------------------------------------------------------------------------
+STRUCTURAL SEQUENCING ANOMALIES:
+  * Transition 1076 -> 1255 (Count: 19, NLL: 5.91)
+  * Transition 1076 -> 1413 (Count: 1, NLL: 5.70)
+  * Transition 1076 -> 622 (Count: 2, NLL: 5.97)
+--------------------------------------------------------------------------------
+TRANSFORMER ATTENTION FOCUS:
+  * 60       ---> 852      (Attention: 0.5095, 6.11x uniform)
+  * 661      ---> 244      (Attention: 0.5686, 4.55x uniform)
+  * 622      ---> 737      (Attention: 0.3945, 4.34x uniform)
+  * 1512     ---> 14       (Attention: 0.2043, 4.29x uniform)
+================================================================================
+RECOMMENDED GATEWAY POLICY ACTION: HEIGHTENED_MONITORING + LOG_TELEMETRY
+================================================================================
+  [XAI Visual] Saved Radar Chart to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_04_correlated_signal_attack_2_masquerade_radar_chart.png
+  [XAI Visual] Saved ID Attribution Chart to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_04_correlated_signal_attack_2_masquerade_id_attribution.png
+  [XAI Visual] Saved Subgraph Network PNG to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_04_correlated_signal_attack_2_masquerade_subgraph.png
+  [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_04_correlated_signal_attack_2_masquerade_subgraph_interactive.html
+  [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_04_correlated_signal_attack_2_masquerade_dashboard.png
+
+--- Incident 5 [NORMAL] (ambient_dyno_drive_radio_infotainment @ 0.0s) ---
+================================================================================
+SECURITY INCIDENT REPORT [NORMAL] — Incident #INC-FED657E9
+================================================================================
+Capture: ambient_dyno_drive_radio_infotainment | Timestamp: 0.00s
+Anomaly Score: 2.9196 (Decision Tau: 5.5743, Alert Tau: 9.4253)
+--------------------------------------------------------------------------------
+COMPONENT ANOMALY BREAKDOWN:
+  - Reconstruction Residual (R_error): 0.1186
+  - Temporal Dynamics Jitter (T_error): 1.0000
+  - Structural Sequence Penalty (G_error): 2.3949
+  - Per-ID Transition Excess   (E_error): 84.6897
+--------------------------------------------------------------------------------
+PRIMARY ATTRIBUTED CAN ARBITRATION IDS:
+  1. CAN ID 1634 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 20.7%
+     -> Key Deviating Dimensions:
+        * signal_range    [Dynamic Signal Span Range]: residual=0.0164 (36.0%)
+        * signal_min      [Decoded Signal Minimum Bound]: residual=0.0101 (22.1%)
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.0075 (16.5%)
+  2. CAN ID 1175 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 11.1%
+     -> Key Deviating Dimensions:
+        * activity_share  [Bus Utilization Dominance Share]: residual=0.0118 (33.5%)
+        * mean_iat        [Mean Inter-Arrival Time (Transmission Cadence)]: residual=0.0109 (30.9%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.0048 (13.7%)
+  3. CAN ID 661 (Unmapped ECU (no public signal map)):
+     -> Share of Window Transition Excess: 10.9%
+     -> Key Deviating Dimensions:
+        * signal_min      [Decoded Signal Minimum Bound]: residual=0.0155 (36.5%)
+        * signal_max      [Decoded Signal Maximum Bound (Peak Overrides)]: residual=0.0107 (25.1%)
+        * signal_mean     [Decoded Signal Mean Value]: residual=0.0080 (18.7%)
+--------------------------------------------------------------------------------
+TRANSFORMER ATTENTION FOCUS:
+  * 1560     ---> 208      (Attention: 0.3191, 5.42x uniform)
+  * 961      ---> 14       (Attention: 0.5156, 4.12x uniform)
+  * 953      ---> 293      (Attention: 0.5113, 4.09x uniform)
+  * 996      ---> 263      (Attention: 0.2511, 4.02x uniform)
+================================================================================
+RECOMMENDED GATEWAY POLICY ACTION: ALLOW_FORWARDING
+================================================================================
+  [XAI Visual] Saved Radar Chart to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_05_benign_baseline_ambient_dyno_drive_radio_infotainment_radar_chart.png
+  [XAI Visual] Saved ID Attribution Chart to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_05_benign_baseline_ambient_dyno_drive_radio_infotainment_id_attribution.png
+  [XAI Visual] Saved Subgraph Network PNG to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_05_benign_baseline_ambient_dyno_drive_radio_infotainment_subgraph.png
+  [XAI Visual] Saved Interactive Subgraph HTML to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_05_benign_baseline_ambient_dyno_drive_radio_infotainment_subgraph_interactive.html
+  [XAI Visual] Saved dashboard PNG → D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\incident_05_benign_baseline_ambient_dyno_drive_radio_infotainment_dashboard.png
+
+Saved structured JSON report to: D:\git_repos\capstone\graph-transformer\outputs\sample_security_report.json
+Saved visual XAI dashboards to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals

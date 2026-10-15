@@ -1,0 +1,424 @@
+
+########## FOLD 1/6 ##########
+======================================================================
+ZERO-DAY CAN INTRUSION DETECTION EVALUATION
+======================================================================
+
+[1/4] Loading graphs, vocabulary, and model weights...
+Restoring exact capture splits and feature normalizer from checkpoint metadata...
+Loaded 13648 total graphs. Vocab size: 106.
+Split: 7688 train, 436 val, 3826 test.
+
+[2/4] Initializing and Calibrating Zero-Day Detector...
+Component scales fitted: recon=0.0300, temporal=1.4826, struct=0.3153, excess=261.1125
+Detector Calibrated on 436 validation windows:
+  tau_suspicious (95.0th percentile) : 3.8560
+  tau_alert      (99.0th percentile) : 5.8218
+
+[3/4] Evaluating Test Set (held-out ambient + ROAD attacks + held-out synthetic episodes)...
+Correlation baseline: 57 stable signal pairs from 7688 train windows
+Correlation term: sigma_C 3.4336, tau_suspicious 6.8123, tau_alert 8.7904, C defined in 98.6% of test windows
+
+[4/4] Computing Intrusion Detection Metrics...
+
+======================================================================
+REAL ROAD PERFORMANCE (held-out ambient + ROAD attack captures)
+======================================================================
+  Total Test Windows      : 3554 (Benign: 3218, Attack: 336)
+  True Positives          :   288  |  False Positives (FP) :   718
+  False Negatives         :    48  |  True Negatives (TN)  :  2500
+----------------------------------------------------------------------
+  Decision Threshold      : 6.8123
+  High-Risk               : 8.7904
+----------------------------------------------------------------------
+  precision               : 0.2863
+  recall                  : 0.8571
+  f1                      : 0.4292
+  accuracy                : 0.7845
+  fpr                     : 0.2231
+  roc_auc                 : 0.8420
+  pr_auc                  : 0.2671
+  false alarms / hour     : 575.9 windows, 102.1 distinct events (ambient driving)
+  FPR dyno drives         : 0.1600 (406/2538 real benign windows, 102.1 events/h)
+======================================================================
+
+SYNTHETIC TIMING-ATTACK EPISODES (reported separately; parent capture held out)
+Attack_level           | Win recall | Episodes   | Median latency
+------------------------------------------------------------------
+drift_0.01             | 43.48%     | 2/2        | 6.0s          
+drift_0.03             | 39.13%     | 1/2        | 1.0s          
+drift_0.1              | 45.45%     | 2/2        | 5.5s          
+fabrication_1          | 41.67%     | 1/2        | 0.0s          
+fabrication_2          | 37.50%     | 1/2        | 1.0s          
+fabrication_4          | 69.57%     | 2/2        | 0.5s          
+flooding_1000          | 95.65%     | 2/2        | 0.5s          
+flooding_200           | 100.00%    | 2/2        | 0.0s          
+flooding_50            | 81.82%     | 2/2        | 1.0s          
+suspension_0.5         | 0.00%      | 0/2        | N/A           
+suspension_0.9         | 40.91%     | 1/2        | 1.0s          
+suspension_1.0         | 9.09%      | 1/2        | 0.0s          
+Overall synthetic window recall: 50.37% (272 windows)
+
+ATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)
+  [all real] episodes 13/13 (median latency 0.0s) | recall by attack frames/window -> 1: 100% (1) | 2-5: 100% (2) | 6-20: 83% (6) | 21-100: 64% (22) | 101+: 87% (305)
+
+########## FOLD 2/6 ##########
+======================================================================
+ZERO-DAY CAN INTRUSION DETECTION EVALUATION
+======================================================================
+
+[1/4] Loading graphs, vocabulary, and model weights...
+Restoring exact capture splits and feature normalizer from checkpoint metadata...
+Loaded 13648 total graphs. Vocab size: 106.
+Split: 9514 train, 52 val, 2354 test.
+
+[2/4] Initializing and Calibrating Zero-Day Detector...
+Component scales fitted: recon=0.0106, temporal=0.0000, struct=0.3564, excess=343.6270
+Detector Calibrated on 52 validation windows:
+  tau_suspicious (95.0th percentile) : 5.5047
+  tau_alert      (99.0th percentile) : 5.7727
+
+[3/4] Evaluating Test Set (held-out ambient + ROAD attacks + held-out synthetic episodes)...
+Correlation baseline: 58 stable signal pairs from 9514 train windows
+Correlation term: sigma_C 6.2309, tau_suspicious 6.3871, tau_alert 6.3922, C defined in 98.5% of test windows
+
+[4/4] Computing Intrusion Detection Metrics...
+
+======================================================================
+REAL ROAD PERFORMANCE (held-out ambient + ROAD attack captures)
+======================================================================
+  Total Test Windows      : 2112 (Benign: 1776, Attack: 336)
+  True Positives          :   264  |  False Positives (FP) :    57
+  False Negatives         :    72  |  True Negatives (TN)  :  1719
+----------------------------------------------------------------------
+  Decision Threshold      : 6.3871
+  High-Risk               : 6.3922
+----------------------------------------------------------------------
+  precision               : 0.8224
+  recall                  : 0.7857
+  f1                      : 0.8037
+  accuracy                : 0.9389
+  fpr                     : 0.0321
+  roc_auc                 : 0.9544
+  pr_auc                  : 0.8202
+  false alarms / hour     : 19.7 windows, 16.4 distinct events (ambient driving)
+  FPR dyno drives         : 0.0055 (6/1096 real benign windows, 16.4 events/h)
+======================================================================
+
+SYNTHETIC TIMING-ATTACK EPISODES (reported separately; parent capture held out)
+Attack_level           | Win recall | Episodes   | Median latency
+------------------------------------------------------------------
+drift_0.01             | 17.65%     | 1/2        | 2.0s          
+drift_0.03             | 0.00%      | 0/2        | N/A           
+drift_0.1              | 0.00%      | 0/2        | N/A           
+fabrication_1          | 0.00%      | 0/2        | N/A           
+fabrication_2          | 0.00%      | 0/2        | N/A           
+fabrication_4          | 31.58%     | 2/2        | 3.5s          
+flooding_1000          | 89.47%     | 2/2        | 0.0s          
+flooding_200           | 93.75%     | 2/2        | 0.5s          
+flooding_50            | 75.00%     | 2/2        | 1.0s          
+suspension_0.5         | 0.00%      | 0/2        | N/A           
+suspension_0.9         | 68.18%     | 2/2        | 1.5s          
+suspension_1.0         | 64.29%     | 1/2        | 1.0s          
+Overall synthetic window recall: 34.30% (242 windows)
+
+ATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)
+  [all real] episodes 12/13 (median latency 1.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 0% (2) | 6-20: 17% (6) | 21-100: 23% (22) | 101+: 85% (305)
+
+########## FOLD 3/6 ##########
+======================================================================
+ZERO-DAY CAN INTRUSION DETECTION EVALUATION
+======================================================================
+
+[1/4] Loading graphs, vocabulary, and model weights...
+Restoring exact capture splits and feature normalizer from checkpoint metadata...
+Loaded 13648 total graphs. Vocab size: 106.
+Split: 6818 train, 3744 val, 1385 test.
+
+[2/4] Initializing and Calibrating Zero-Day Detector...
+Component scales fitted: recon=0.0161, temporal=0.0000, struct=0.2226, excess=209.9022
+Detector Calibrated on 3744 validation windows:
+  tau_suspicious (95.0th percentile) : 7.7947
+  tau_alert      (99.0th percentile) : 9.9363
+
+[3/4] Evaluating Test Set (held-out ambient + ROAD attacks + held-out synthetic episodes)...
+Correlation baseline: 62 stable signal pairs from 6818 train windows
+Correlation term: sigma_C 5.5656, tau_suspicious 7.7947, tau_alert 9.9363, C defined in 99.9% of test windows
+
+[4/4] Computing Intrusion Detection Metrics...
+
+======================================================================
+REAL ROAD PERFORMANCE (held-out ambient + ROAD attack captures)
+======================================================================
+  Total Test Windows      : 1116 (Benign: 780, Attack: 336)
+  True Positives          :   288  |  False Positives (FP) :    43
+  False Negatives         :    48  |  True Negatives (TN)  :   737
+----------------------------------------------------------------------
+  Decision Threshold      : 7.7947
+  High-Risk               : 9.9363
+----------------------------------------------------------------------
+  precision               : 0.8701
+  recall                  : 0.8571
+  f1                      : 0.8636
+  accuracy                : 0.9185
+  fpr                     : 0.0551
+  roc_auc                 : 0.9402
+  pr_auc                  : 0.8991
+  false alarms / hour     : 0.0 windows, 0.0 distinct events (ambient driving)
+  FPR dyno drives         : 0.0000 (0/100 real benign windows, 0.0 events/h)
+======================================================================
+
+SYNTHETIC TIMING-ATTACK EPISODES (reported separately; parent capture held out)
+Attack_level           | Win recall | Episodes   | Median latency
+------------------------------------------------------------------
+drift_0.01             | 0.00%      | 0/2        | N/A           
+drift_0.03             | 0.00%      | 0/2        | N/A           
+drift_0.1              | 0.00%      | 0/2        | N/A           
+fabrication_1          | 95.65%     | 2/2        | 0.0s          
+fabrication_2          | 95.65%     | 2/2        | 0.0s          
+fabrication_4          | 91.67%     | 2/2        | 0.0s          
+flooding_1000          | 95.65%     | 2/2        | 0.5s          
+flooding_200           | 100.00%    | 2/2        | 0.0s          
+flooding_50            | 86.36%     | 2/2        | 0.5s          
+suspension_0.5         | 0.00%      | 0/2        | N/A           
+suspension_0.9         | 0.00%      | 0/2        | N/A           
+suspension_1.0         | 0.00%      | 0/2        | N/A           
+Overall synthetic window recall: 47.96% (269 windows)
+
+ATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)
+  [all real] episodes 11/13 (median latency 1.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 0% (2) | 6-20: 0% (6) | 21-100: 23% (22) | 101+: 93% (305)
+
+########## FOLD 4/6 ##########
+======================================================================
+ZERO-DAY CAN INTRUSION DETECTION EVALUATION
+======================================================================
+
+[1/4] Loading graphs, vocabulary, and model weights...
+Restoring exact capture splits and feature normalizer from checkpoint metadata...
+Loaded 13648 total graphs. Vocab size: 106.
+Split: 5900 train, 360 val, 5686 test.
+
+[2/4] Initializing and Calibrating Zero-Day Detector...
+Component scales fitted: recon=0.0186, temporal=1.4826, struct=0.2691, excess=192.7521
+Detector Calibrated on 360 validation windows:
+  tau_suspicious (95.0th percentile) : 5.2993
+  tau_alert      (99.0th percentile) : 5.8191
+
+[3/4] Evaluating Test Set (held-out ambient + ROAD attacks + held-out synthetic episodes)...
+Correlation baseline: 64 stable signal pairs from 5900 train windows
+Correlation term: sigma_C 13.8466, tau_suspicious 5.2993, tau_alert 5.8191, C defined in 99.1% of test windows
+
+[4/4] Computing Intrusion Detection Metrics...
+
+======================================================================
+REAL ROAD PERFORMANCE (held-out ambient + ROAD attack captures)
+======================================================================
+  Total Test Windows      : 5418 (Benign: 5082, Attack: 336)
+  True Positives          :   324  |  False Positives (FP) :   914
+  False Negatives         :    12  |  True Negatives (TN)  :  4168
+----------------------------------------------------------------------
+  Decision Threshold      : 5.2993
+  High-Risk               : 5.8191
+----------------------------------------------------------------------
+  precision               : 0.2617
+  recall                  : 0.9643
+  f1                      : 0.4117
+  accuracy                : 0.8291
+  fpr                     : 0.1799
+  roc_auc                 : 0.9742
+  pr_auc                  : 0.8228
+  false alarms / hour     : 648.5 windows, 118.6 distinct events (ambient driving)
+  FPR dyno drives         : 0.0851 (56/658 real benign windows, 104.0 events/h)
+  FPR highway drives      : 0.1968 (737/3744 real benign windows, 121.2 events/h)
+======================================================================
+
+SYNTHETIC TIMING-ATTACK EPISODES (reported separately; parent capture held out)
+Attack_level           | Win recall | Episodes   | Median latency
+------------------------------------------------------------------
+drift_0.01             | 50.00%     | 1/2        | 0.0s          
+drift_0.03             | 40.91%     | 1/2        | 1.0s          
+drift_0.1              | 40.91%     | 1/2        | 1.0s          
+fabrication_1          | 47.83%     | 1/2        | 0.0s          
+fabrication_2          | 65.22%     | 2/2        | 1.5s          
+fabrication_4          | 100.00%    | 2/2        | 0.0s          
+flooding_1000          | 95.65%     | 2/2        | 0.5s          
+flooding_200           | 95.65%     | 2/2        | 0.5s          
+flooding_50            | 100.00%    | 2/2        | 0.0s          
+suspension_0.5         | 36.36%     | 1/2        | 1.0s          
+suspension_0.9         | 81.82%     | 2/2        | 1.0s          
+suspension_1.0         | 90.91%     | 2/2        | 0.5s          
+Overall synthetic window recall: 70.52% (268 windows)
+
+ATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)
+  [all real] episodes 13/13 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 0% (2) | 6-20: 33% (6) | 21-100: 82% (22) | 101+: 100% (305)
+
+########## FOLD 5/6 ##########
+======================================================================
+ZERO-DAY CAN INTRUSION DETECTION EVALUATION
+======================================================================
+
+[1/4] Loading graphs, vocabulary, and model weights...
+Restoring exact capture splits and feature normalizer from checkpoint metadata...
+Loaded 13648 total graphs. Vocab size: 106.
+Split: 8606 train, 445 val, 2894 test.
+
+[2/4] Initializing and Calibrating Zero-Day Detector...
+Component scales fitted: recon=0.0107, temporal=1.4826, struct=0.2012, excess=177.3786
+Detector Calibrated on 445 validation windows:
+  tau_suspicious (95.0th percentile) : 6.8421
+  tau_alert      (99.0th percentile) : 8.4967
+
+[3/4] Evaluating Test Set (held-out ambient + ROAD attacks + held-out synthetic episodes)...
+Correlation baseline: 56 stable signal pairs from 8606 train windows
+Correlation term: sigma_C 8.8359, tau_suspicious 6.8421, tau_alert 8.4967, C defined in 99.9% of test windows
+
+[4/4] Computing Intrusion Detection Metrics...
+
+======================================================================
+REAL ROAD PERFORMANCE (held-out ambient + ROAD attack captures)
+======================================================================
+  Total Test Windows      : 2627 (Benign: 2291, Attack: 336)
+  True Positives          :   286  |  False Positives (FP) :   139
+  False Negatives         :    50  |  True Negatives (TN)  :  2152
+----------------------------------------------------------------------
+  Decision Threshold      : 6.8421
+  High-Risk               : 8.4967
+----------------------------------------------------------------------
+  precision               : 0.6729
+  recall                  : 0.8512
+  f1                      : 0.7516
+  accuracy                : 0.9281
+  fpr                     : 0.0607
+  roc_auc                 : 0.9653
+  pr_auc                  : 0.8652
+  false alarms / hour     : 241.3 windows, 60.3 distinct events (ambient driving)
+  FPR dyno drives         : 0.0670 (108/1611 real benign windows, 60.3 events/h)
+======================================================================
+
+SYNTHETIC TIMING-ATTACK EPISODES (reported separately; parent capture held out)
+Attack_level           | Win recall | Episodes   | Median latency
+------------------------------------------------------------------
+drift_0.01             | 63.64%     | 2/2        | 3.5s          
+drift_0.03             | 50.00%     | 1/2        | 0.0s          
+drift_0.1              | 50.00%     | 1/2        | 0.0s          
+fabrication_1          | 95.65%     | 2/2        | 0.0s          
+fabrication_2          | 100.00%    | 2/2        | 0.0s          
+fabrication_4          | 100.00%    | 2/2        | 0.0s          
+flooding_1000          | 95.65%     | 2/2        | 0.5s          
+flooding_200           | 100.00%    | 2/2        | 0.0s          
+flooding_50            | 100.00%    | 2/2        | 0.0s          
+suspension_0.5         | 0.00%      | 0/2        | N/A           
+suspension_0.9         | 22.73%     | 1/2        | 2.0s          
+suspension_1.0         | 4.55%      | 1/2        | 0.0s          
+Overall synthetic window recall: 65.54% (267 windows)
+
+ATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)
+  [all real] episodes 11/13 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 0% (2) | 6-20: 0% (6) | 21-100: 41% (22) | 101+: 91% (305)
+
+########## FOLD 6/6 ##########
+======================================================================
+ZERO-DAY CAN INTRUSION DETECTION EVALUATION
+======================================================================
+
+[1/4] Loading graphs, vocabulary, and model weights...
+Restoring exact capture splits and feature normalizer from checkpoint metadata...
+Loaded 13648 total graphs. Vocab size: 106.
+Split: 7600 train, 2147 val, 2199 test.
+
+[2/4] Initializing and Calibrating Zero-Day Detector...
+Component scales fitted: recon=0.0121, temporal=1.4826, struct=0.2186, excess=218.8430
+Detector Calibrated on 2147 validation windows:
+  tau_suspicious (95.0th percentile) : 6.1676
+  tau_alert      (99.0th percentile) : 9.7527
+
+[3/4] Evaluating Test Set (held-out ambient + ROAD attacks + held-out synthetic episodes)...
+Correlation baseline: 57 stable signal pairs from 7600 train windows
+Correlation term: sigma_C 7.0265, tau_suspicious 6.1676, tau_alert 9.7527, C defined in 99.9% of test windows
+
+[4/4] Computing Intrusion Detection Metrics...
+
+======================================================================
+REAL ROAD PERFORMANCE (held-out ambient + ROAD attack captures)
+======================================================================
+  Total Test Windows      : 1931 (Benign: 1595, Attack: 336)
+  True Positives          :   278  |  False Positives (FP) :    82
+  False Negatives         :    58  |  True Negatives (TN)  :  1513
+----------------------------------------------------------------------
+  Decision Threshold      : 6.1676
+  High-Risk               : 9.7527
+----------------------------------------------------------------------
+  precision               : 0.7722
+  recall                  : 0.8274
+  f1                      : 0.7989
+  accuracy                : 0.9275
+  fpr                     : 0.0514
+  roc_auc                 : 0.9620
+  pr_auc                  : 0.8795
+  false alarms / hour     : 184.9 windows, 59.0 distinct events (ambient driving)
+  FPR dyno drives         : 0.0449 (20/445 real benign windows, 56.6 events/h)
+  FPR highway drives      : 0.0574 (27/470 real benign windows, 61.3 events/h)
+======================================================================
+
+SYNTHETIC TIMING-ATTACK EPISODES (reported separately; parent capture held out)
+Attack_level           | Win recall | Episodes   | Median latency
+------------------------------------------------------------------
+drift_0.01             | 100.00%    | 2/2        | 0.0s          
+drift_0.03             | 100.00%    | 2/2        | 0.0s          
+drift_0.1              | 100.00%    | 2/2        | 0.0s          
+fabrication_1          | 91.30%     | 2/2        | 0.0s          
+fabrication_2          | 100.00%    | 2/2        | 0.0s          
+fabrication_4          | 91.67%     | 2/2        | 0.0s          
+flooding_1000          | 100.00%    | 2/2        | 0.0s          
+flooding_200           | 95.65%     | 2/2        | 0.5s          
+flooding_50            | 100.00%    | 2/2        | 0.0s          
+suspension_0.5         | 9.09%      | 1/2        | 5.0s          
+suspension_0.9         | 9.09%      | 1/2        | 9.0s          
+suspension_1.0         | 0.00%      | 0/2        | N/A           
+Overall synthetic window recall: 75.00% (268 windows)
+
+ATTACK INTENSITY & EPISODES (window recall by injected frames per window; episode = consecutive attack windows)
+  [all real] episodes 11/13 (median latency 0.0s) | recall by attack frames/window -> 1: 0% (1) | 2-5: 0% (2) | 6-20: 0% (6) | 21-100: 41% (22) | 101+: 88% (305)
+
+================================================================================================
+CAPTURE-ROTATION CROSS-VALIDATION (6 folds) - REAL ROAD METRICS
+================================================================================================
+Fold  | Test ambient captures                         | ROC    | Prec   | Rec    | F1     | FPR   
+0     | dyno_exercise_all_bits,dyno_drive_radio_infot | 0.842  | 0.286  | 0.857  | 0.429  | 0.223
+1     | dyno_drive_benign_anomaly,dyno_idle_radio_inf | 0.954  | 0.822  | 0.786  | 0.804  | 0.032
+2     | dyno_reverse,dyno_drive_winter                | 0.940  | 0.870  | 0.857  | 0.864  | 0.055
+3     | highway_street_driving_long,dyno_drive_extend | 0.974  | 0.262  | 0.964  | 0.412  | 0.180
+4     | dyno_drive_extended_short,dyno_drive_basic_lo | 0.965  | 0.673  | 0.851  | 0.752  | 0.061
+5     | dyno_drive_basic_short,highway_street_driving | 0.962  | 0.772  | 0.827  | 0.799  | 0.051
+------------------------------------------------------------------------------------------------
+  roc_auc                       : 0.9397 +/- 0.0449
+  pr_auc                        : 0.7590 +/- 0.2218
+  precision                     : 0.6143 +/- 0.2480
+  recall                        : 0.8571 +/- 0.0540
+  f1                            : 0.6764 +/- 0.1840
+  accuracy                      : 0.8877 +/- 0.0590
+  fpr                           : 0.1004 +/- 0.0731
+  false_alarm_windows_per_hour  : 278.3961 +/- 251.6711
+  false_alarm_events_per_hour   : 59.4142 +/- 42.2386
+  synthetic_window_recall       : 0.5728 +/- 0.1426
+  pooled benign FPR             : 0.1325 (1953/14742 benign test windows across folds)
+  pooled FPR dyno drives        : 0.0924 (596/6448 real benign windows)
+  pooled FPR highway drives     : 0.1813 (764/4214 real benign windows)
+
+SYNTHETIC EPISODES ACROSS FOLDS (each parent capture held out exactly once)
+  drift_0.01            : window recall 46.88% (128 windows) | episodes detected 8/12
+  drift_0.03            : window recall 38.35% (133 windows) | episodes detected 5/12
+  drift_0.1             : window recall 39.10% (133 windows) | episodes detected 6/12
+  fabrication_1         : window recall 63.24% (136 windows) | episodes detected 8/12
+  fabrication_2         : window recall 65.22% (138 windows) | episodes detected 9/12
+  fabrication_4         : window recall 82.22% (135 windows) | episodes detected 12/12
+  flooding_1000         : window recall 95.49% (133 windows) | episodes detected 12/12
+  flooding_200          : window recall 97.66% (128 windows) | episodes detected 12/12
+  flooding_50           : window recall 90.30% (134 windows) | episodes detected 12/12
+  suspension_0.5        : window recall  7.58% (132 windows) | episodes detected 2/12
+  suspension_0.9        : window recall 37.12% (132 windows) | episodes detected 7/12
+  suspension_1.0        : window recall 25.81% (124 windows) | episodes detected 5/12
+
+POOLED 6-FOLD CONFUSION MATRIX (benign windows counted once, attack windows once per fold model)
+  TP 1728 | FP 1953 | TN 12789 | FN 288
+  precision 0.4694 | recall 0.8571 | f1 0.6066 | accuracy 0.8663 | fpr 0.1325
+  [Evaluation Visual] Saved Confusion Matrix to: D:\git_repos\capstone\graph-transformer\outputs\xai_visuals\confusion_matrix_folds_pooled.png
