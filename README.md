@@ -429,6 +429,22 @@ Using the following metrics:
 | FPR | 5.04% | 7.08% ± 4.99% (pooled 9.42%) |
 | False-alarm events / hour (ambient) | 64.5 | 56.3 ± 34.6 (alerting windows: 221.8 ± 206.3) |
 
+**Pooled 6-fold confusion matrix.** Every benign drive is tested once (14,742 windows). The 336 real attack windows are scored by each fold's model, so attacks are counted 6 times, once per independent model. `evaluate.py --folds 6` also saves this as `outputs/xai_visuals/confusion_matrix_folds_pooled.png`.
+
+| | Predicted attack | Predicted benign |
+|---|---|---|
+| **Actual attack** | TP 1,728 | FN 288 |
+| **Actual benign** | FP 1,388 | TN 13,354 |
+
+Pooled: precision 55.5%, recall 85.7%, F1 67.3%, accuracy 90.0%, FPR 9.4%.
+
+**False alarms by drive type** (real benign drives only, pooled over the folds):
+
+| Drive type | FPR |
+|---|---|
+| Dyno | 5.2% (333 / 6,448 windows) |
+| Highway | 18.1% (764 / 4,214 windows) |
+
 Synthetic window recall, pooled over the 6 folds (low → high intensity):
 
 | Attack | Window recall |
@@ -457,6 +473,8 @@ Full detail is in `knowledge-graph/knowledge-graph.md` §5.
 - **Payload change features and a per-ID payload score P:** ROAD ROC-AUC fell to 0.46–0.66. ROAD's decoded signals change on almost every frame, so the change rate is benign noise.
 - **Per-drive score normalisation:** fold ROC-AUC fell to 0.831; during an attack, the running median absorbs the attack's own scores. A gated version (only windows below τ update the median) reached 0.948, but the fold FPR spread did not narrow, because fold 3's highway false alarms come in bursts, not as a steady per-drive offset.
 - **Per-ID value baseline:** ROAD ROC-AUC fell below chance (0.35–0.43). Benign values swing with driving, while spoofed values stay inside the normal range.
+- **Highway augmentation (training only):** re-timed copies of the training-fold highway drives (block reordering, per-ID phase offsets, ±100 ppm skew, jitter), never used in testing. Highway FPR fell from 18.1% to 15.8%, but recall fell from 85.7% to 78.9% and fold ROC-AUC fell to 0.951, because the extra orderings make attacks' unusual orderings look normal.
+- **Signal-correlation term C** (after the correlation-matrix IDS benchmarked on ROAD, arXiv 2406.13778): 56 stable signal pairs fitted on training windows, including the wheel-speed signals of the correlated-signal target. It did not raise correlated or coolant recall (27/68), and fold ROC-AUC fell to 0.940: on `dyno_exercise_all_bits`, legitimate maneuvers break benign correlations, giving 22% FPR.
 
 **Earlier multi-dataset version.** The pipeline was also run on the can-train-and-test dataset (DTU; 4 real vehicles), where known-vehicle results were ROC-AUC 0.953 on known attacks and 0.873 on zero-day attacks. That support was removed to keep the codebase ROAD-only; it is preserved at git tag `multidataset-final`.
 

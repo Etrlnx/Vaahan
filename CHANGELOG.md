@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.6.0] - 2026-10-15 — ROAD-only pipeline and fuller evaluation
+
+### Changed
+- The pipeline works on ROAD only. The can-train-and-test converter and `CAN_DATASET` switch were removed and are preserved at git tag `multidataset-final`.
+
+### Added
+- **Pooled 6-fold confusion matrix:** printed and saved as `confusion_matrix_folds_pooled.png`. Precision 55.5%, recall 85.7%, F1 67.3%, accuracy 90.0%.
+- **False alarms by drive type** on real benign drives: dyno 5.2%, highway 18.1%.
+
+### Rejected after testing (documented in README §17 and `logs/road/`)
+- Training-time highway augmentation: fold ROC-AUC 0.967 → 0.951.
+- Signal-correlation term: fold ROC-AUC 0.967 → 0.940.
+
+---
+
 ## [0.5.0] - 2026-10-14 — Evaluation rigour, second dataset, rate term
 
 ### Added
