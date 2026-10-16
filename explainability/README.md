@@ -40,19 +40,19 @@ Our Graph Transformer and Detector provide four concrete, extractable sources of
 ```mermaid
 flowchart TD
 
-A[Graph Transformer Encoder] --> B[Multi-Head Attention Tensors]
+A["Graph Transformer<br/>Encoder"] --> B["Multi-Head<br/>Attention Tensors"]
 A --> C[Latent Embeddings z]
 
-D[GAE Node Decoder] --> E[Node Feature Residuals x - x_hat]
-F[Transition Baseline] --> G[Transition Sequence NLL]
+D[GAE Node Decoder] --> E["Node Feature<br/>Residuals x - x_hat"]
+F[Transition Baseline] --> G["Transition<br/>Sequence NLL"]
 
-B --> H[Evidence Fusion Engine]
+B --> H["Evidence Fusion<br/>Engine"]
 E --> H
 G --> H
 C --> H
 
-H --> I[Structured JSON Security Report]
-H --> J[Natural Language Triage Report]
+H --> I["Structured JSON<br/>Security Report"]
+H --> J["Natural Language<br/>Triage Report"]
 ```
 
 ### 1. Multi-Head Attention Analysis (`attention_analyzer.py`)
