@@ -41,9 +41,7 @@ The intended audience for this repository includes recruiters and hiring manager
 
 ## 2. Problem Statement
 
-CAN was designed for efficient, reliable communication between ECUs, not for security. It provides no native authentication, encryption, or intrusion detection, which means a compromised or spoofed ECU can inject malicious frames that appear to come from a legitimate component. Signature-based Intrusion Detection Systems (IDS) can catch known attack patterns, but they share a fundamental limitation:
-
-> A previously unseen attack may not match any known signature.
+CAN was designed for efficient, reliable communication between ECUs, not for security. It provides no native authentication, encryption, or intrusion detection, which means a compromised or spoofed ECU can inject malicious frames that appear to come from a legitimate component. Signature-based Intrusion Detection Systems (IDS) can catch known attack patterns, but they share a fundamental limitation: **A previously unseen attack may not match any known signature.**
 
 This project proposes a graph-based, **behavioral anomaly detection** system that learns what *normal* CAN network behavior looks like — structurally and temporally — so that deviations, including attacks with no prior signature, can be flagged and explained, rather than only classified against a fixed attack list.
 
@@ -100,9 +98,9 @@ The proposed system sits behind a fast deterministic filter at the vehicle gatew
 ```mermaid
 flowchart LR
 
-A[CAN Bus Traffic] --> B[Gateway + Fast Filter]
+A[CAN Bus Traffic] --> B["Gateway +<br/>Fast Filter"]
 B -->|Normal| C[Vehicle ECUs]
-B -->|Suspicious| D[Graph Transformer Pipeline]
+B -->|Suspicious| D["Graph Transformer<br/>Pipeline"]
 
 D --> E[Anomaly Score]
 E --> F{Risk Assessment}
@@ -116,37 +114,37 @@ H --> C
 
 The gateway's fast filter forwards clearly normal traffic directly to the vehicle ECUs and routes only suspicious or uncertain traffic into the graph-based pipeline. That pipeline produces an anomaly score which drives a risk assessment: low-risk traffic is forwarded, while high-risk traffic is routed through the XAI evidence layer to produce an explanation, which in turn informs the gateway policy's enforcement decision.
 
-### Decision Flow (high level)
+### Decision Flow
 
 ```mermaid
 flowchart LR
 
-A[Dynamic Graph] --> B[Graph Transformer Encoder]
-B --> C[Graph Autoencoder Decoder]
-C --> D[Reconstruction Error & Multi-Signal Score]
+A[Dynamic Graph] --> B["Graph Transformer<br/>Encoder"]
+B --> C["Graph Autoencoder<br/>Decoder"]
+C --> D["Reconstruction Error &<br/>Multi-Signal Score"]
 D --> E[Risk State & XAI]
 ```
 
 **Why this separation?** Splitting "graph representation," "relational reasoning," "reconstruction-based detection," and "risk scoring" into distinct stages keeps each component independently testable — the Graph Transformer's embeddings can be evaluated on their own, and the anomaly-scoring logic can be tuned or replaced without changing how the graph itself is built.
 
-## 8. Detection Pipeline (Workflow)
+## 8. Workflow Diagram
 
 ```mermaid
 flowchart TD
 
-A["Temporal Windowing (preprocess.py)"] --> B["Dynamic Graph Construction (graph_builder.py)"]
-B --> C["Graph Transformer Encoding (model.py)"]
-C --> D["Graph Autoencoder Reconstruction (model.py)"]
+A["Temporal Windowing<br/>(preprocess.py)"] --> B["Dynamic Graph Construction<br/>(graph_builder.py)"]
+B --> C["Graph Transformer Encoding<br/>(model.py)"]
+C --> D["Graph Autoencoder<br/>Reconstruction<br/>(model.py)"]
 
-D --> E["Reconstruction Deviation (R, weight 0.25)"]
-C --> F["Transition Excess (E, weight 1.0) + Optional Rate Term (T)"]
+D --> E["Reconstruction Deviation<br/>(R, weight 0.25)"]
+C --> F["Transition Excess<br/>(E, weight 1.0)<br/>+ Optional Rate Term (T)"]
 
-E --> G["Adaptive Anomaly Score"]
+E --> G["Adaptive<br/>Anomaly Score"]
 F --> G
 
 G --> H{Risk Level}
 H -->|Low| I["Forward Traffic"]
-H -->|High| J["Trigger XAI Evidence Layer"]
+H -->|High| J["Trigger XAI<br/>Evidence Layer"]
 ```
 
 CAN traffic that reaches the learned pipeline is first grouped into temporal windows, then assembled into a dynamic graph of CAN arbitration IDs and message transition relationships. The Graph Transformer encodes that graph, and the Graph Autoencoder attempts to reconstruct the node statistical features and structural edges. The reconstruction error is combined with a per-node transition excess baseline to produce a calibrated anomaly score that distinguishes normal driving from zero-day masquerade and injection attacks.
@@ -293,11 +291,11 @@ python explainability/evalxai.py --timing # rate term on: score and attribution 
 flowchart LR
 
 A[CAN Arbitration IDs] --> D[Dynamic Graph G_t]
-B[9D Statistical Node Features] --> D
-C[Global ID Embedding Vocab] --> D
-E[Temporal Message Adjacency] -->|Edge Weights| D
+B["9D Statistical<br/>Node Features"] --> D
+C["Global ID<br/>Embedding Vocab"] --> D
+E["Temporal Message<br/>Adjacency"] -->|Edge Weights| D
 
-D --> F[Graph Transformer Encoder]
+D --> F["Graph Transformer<br/>Encoder"]
 ```
 
 Each temporal window ($W = 2.0\text{s}$) of CAN traffic is converted into a PyTorch Geometric `Data` graph:
@@ -323,11 +321,11 @@ Each temporal window ($W = 2.0\text{s}$) of CAN traffic is converted into a PyTo
 ```mermaid
 flowchart LR
 
-A["Reconstruction Error (R)"] --> D[Anomaly Evaluation]
-B["Per-ID Transition Excess (E)"] --> D
-C["Temporal (T) / Mean Transition NLL (G): reported, weight 0"] --> D
+A["Reconstruction<br/>Error (R)"] --> D[Anomaly Evaluation]
+B["Per-ID Transition<br/>Excess (E)"] --> D
+C["Temporal (T) /<br/>Mean Transition NLL (G):<br/>reported, weight 0"] --> D
 
-D --> E[Per-Capture Breakdown & Decision]
+D --> E["Per-Capture Breakdown<br/>& Decision"]
 ```
 
 Anomaly detection is formulated as an **unsupervised one-class reconstruction task**:
@@ -352,13 +350,13 @@ Anomaly detection is formulated as an **unsupervised one-class reconstruction ta
 ```mermaid
 flowchart TD
 
-A["Attention Analysis (Attention Rollout)"] --> E["Evidence Fusion Engine"]
-B["Feature Attribution (Per-Node Residuals)"] --> E
-C["Subgraph Localizer (k-Hop Subgraphs)"] --> E
-D["Error Analysis (Component Decomposition)"] --> E
+A["Attention Analysis<br/>(Attention Rollout)"] --> E["Evidence Fusion<br/>Engine"]
+B["Feature Attribution<br/>(Per-Node Residuals)"] --> E
+C["Subgraph Localizer<br/>(k-Hop Subgraphs)"] --> E
+D["Error Analysis<br/>(Component Decomposition)"] --> E
 
-E --> F["Human-Readable Triage Reports & Visual Dashboards"]
-E --> G["Machine-Readable JSON Incident Schemas"]
+E --> F["Human-Readable<br/>Triage Reports &<br/>Visual Dashboards"]
+E --> G["Machine-Readable<br/>JSON Incident Schemas"]
 ```
 
 When the anomaly score crosses $\tau_{\text{suspicious}}$ (or $\tau_{\text{alert}}$), the XAI evidence layer is triggered:
@@ -377,8 +375,8 @@ flowchart LR
 
 A[Risk State] --> B{Gateway Policy}
 
-B -->|Allow| C[Forward to Vehicle Network]
-B -->|Restrict| D[Restrict Communication]
+B -->|Allow| C["Forward to<br/>Vehicle Network"]
+B -->|Restrict| D["Restrict<br/>Communication"]
 B -->|Isolate| E[Isolate Component]
 B -->|Alert| F[Security Alert]
 ```
