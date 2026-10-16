@@ -138,8 +138,8 @@ A["Temporal Windowing (preprocess.py)"] --> B["Dynamic Graph Construction (graph
 B --> C["Graph Transformer Encoding (model.py)"]
 C --> D["Graph Autoencoder Reconstruction (model.py)"]
 
-D --> E["Reconstruction Deviation (Active)"]
-C --> F["Temporal + Structural Deviation (In Progress)"]
+D --> E["Reconstruction Deviation (R, weight 0.25)"]
+C --> F["Transition Excess (E, weight 1.0) + Optional Rate Term (T)"]
 
 E --> G["Adaptive Anomaly Score"]
 F --> G
@@ -149,9 +149,9 @@ H -->|Low| I["Forward Traffic"]
 H -->|High| J["Trigger XAI Evidence Layer"]
 ```
 
-CAN traffic that reaches the learned pipeline is first grouped into temporal windows, then assembled into a dynamic graph of CAN arbitration IDs and message transition relationships. The Graph Transformer encodes that graph, and the Graph Autoencoder attempts to reconstruct the node statistical features and structural edges. The reconstruction error (currently evaluated per capture on held-out attacks) is combined with temporal and graph-structural deviation signals to distinguish normal driving behavior from zero-day masquerade and injection attacks.
+CAN traffic that reaches the learned pipeline is first grouped into temporal windows, then assembled into a dynamic graph of CAN arbitration IDs and message transition relationships. The Graph Transformer encodes that graph, and the Graph Autoencoder attempts to reconstruct the node statistical features and structural edges. The reconstruction error is combined with a per-node transition excess baseline to produce a calibrated anomaly score that distinguishes normal driving from zero-day masquerade and injection attacks.
 
-**Status: Core Representation & Reconstruction Detection Implemented.** The windowing, graph builder, coupled model, and benign-only training with per-capture evaluation are functional in `graph-transformer/`. Extended anomaly score fusion and XAI evidence generation are in active development.
+**Status: Fully Implemented.** The complete pipeline — windowing, graph construction, autoencoder training, multi-component scoring, XAI forensic layer, and visual dashboards — is functional end-to-end. See §17 for benchmark results and §18 for remaining future work.
 
 ## 9. Technology Stack
 
@@ -484,9 +484,11 @@ Beyond the core implemented representation and detection pipeline:
 
 - **Multi-vehicle / multi-dataset evaluation** — prototyped on can-train-and-test (git tag `multidataset-final`) and removed to keep the codebase ROAD-only; a candidate for future work.
 - **Adaptive/online learning** — updating the model's notion of "normal" behavior over time as legitimate traffic patterns evolve.
-- **Cross-attack-family generalization** — systematically evaluating zero-day detection across distinct attack families (masquerade, fuzzing, spoofing, replay).
-- **Hardware-in-the-loop validation** — evaluating whether the pipeline meets real-time latency and resource constraints on representative in-vehicle gateway hardware.
-- **Structured XAI incident reports** — automating machine-readable JSON security incident reports with localized graph heatmaps.
+- **Suspension / message-rate detection** — the transition excess score only fires on present transitions; a dedicated missing-ID count-deficit term is needed to reliably catch ECU suspension attacks (current window recall: 21–40%).
+- **Payload-only attack coverage** — correlated-signal and coolant attacks remain weak (27/61, 0/7 recall). Requires per-signal predictive baselines (e.g. cross-signal consistency, per-byte value models) rather than per-ID change-rate statistics.
+- **Highway domain calibration** — fold-3 FPR is 18.1% on highway drives when calibrated on a dyno validation capture. A larger or more diverse calibration pool is needed.
+- **Hardware-in-the-loop validation** — validating that the pipeline meets real-time latency and resource constraints on representative in-vehicle gateway hardware (currently CPU-only at ~2 ms/window).
+- **Gateway policy simulation** — the enforcement layer (allow/restrict/isolate/alert decision rules) is designed but not yet implemented as runnable code.
 
 ---
 
