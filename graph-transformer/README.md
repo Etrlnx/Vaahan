@@ -28,31 +28,31 @@ CAN Traffic (ROAD Dataset)
 
 ```mermaid
 graph TD
-    subgraph S1["1. Preprocessing (preprocess.py)"]
-        A["Raw Signal-Translated CSVs (ROAD)"] --> B["Temporal Windowing (W=2.0s)"]
-        B --> C["WindowRecord Pickles (road_windowed.pkl)"]
+    subgraph S1["1. Preprocessing"]
+        A["Raw Signal-Translated<br/>CSVs (ROAD)"] --> B["Temporal Windowing<br/>(W=2.0s)"]
+        B --> C["WindowRecord Pickles<br/>(road_windowed.pkl)"]
     end
 
-    subgraph S2["2. Graph Construction (graph_builder.py)"]
-        C --> D["Arbitration ID Vocabulary (d=20)"]
-        C --> E["9D Statistical Node Features"]
-        C --> F["Directed Temporal Adjacency Edges"]
-        D & E & F --> G["PyG Graph Dataset (graphs.pt)"]
+    subgraph S2["2. Graph Construction"]
+        C --> D["Arbitration ID<br/>Vocabulary (d=20)"]
+        C --> E["9D Statistical<br/>Node Features"]
+        C --> F["Directed Temporal<br/>Adjacency Edges"]
+        D & E & F --> G["PyG Graph Dataset<br/>(graphs.pt)"]
     end
 
-    subgraph S3["3. Coupled Model (model.py)"]
-        G --> H["Input Projection (29 → 96)"]
-        H --> I["4x TransformerConv Encoder (4 Heads, Latent=48)"]
-        I --> J["Latent Node Embeddings (z)"]
-        I --> K["Attention Weight Hooks (get_attention_weights)"]
-        J --> L["MLP Node Feature Decoder (48 → 96 → 9)"]
-        J --> M["Inner-Product Edge Decoder"]
+    subgraph S3["3. Coupled Model"]
+        G --> H["Input Projection<br/>(29 → 96)"]
+        H --> I["4x TransformerConv<br/>Encoder<br/>(4 Heads, Latent=48)"]
+        I --> J["Latent Node<br/>Embeddings (z)"]
+        I --> K["Attention Weight Hooks<br/>(get_attention_weights)"]
+        J --> L["MLP Node<br/>Feature Decoder<br/>(48 → 96 → 9)"]
+        J --> M["Inner-Product<br/>Edge Decoder"]
     end
 
-    subgraph S4["4. Training & Evaluation (train.py)"]
-        L & M --> N["Weighted MSE + Edge BCE Loss"]
-        N --> O["Capture-Aware Benign-Only Training"]
-        O --> P["Per-Capture Reconstruction Error Evaluation"]
+    subgraph S4["4. Training & Evaluation"]
+        L & M --> N["Weighted MSE +<br/>Edge BCE Loss"]
+        N --> O["Capture-Aware<br/>Benign-Only Training"]
+        O --> P["Per-Capture<br/>Reconstruction Error<br/>Evaluation"]
     end
 ```
 
@@ -113,12 +113,12 @@ The encoder and decoder are trained jointly so that the latent space directly en
 
 ```mermaid
 flowchart LR
-    A["Node Stats (9D) + ID Emb (20D)"] --> B["Linear Projection (96D)"]
-    B --> C["4x TransformerConv Layers<br/>(4 Heads, Dropout 0.08, Edge Dim 1)"]
-    C --> D["Latent Embeddings z (48D)"]
+    A["Node Stats (9D) +<br/>ID Emb (20D)"] --> B["Linear Projection<br/>(96D)"]
+    B --> C["4x TransformerConv Layers<br/>(4 Heads, Dropout 0.08,<br/>Edge Dim 1)"]
+    C --> D["Latent Embeddings<br/>z (48D)"]
     D --> E["MLP Node Decoder<br/>(48 → 96 → 9)"]
-    D --> F["Inner-Product Edge Decoder<br/>(z_src · z_dst)"]
-    C -.-> G["Captured Attention Weights<br/>(Stored for XAI)"]
+    D --> F["Inner-Product<br/>Edge Decoder<br/>(z_src · z_dst)"]
+    C -.-> G["Captured Attention<br/>Weights<br/>(Stored for XAI)"]
 ```
 
 ### Model Hyperparameters (`ModelConfig`)

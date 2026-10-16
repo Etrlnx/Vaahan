@@ -58,7 +58,7 @@ This distinction is important for evaluating previously unseen or zero-day attac
 ```mermaid
 graph TD
 
-    A[Latent Graph Representation] --> B[Graph Autoencoder]
+    A["Latent Graph<br/>Representation"] --> B[Graph Autoencoder]
 
     B --> C[Reconstructed Graph]
 
@@ -66,16 +66,16 @@ graph TD
     C --> D
 
     A --> E[Temporal Deviation]
-    A --> F[Graph Structural Deviation]
+    A --> F["Graph Structural<br/>Deviation"]
 
-    D --> G[Adaptive Anomaly Score]
+    D --> G["Adaptive<br/>Anomaly Score"]
     E --> G
     F --> G
 
     G --> H{Risk Assessment}
 
     H -->|Normal / Low Risk| I[Continue Monitoring]
-    H -->|Suspicious / High Risk| J[Potential Zero-Day Attack]
+    H -->|Suspicious / High Risk| J["Potential<br/>Zero-Day Attack"]
 
     J --> K[XAI Evidence Layer]
 ```
